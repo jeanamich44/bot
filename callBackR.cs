@@ -895,7 +895,7 @@ namespace ChezRheyyBot
                 //envoyer le canal pour s'abonner
                 await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]));
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Voici notre canal: https://t.me/chezquickk",replyMarkup:inlineKeyboard);
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "Voici notre canal: https://t.me/ChezRheyyBot",replyMarkup:inlineKeyboard);
             }
             catch
             {
@@ -908,7 +908,7 @@ namespace ChezRheyyBot
                     {
                         InlineKeyboardButton.WithCallbackData("Home", "iHome")                    }
                 });
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Voici notre canal: https://t.me/chezquickk", replyMarkup: inlineKeyboard);
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "Voici notre canal: https://t.me/ChezRheyyBot", replyMarkup: inlineKeyboard);
             }
         }
 
