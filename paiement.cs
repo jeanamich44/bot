@@ -10,13 +10,15 @@ namespace UgcBotTG
 {
     internal class paiement
     {
+        private static readonly HttpClient _httpClient = new HttpClient();
+
         public static async Task PaiementList(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             var inlineKeyboard = new InlineKeyboardMarkup(new[]
             {
                 new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("💳 Paiement CarteBancaire", "iCustomCB")
+                    InlineKeyboardButton.WithCallbackData("💳 Paiement Carte Bancaire", "iCustomCB")
                 },
                 new[]
                 {
@@ -24,26 +26,108 @@ namespace UgcBotTG
                 },
                 new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("Home", "iHome")
+                    InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome")
                 }
             });
+
+            string text = "<b>💳 RECHARGEMENT DU SOLDE</b>\n\n" +
+                          "Choisissez votre mode de paiement sécurisé ci-dessous :\n" +
+                          "• <b>Cryptomonnaie</b> (Validation rapide, 30 min)\n" +
+                          "• <b>Carte Bancaire</b> (Validation instantanée)\n";
 
             try
             {
                 await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]) - 1);
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Rechargement *AUTOMATIQUE* via CryptoMonnaie|CarteBancaire\n\n", replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                await botClient.SendTextMessageAsync(config.CurrentChatId, text, replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
             }
             catch
             {
                 try
                 {
                     await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]));
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Rechargement *AUTOMATIQUE* via CryptoMonnaie|CarteBancaire\n\n", replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, text, replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                 }
                 catch
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Rechargement *AUTOMATIQUE* via CryptoMonnaie|CarteBancaire\n\n", replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, text, replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                 }
+            }
+        }
+
+        public static async Task RecupererMontant(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            string chatId = config.CurrentChatId;
+            if (string.IsNullOrEmpty(chatId)) return;
+
+            if (DataBase.AUnPaiementEnAttenteBDD(chatId))
+            {
+                var cancelKeyboard = new InlineKeyboardMarkup(new[]
+                {
+                    new[] { InlineKeyboardButton.WithCallbackData("❌ Annuler ma facture en attente", "iCancelPaiement") },
+                    new[] { InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome") }
+                });
+
+                await botClient.SendTextMessageAsync(chatId, "⚠️ <b>Vous avez déjà un paiement en attente.</b>\n\nVeuillez finaliser votre paiement ou l'annuler pour en créer un nouveau.", replyMarkup: cancelKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                return;
+            }
+
+            var inlineKeyboard = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("💵 10 €", "iPayAmt_10"),
+                    InlineKeyboardButton.WithCallbackData("💵 20 €", "iPayAmt_20")
+                },
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("💵 50 €", "iPayAmt_50"),
+                    InlineKeyboardButton.WithCallbackData("💵 100 €", "iPayAmt_100")
+                },
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("✏️ Saisir un montant personnalisé", "iMontantPersoCrypto")
+                },
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome")
+                }
+            });
+
+            await botClient.SendTextMessageAsync(chatId, "<b>₿ PAIMENT CRYPTOMONNAIE</b>\n\nSélectionnez un montant rapide ou saisissez le montant de votre choix :", replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+        }
+
+        public static async Task ActiverSaisieCustom(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            string chatId = config.CurrentChatId;
+            if (string.IsNullOrEmpty(chatId)) return;
+
+            if (!config.CustomPaiement.Contains(chatId))
+            {
+                config.CustomPaiement.Add(chatId);
+            }
+            await botClient.SendTextMessageAsync(chatId, "✏️ <b>Veuillez inscrire le montant souhaité en € :</b>\n<i>(Exemple: 15, 35, 75)</i>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+        }
+
+        public static async Task AnnulerPaiement(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            string chatId = config.CurrentChatId;
+            if (string.IsNullOrEmpty(chatId)) return;
+
+            bool annule = DataBase.AnnulerPaiementEnAttenteBDD(chatId);
+            if (annule)
+            {
+                try
+                {
+                    config.CustomPaiement.Remove(chatId);
+                    config.AttentePaiement.Remove(chatId);
+                }
+                catch { }
+
+                await botClient.SendTextMessageAsync(chatId, "✅ <b>Votre facture en attente a été annulée.</b> Vous pouvez à présent créer une nouvelle facture.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+            }
+            else
+            {
+                await botClient.SendTextMessageAsync(chatId, "ℹ️ Aucune facture en attente à annuler.");
             }
         }
 
@@ -54,7 +138,13 @@ namespace UgcBotTG
 
             if (DataBase.AUnPaiementEnAttenteBDD(chatId))
             {
-                await botClient.SendTextMessageAsync(chatId, "⚠️ Tu as déjà créé un lien de paiement en attente. Veuillez payer avec ou attendre son expiration.");
+                var cancelKeyboard = new InlineKeyboardMarkup(new[]
+                {
+                    new[] { InlineKeyboardButton.WithCallbackData("❌ Annuler ma facture en attente", "iCancelPaiement") },
+                    new[] { InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome") }
+                });
+
+                await botClient.SendTextMessageAsync(chatId, "⚠️ <b>Paiement déjà en cours.</b> Veuillez régler votre facture ou l'annuler ci-dessous.", replyMarkup: cancelKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                 return "";
             }
 
@@ -79,7 +169,7 @@ namespace UgcBotTG
 
             if (priceValue <= 0)
             {
-                await botClient.SendTextMessageAsync(chatId, "❌ Montant invalide.");
+                await botClient.SendTextMessageAsync(chatId, "❌ Montant invalide. Veuillez réessayer.");
                 return "";
             }
 
@@ -102,12 +192,11 @@ namespace UgcBotTG
                 sandbox = false
             };
 
-            using var httpClient = new HttpClient();
             var request = new HttpRequestMessage(HttpMethod.Post, config.apiUrl);
             request.Headers.Add("merchant_api_key", config.apiKey);
             request.Content = new StringContent(JsonSerializer.Serialize(jsonBody), Encoding.UTF8, "application/json");
 
-            var response = await httpClient.SendAsync(request, cancellationToken);
+            var response = await _httpClient.SendAsync(request, cancellationToken);
             var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
             using JsonDocument doc = JsonDocument.Parse(responseBody);
@@ -135,7 +224,20 @@ namespace UgcBotTG
                     catch { }
                 }
 
-                await botClient.SendTextMessageAsync(chatId, $"N° facture: <code>{trackId}</code>\nPaiement: {paymentUrl}\n", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                var paymentKeyboard = new InlineKeyboardMarkup(new[]
+                {
+                    new[] { InlineKeyboardButton.WithUrl($"🔗 Payer ma commande ({priceValue} €)", paymentUrl) },
+                    new[] { InlineKeyboardButton.WithCallbackData("❌ Annuler ma facture", "iCancelPaiement") },
+                    new[] { InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome") }
+                });
+
+                string msgText = $"<b>⚡ FACTURE DE PAIEMENT GENEREE</b>\n\n" +
+                                 $"🆔 <b>Facture N°:</b> <code>{trackId}</code>\n" +
+                                 $"💰 <b>Montant:</b> {priceValue:0.00} €\n" +
+                                 $"⏱️ <b>Durée de validité:</b> 30 minutes\n\n" +
+                                 $"<i>Cliquez sur le bouton ci-dessous pour effectuer votre paiement en crypto. Le solde sera crédité automatiquement à la validation.</i>";
+
+                await botClient.SendTextMessageAsync(chatId, msgText, replyMarkup: paymentKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
             }
             else
             {
@@ -146,8 +248,6 @@ namespace UgcBotTG
 
             return "";
         }
-
-        private static readonly HttpClient _httpClient = new HttpClient();
 
         public static async Task VerifierPaiement(ITelegramBotClient botClient, CancellationToken cancellationToken)
         {
@@ -302,19 +402,6 @@ namespace UgcBotTG
             }
         }
 
-        public static async Task RecupererMontant(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
-        {
-            try
-            {
-                if (!config.CustomPaiement.Contains(config.CurrentChatId))
-                {
-                    config.CustomPaiement.Add(config.CurrentChatId);
-                }
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Indiquez le montant souhaité: ");
-            }
-            catch { }
-        }
-
         public static async Task CreerPaiementSumAPI(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken, int montant)
         {
             string chatId = config.CurrentChatId;
@@ -324,7 +411,12 @@ namespace UgcBotTG
             {
                 if (DataBase.AUnPaiementEnAttenteBDD(chatId))
                 {
-                    await botClient.SendTextMessageAsync(chatId, "⚠️ Vous avez déjà un paiement en attente. Veuillez finaliser ou attendre son expiration.");
+                    var cancelKb = new InlineKeyboardMarkup(new[]
+                    {
+                        new[] { InlineKeyboardButton.WithCallbackData("❌ Annuler ma facture en attente", "iCancelPaiement") },
+                        new[] { InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome") }
+                    });
+                    await botClient.SendTextMessageAsync(chatId, "⚠️ <b>Vous avez déjà un paiement en attente.</b>", replyMarkup: cancelKb, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                     return;
                 }
 
@@ -391,12 +483,19 @@ namespace UgcBotTG
                 {
                     try
                     {
-                        await botClient.SendTextMessageAsync(ids, $"**Paiement via CB en cours**\nUser: @{config.CurrentPseudo}\nMontant: {montant}€\nLien: {payementlink}", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                        await botClient.SendTextMessageAsync(ids, $"*Paiement via CB en cours*\nUser: @{config.CurrentPseudo}\nMontant: {montant}€\nLien: {payementlink}", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                     }
                     catch { }
                 }
 
-                await botClient.SendTextMessageAsync(chatId, $"Voici votre lien de paiement {montant}€: {payementlink}");
+                var cbKeyboard = new InlineKeyboardMarkup(new[]
+                {
+                    new[] { InlineKeyboardButton.WithUrl($"💳 Payer par Carte Bancaire ({montant} €)", payementlink) },
+                    new[] { InlineKeyboardButton.WithCallbackData("❌ Annuler ma facture", "iCancelPaiement") },
+                    new[] { InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome") }
+                });
+
+                await botClient.SendTextMessageAsync(chatId, $"<b>💳 FACTURE CARTE BANCAIRE GENEREE</b>\n\nMontant : <b>{montant} €</b>\n\nCliquez ci-dessous pour procéder au paiement sécurisé :", replyMarkup: cbKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
             }
             catch (Exception ex)
             {
@@ -409,6 +508,24 @@ namespace UgcBotTG
         {
             try
             {
+                var proxyAddress = "50.117.12.56";
+                int proxyPort = 50100;
+                var proxyUser = "btcpaiement";
+                var proxyPass = "iNDymRSU7L";
+
+                var proxy = new WebProxy(proxyAddress, proxyPort)
+                {
+                    Credentials = new NetworkCredential(proxyUser, proxyPass)
+                };
+
+                var handler = new HttpClientHandler
+                {
+                    Proxy = proxy,
+                    UseProxy = true,
+                };
+
+                using var client = new HttpClient(handler);
+
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     await Task.Delay(5000, cancellationToken);
@@ -419,24 +536,6 @@ namespace UgcBotTG
                     {
                         try
                         {
-                            string proxyAddress = "50.117.12.56";
-                            int proxyPort = 50100;
-                            string proxyUser = "btcpaiement";
-                            string proxyPass = "iNDymRSU7L";
-
-                            var proxy = new WebProxy(proxyAddress, proxyPort)
-                            {
-                                Credentials = new NetworkCredential(proxyUser, proxyPass)
-                            };
-
-                            var handler = new HttpClientHandler
-                            {
-                                Proxy = proxy,
-                                UseProxy = true,
-                            };
-
-                            using var client = new HttpClient(handler);
-
                             var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/token");
                             var postData = "grant_type=client_credentials&client_id=cc_classic_PFUMM8wpZdtpvxx1I71gMv2a6PbQQ&client_secret=cc_sk_classic_JIDwonLeeMtiT7csQ4uvCIhU42dTvd0qOFPHWFqZAZwjkxpYRF";
                             tokenRequest.Content = new StringContent(postData, Encoding.UTF8, "application/x-www-form-urlencoded");

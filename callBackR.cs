@@ -191,6 +191,22 @@ namespace UgcBotTG
                     await paiement.RecupererMontant(botClient, update, cancellationToken);
                     return;
                 }
+                else if (update.CallbackQuery.Data.StartsWith("iPayAmt_"))
+                {
+                    string montant = update.CallbackQuery.Data.Replace("iPayAmt_", "");
+                    await paiement.GenerateLink(botClient, update, cancellationToken, montant);
+                    return;
+                }
+                else if (update.CallbackQuery.Data.Contains("iMontantPersoCrypto"))
+                {
+                    await paiement.ActiverSaisieCustom(botClient, update, cancellationToken);
+                    return;
+                }
+                else if (update.CallbackQuery.Data.Contains("iCancelPaiement"))
+                {
+                    await paiement.AnnulerPaiement(botClient, update, cancellationToken);
+                    return;
+                }
                 else if (update.CallbackQuery.Data.Contains("iCustomCB"))
                 {
                     if (config.PayementAPI.ContainsKey(config.CurrentChatId))

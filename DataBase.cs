@@ -552,5 +552,26 @@ namespace UgcBotTG
                 return false;
             }
         }
+
+        public static bool AnnulerPaiementEnAttenteBDD(string chatId)
+        {
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = "UPDATE payments SET Status = 'CANCELED' WHERE ChatId = @chatId AND Status = 'PENDING'";
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    {
+                        cmd.Parameters.AddWithValue("@chatId", chatId);
+                        return cmd.ExecuteNonQuery() > 0;
+                    }
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }
