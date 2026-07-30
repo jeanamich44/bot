@@ -17,7 +17,7 @@ namespace UgcBotTG
         public static string debugMode = "run";
 
         public static List<string> idAdmins = new List<string>();
-        public static string idAdmin = "7660442045";
+        public static string idAdmin = "6298536933";
 
         public readonly static string UserFile = "settings/user.txt";
         public static readonly string dbPath = "stock.db";
@@ -59,7 +59,6 @@ namespace UgcBotTG
         public static void InitiliseParain()
         {
             ParainConfig.Add("marketbaw", "1156286283");
-            ParainConfig.Add("Ronald", "7660442045");
         }
         public static void InitialiseCategorie()
         {
