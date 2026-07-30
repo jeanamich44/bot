@@ -434,7 +434,7 @@ namespace ChezRheyyBot
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
-                    string requete = "SELECT Id, ChatId, TrackId, Amount, PaymentMethod, Status, PaymentUrl, CreatedAt FROM payments WHERE PaymentMethod = @method AND (Status = 'PENDING' OR (Status = 'EXPIRED' AND CreatedAt > NOW() - INTERVAL '2 hours'))";
+                    string requete = "SELECT Id, ChatId, TrackId, Amount, PaymentMethod, Status, PaymentUrl, CreatedAt FROM payments WHERE PaymentMethod = @method AND (Status = 'PENDING' OR (Status = 'FAILED' AND CreatedAt > NOW() - INTERVAL '20 minutes') OR (Status = 'EXPIRED' AND CreatedAt > NOW() - INTERVAL '2 hours'))";
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     {
                         cmd.Parameters.AddWithValue("@method", paymentMethod);
