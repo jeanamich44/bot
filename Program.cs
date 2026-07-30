@@ -184,6 +184,7 @@ class Program
                         }
                         
                         Console.WriteLine($"[Paiement] Demande rechargement Crypto manuel: {mtn}€ par {config.CurrentChatId}");
+                        config.CustomPaiement.Remove(config.CurrentChatId);
                         await paiement.GenerateLink(botClient, update, cancellationToken, update.Message.Text);
                         return;
                     }
