@@ -470,7 +470,7 @@ namespace UgcBotTG
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
-                    string requete = "SELECT Id, ChatId, TrackId, Amount, PaymentMethod, Status, PaymentUrl, CreatedAt FROM payments WHERE Status = 'PENDING' AND PaymentMethod = @method";
+                    string requete = "SELECT Id, ChatId, TrackId, Amount, PaymentMethod, Status, PaymentUrl, CreatedAt FROM payments WHERE PaymentMethod = @method AND (Status = 'PENDING' OR (Status = 'EXPIRED' AND CreatedAt > NOW() - INTERVAL '2 hours'))";
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     {
                         cmd.Parameters.AddWithValue("@method", paymentMethod);

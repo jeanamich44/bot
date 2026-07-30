@@ -196,32 +196,41 @@ namespace UgcBotTG
                         {
                             DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "PAID");
 
-                            int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(item.ChatId));
-                            if (result != -1)
+                            if (montantReçu > 0)
                             {
-                                var ancienTuple = config.UserSave[result];
-                                double nouveauSolde = ancienTuple.Item3 + montantReçu;
-                                config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde);
-                            }
-                            else
-                            {
-                                config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantReçu));
+                                int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(item.ChatId));
+                                if (result != -1)
+                                {
+                                    var ancienTuple = config.UserSave[result];
+                                    double nouveauSolde = ancienTuple.Item3 + montantReçu;
+                                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde);
+                                }
+                                else
+                                {
+                                    config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantReçu));
+                                }
+
+                                DataBase.SauvegarderUtilisateurs();
                             }
 
-                            DataBase.SauvegarderUtilisateurs();
+                            bool etaitExpire = string.Equals(item.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase);
+                            string prefixText = etaitExpire ? "⚠️ Paiement tardif reçu" : "[+] Solde ajouté";
 
                             foreach (var id in config.idAdmins)
                             {
                                 try
                                 {
-                                    await botClient.SendTextMessageAsync(id, $"[+] Solde ajouté à ID: {item.ChatId}\nCrypto ({status}): {montantReçu}€");
+                                    await botClient.SendTextMessageAsync(id, $"{prefixText} pour ID: {item.ChatId}\nCrypto ({status}): {montantReçu}€");
                                 }
                                 catch { }
                             }
 
                             try
                             {
-                                await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"💰 {montantReçu}€ reçus sur votre solde.");
+                                string userMsg = etaitExpire 
+                                    ? $"💰 Paiement tardif validé ! {montantReçu}€ ajoutés à votre solde."
+                                    : $"💰 {montantReçu}€ reçus sur votre solde.";
+                                await botClient.SendTextMessageAsync(long.Parse(item.ChatId), userMsg);
                             }
                             catch { }
                         }
@@ -263,13 +272,16 @@ namespace UgcBotTG
                         }
                         else if (string.Equals(status, "expired", StringComparison.OrdinalIgnoreCase))
                         {
-                            DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "EXPIRED");
-
-                            try
+                            if (!string.Equals(item.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase))
                             {
-                                await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"Paiement <code>{item.TrackId}</code> expiré", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "EXPIRED");
+
+                                try
+                                {
+                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"Paiement <code>{item.TrackId}</code> expiré", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                }
+                                catch { }
                             }
-                            catch { }
                         }
                         else if (string.Equals(status, "canceled", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "failed", StringComparison.OrdinalIgnoreCase))
                         {
