@@ -85,6 +85,16 @@ namespace UgcBotTG
                 CREATE TABLE IF NOT EXISTS profile (
                     Key TEXT PRIMARY KEY,
                     Value TEXT
+                );
+                CREATE TABLE IF NOT EXISTS payments (
+                    Id SERIAL PRIMARY KEY,
+                    ChatId TEXT NOT NULL,
+                    TrackId TEXT UNIQUE NOT NULL,
+                    Amount DOUBLE PRECISION NOT NULL,
+                    PaymentMethod TEXT NOT NULL,
+                    Status TEXT NOT NULL,
+                    PaymentUrl TEXT,
+                    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );";
 
                 using (var commande = new NpgsqlCommand(requete, connexion))
@@ -462,6 +472,132 @@ namespace UgcBotTG
             catch
             {
 
+            }
+        }
+
+        public class PaymentRecord
+        {
+            public int Id { get; set; }
+            public string ChatId { get; set; } = "";
+            public string TrackId { get; set; } = "";
+            public double Amount { get; set; }
+            public string PaymentMethod { get; set; } = "";
+            public string Status { get; set; } = "";
+            public string PaymentUrl { get; set; } = "";
+            public DateTime CreatedAt { get; set; }
+        }
+
+        public static bool CreerPaiementEnBDD(string chatId, string trackId, double amount, string paymentMethod, string paymentUrl)
+        {
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = @"
+                    INSERT INTO payments (ChatId, TrackId, Amount, PaymentMethod, Status, PaymentUrl)
+                    VALUES (@chatId, @trackId, @amount, @method, 'PENDING', @url)
+                    ON CONFLICT (TrackId) DO UPDATE SET Status = 'PENDING', Amount = EXCLUDED.Amount;";
+
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    {
+                        cmd.Parameters.AddWithValue("@chatId", chatId);
+                        cmd.Parameters.AddWithValue("@trackId", trackId);
+                        cmd.Parameters.AddWithValue("@amount", amount);
+                        cmd.Parameters.AddWithValue("@method", paymentMethod);
+                        cmd.Parameters.AddWithValue("@url", paymentUrl);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static List<PaymentRecord> ObtenirPaiementsEnAttenteBDD(string paymentMethod)
+        {
+            var list = new List<PaymentRecord>();
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = "SELECT Id, ChatId, TrackId, Amount, PaymentMethod, Status, PaymentUrl, CreatedAt FROM payments WHERE Status = 'PENDING' AND PaymentMethod = @method";
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    {
+                        cmd.Parameters.AddWithValue("@method", paymentMethod);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                list.Add(new PaymentRecord
+                                {
+                                    Id = reader.GetInt32(0),
+                                    ChatId = reader.GetString(1),
+                                    TrackId = reader.GetString(2),
+                                    Amount = reader.GetDouble(3),
+                                    PaymentMethod = reader.GetString(4),
+                                    Status = reader.GetString(5),
+                                    PaymentUrl = reader.IsDBNull(6) ? "" : reader.GetString(6),
+                                    CreatedAt = reader.IsDBNull(7) ? DateTime.UtcNow : reader.GetDateTime(7)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+
+            }
+            return list;
+        }
+
+        public static bool MettreAJourPaiementStatutBDD(string trackId, string status)
+        {
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = "UPDATE payments SET Status = @status WHERE TrackId = @trackId";
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    {
+                        cmd.Parameters.AddWithValue("@status", status);
+                        cmd.Parameters.AddWithValue("@trackId", trackId);
+                        int rows = cmd.ExecuteNonQuery();
+                        return rows > 0;
+                    }
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool AUnPaiementEnAttenteBDD(string chatId)
+        {
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = "SELECT COUNT(1) FROM payments WHERE ChatId = @chatId AND Status = 'PENDING'";
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    {
+                        cmd.Parameters.AddWithValue("@chatId", chatId);
+                        long count = (long)cmd.ExecuteScalar();
+                        return count > 0;
+                    }
+                }
+            }
+            catch
+            {
+                return false;
             }
         }
     }
