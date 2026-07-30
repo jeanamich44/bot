@@ -23,12 +23,7 @@ namespace UgcBotTG
         public static readonly string dbPath = "stock.db";
         public readonly static string BanUser = "settings/ban.txt";
 
-        public static readonly string ParrainageFile = "settings/parain.txt";
-        public static Dictionary<string,string> ParainUser = new Dictionary<string,string>();
-        public static List<string> WaitingParain = new List<string>();
-        public static readonly string idArabe = "5852283609";
 
-        public static Dictionary<string,string> ParainConfig = new Dictionary<string,string>();
 
         public static List<string> BanniUser = new List<string>();
         public static string CurrentChatId = "";
@@ -56,10 +51,7 @@ namespace UgcBotTG
             idAdmins.Add("8740419947");
         }
 
-        public static void InitiliseParain()
-        {
-            ParainConfig.Add("marketbaw", "1156286283");
-        }
+
         public static void InitialiseCategorie()
         {
             categorie.Add("Carrefour");
@@ -81,20 +73,14 @@ namespace UgcBotTG
             DataBase.ChargerUtilisateurs();
         }
 
-        public static async Task InitialisationParain()
-        {
-            DataBase.ChargerParrains();
-        }
+
 
         public static async Task HistoriqueAchat()
         {
 
         }
 
-        public static void SaveParain()
-        {
-            DataBase.SauvegarderParrains();
-        }
+
 
         public static void JsonWrite()
         {

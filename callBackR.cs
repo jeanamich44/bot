@@ -1,4 +1,4 @@
-﻿using System.Drawing.Drawing2D;
+using System.Drawing.Drawing2D;
 using System.Security.Policy;
 using System.Web;
 using Telegram.Bot;
@@ -184,15 +184,6 @@ namespace UgcBotTG
                 else if (update.CallbackQuery.Data.Contains("iProfile"))
                 {
                     await profile.AfficherProfile(botClient, update, cancellationToken);
-                    return;
-                } else if (update.CallbackQuery.Data.Contains("iRemoveParrain"))
-                {
-                    await SampleM.RemoveParain(botClient, update, cancellationToken);
-                    return;
-                }
-                else if (update.CallbackQuery.Data.Contains("iParainConfig"))
-                {
-                    await SampleM.PreparationCodeParain(botClient, update, cancellationToken);
                     return;
                 }
                 else if (update.CallbackQuery.Data.Contains("iCustomP"))

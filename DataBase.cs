@@ -78,10 +78,7 @@ namespace UgcBotTG
                 CREATE TABLE IF NOT EXISTS bans (
                     ChatId TEXT PRIMARY KEY
                 );
-                CREATE TABLE IF NOT EXISTS parrainage (
-                    Filleul TEXT PRIMARY KEY,
-                    Parrain TEXT
-                );
+                DROP TABLE IF EXISTS parrainage;
                 CREATE TABLE IF NOT EXISTS profile (
                     Key TEXT PRIMARY KEY,
                     Value TEXT
@@ -367,59 +364,7 @@ namespace UgcBotTG
             }
         }
 
-        public static void ChargerParrains()
-        {
-            try
-            {
-                using (var connexion = new NpgsqlConnection(GetConnectionString()))
-                {
-                    connexion.Open();
-                    string requete = "SELECT Filleul, Parrain FROM parrainage";
-                    using (var cmd = new NpgsqlCommand(requete, connexion))
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        config.ParainUser.Clear();
-                        while (reader.Read())
-                        {
-                            config.ParainUser[reader.GetString(0)] = reader.GetString(1);
-                        }
-                    }
-                }
-            }
-            catch
-            {
 
-            }
-        }
-
-        public static void SauvegarderParrains()
-        {
-            try
-            {
-                using (var connexion = new NpgsqlConnection(GetConnectionString()))
-                {
-                    connexion.Open();
-                    foreach (var item in config.ParainUser)
-                    {
-                        string requete = @"
-                        INSERT INTO parrainage (Filleul, Parrain)
-                        VALUES (@f, @p)
-                        ON CONFLICT (Filleul) DO UPDATE SET Parrain = EXCLUDED.Parrain;";
-
-                        using (var cmd = new NpgsqlCommand(requete, connexion))
-                        {
-                            cmd.Parameters.AddWithValue("@f", item.Key);
-                            cmd.Parameters.AddWithValue("@p", item.Value);
-                            cmd.ExecuteNonQuery();
-                        }
-                    }
-                }
-            }
-            catch
-            {
-
-            }
-        }
 
         public static void ChargerProfile()
         {

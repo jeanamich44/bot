@@ -33,10 +33,8 @@ class Program
         DataBase.CreerTableStockSiExistePas();
         await config.ReadJson();
         config.InitialiseCategorie();
-        config.InitiliseParain();
         config.InitialiseAdmin();
         config.ChargerBannie();
-        await config.InitialisationParain();
         config.GetProfileSettings();
 
         var me = await botClient.GetMeAsync();
@@ -48,7 +46,6 @@ class Program
         await Task.Delay(Timeout.Infinite, cancellationToken);
 
         config.EnregistrerBannie();
-        config.SaveParain();
         config.JsonWrite();
         config.SetProfileSettings();
         cts.Cancel();
@@ -169,11 +166,7 @@ class Program
                         await SampleM.SendMessage(botClient, update, cancellationToken);
                         return;
                     }
-                    else if (update.Message.Text != "" && config.WaitingParain.Contains(config.CurrentChatId))
-                    {
-                        await SampleM.CodeParrainage(botClient, update, cancellationToken);
-                        return;
-                    }
+
                     else if(update.Message.Text != "" && config.CustomPaiement.Contains(config.CurrentChatId))
                     {
                         int mtn = 0;
@@ -225,11 +218,7 @@ class Program
                         await SampleM.SendMessage(botClient, update, cancellationToken);
                         return;
                     }
-                    else if (update.Message.Text != "" && config.WaitingParain.Contains(config.CurrentChatId))
-                    {
-                        await SampleM.CodeParrainage(botClient, update, cancellationToken);
-                        return;
-                    }
+
                     else if (update.Message.Text != "" && config.CustomPaiement.Contains(config.CurrentChatId))
                     {
 
