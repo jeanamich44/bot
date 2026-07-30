@@ -73,11 +73,11 @@ namespace ChezRheyyBot
                 CREATE TABLE IF NOT EXISTS users (
                     Id BIGINT PRIMARY KEY,
                     Achat INTEGER DEFAULT 0,
-                    Solde DOUBLE PRECISION DEFAULT 0.0
+                    Solde DOUBLE PRECISION DEFAULT 0.0,
+                    IsBanned BOOLEAN DEFAULT FALSE
                 );
-                CREATE TABLE IF NOT EXISTS bans (
-                    ChatId TEXT PRIMARY KEY
-                );
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS IsBanned BOOLEAN DEFAULT FALSE;
+                DROP TABLE IF EXISTS bans;
                 DROP TABLE IF EXISTS parrainage;
                 CREATE TABLE IF NOT EXISTS profile (
                     Key TEXT PRIMARY KEY,
@@ -260,17 +260,23 @@ namespace ChezRheyyBot
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
-                    string requete = "SELECT Id, Achat, Solde FROM users";
+                    string requete = "SELECT Id, Achat, Solde, IsBanned FROM users";
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     using (var reader = cmd.ExecuteReader())
                     {
                         config.UserSave.Clear();
+                        config.BanniUser.Clear();
                         while (reader.Read())
                         {
                             long id = reader.GetInt64(0);
                             int achat = reader.GetInt32(1);
                             double solde = reader.GetDouble(2);
-                            config.UserSave.Add(new Tuple<long, int, double>(id, achat, solde));
+                            bool isBanned = !reader.IsDBNull(3) && reader.GetBoolean(3);
+                            config.UserSave.Add(new Tuple<long, int, double, bool>(id, achat, solde, isBanned));
+                            if (isBanned)
+                            {
+                                config.BanniUser.Add(id.ToString());
+                            }
                         }
                     }
                 }
@@ -291,15 +297,16 @@ namespace ChezRheyyBot
                     foreach (var item in config.UserSave)
                     {
                         string requete = @"
-                        INSERT INTO users (Id, Achat, Solde)
-                        VALUES (@id, @achat, @solde)
-                        ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde;";
+                        INSERT INTO users (Id, Achat, Solde, IsBanned)
+                        VALUES (@id, @achat, @solde, @banned)
+                        ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned;";
 
                         using (var cmd = new NpgsqlCommand(requete, connexion))
                         {
                             cmd.Parameters.AddWithValue("@id", item.Item1);
                             cmd.Parameters.AddWithValue("@achat", item.Item2);
                             cmd.Parameters.AddWithValue("@solde", item.Item3);
+                            cmd.Parameters.AddWithValue("@banned", item.Item4);
                             cmd.ExecuteNonQuery();
                         }
                     }
@@ -313,55 +320,12 @@ namespace ChezRheyyBot
 
         public static void ChargerBannis()
         {
-            try
-            {
-                using (var connexion = new NpgsqlConnection(GetConnectionString()))
-                {
-                    connexion.Open();
-                    string requete = "SELECT ChatId FROM bans";
-                    using (var cmd = new NpgsqlCommand(requete, connexion))
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        config.BanniUser.Clear();
-                        while (reader.Read())
-                        {
-                            config.BanniUser.Add(reader.GetString(0));
-                        }
-                    }
-                }
-            }
-            catch
-            {
-
-            }
+            ChargerUtilisateurs();
         }
 
         public static void SauvegarderBannis()
         {
-            try
-            {
-                using (var connexion = new NpgsqlConnection(GetConnectionString()))
-                {
-                    connexion.Open();
-                    using (var cmdDel = new NpgsqlCommand("TRUNCATE TABLE bans", connexion))
-                    {
-                        cmdDel.ExecuteNonQuery();
-                    }
-
-                    foreach (var id in config.BanniUser)
-                    {
-                        using (var cmd = new NpgsqlCommand("INSERT INTO bans (ChatId) VALUES (@id) ON CONFLICT DO NOTHING", connexion))
-                        {
-                            cmd.Parameters.AddWithValue("@id", id);
-                            cmd.ExecuteNonQuery();
-                        }
-                    }
-                }
-            }
-            catch
-            {
-
-            }
+            SauvegarderUtilisateurs();
         }
 
 

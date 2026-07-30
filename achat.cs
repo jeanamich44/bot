@@ -42,7 +42,7 @@ namespace ChezRheyyBot
                     if (DataBase.SupprimerStockParId(int.Parse(msg[1])))
                     {
                         double nouveauSolde = ancienTuple.Item3 - double.Parse(prix);
-                        config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2+1, nouveauSolde);
+                        config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2 + 1, nouveauSolde, ancienTuple.Item4);
 
 
                         Random rnd = new Random();

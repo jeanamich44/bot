@@ -205,8 +205,8 @@ namespace ChezRheyyBot
                         var ancienTuple = config.UserSave[result];
                         double nouveauSolde = ancienTuple.Item3 + double.Parse(msg[2]);
 
-                        config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde);
-
+                        config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
+                        DataBase.SauvegarderUtilisateurs();
                         try
                         {
                             await botClient.SendTextMessageAsync(msg[1], $"💰 {msg[2]}€ reçus sur votre solde.");
@@ -259,28 +259,22 @@ namespace ChezRheyyBot
 
                         if(nouveauSolde < 0)
                         {
-                            config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, 0.0);
+                            config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, 0.0, ancienTuple.Item4);
                         }
                         else
                         {
-                            config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde);
+                            config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
 
                         }
-
+                        DataBase.SauvegarderUtilisateurs();
                         try
                         {
-                            await botClient.SendTextMessageAsync(msg[1], $"💰 {msg[2]}€ ont été retirés de votre solde.");
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, $"Le solde a été retiré à {msg[1]}");
-                            foreach (var id in config.idAdmins)
-                            {
-                                await botClient.SendTextMessageAsync(id, $"Solde mis a {msg[1]} montant {msg[2]}");
-                            }
-
+                            await botClient.SendTextMessageAsync(msg[1], $"Solde déduit de {msg[2]}€.");
+                            await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde retiré à {msg[1]}");
                             return;
                         }
                         catch
                         {
-                            Console.WriteLine("[-] Impossible d'envoyer les message {Money}");
                             return;
                         }
                     }
@@ -293,7 +287,7 @@ namespace ChezRheyyBot
 
                 }
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /addMoney <id> <montant>\n");
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /removeMoney <id> <montant>\n");
                 return;
             }
             catch
@@ -316,16 +310,29 @@ namespace ChezRheyyBot
 
                 if (config.BanniUser.Contains(msg[1]))
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"{msg[1]} es deja bannie.");
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"{msg[1]} est déjà banni.");
                     return;
                 }
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {msg[1]} a bien ete bannie.");
+                config.BanniUser.Add(msg[1]);
+                long userId = long.Parse(msg[1]);
+                int idx = config.UserSave.FindIndex(u => u.Item1 == userId);
+                if (idx != -1)
+                {
+                    var old = config.UserSave[idx];
+                    config.UserSave[idx] = Tuple.Create(old.Item1, old.Item2, old.Item3, true);
+                }
+                else
+                {
+                    config.UserSave.Add(Tuple.Create(userId, 0, 0.0, true));
+                }
+                DataBase.SauvegarderUtilisateurs();
+
+                await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {msg[1]} a bien été banni.");
                 foreach (var id in config.idAdmins)
                 {
                     await botClient.SendTextMessageAsync(id, $"BAN USER: {msg[1]}\n");
                 }
-                config.BanniUser.Add(msg[1]);
 
                 return;
             }
@@ -342,21 +349,29 @@ namespace ChezRheyyBot
 
                 if (msg.Length != 2)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /ban <id>\n");
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /deban <id>\n");
                     return;
                 }
 
                 if (config.BanniUser.Contains(msg[1]))
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"{msg[1]} es debannie.");
+                    config.BanniUser.Remove(msg[1]);
                 }
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {msg[1]} a bien ete debannie.");
+                long userId = long.Parse(msg[1]);
+                int idx = config.UserSave.FindIndex(u => u.Item1 == userId);
+                if (idx != -1)
+                {
+                    var old = config.UserSave[idx];
+                    config.UserSave[idx] = Tuple.Create(old.Item1, old.Item2, old.Item3, false);
+                }
+                DataBase.SauvegarderUtilisateurs();
+
+                await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {msg[1]} a bien été débanni.");
                 foreach (var id in config.idAdmins)
                 {
                     await botClient.SendTextMessageAsync(id, $"DEBAN USER: {msg[1]}\n");
                 }
-                config.BanniUser.Remove(msg[1]);
 
                 return;
             }

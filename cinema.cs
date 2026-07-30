@@ -57,7 +57,7 @@ namespace ChezRheyyBot
                             if (DataBase.SupprimerStockParId(item.First().Id))
                             {
                                 double nouveauSolde = ancienTuple.Item3 - prix;
-                                config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2 + 1, nouveauSolde);
+                                config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2 + 1, nouveauSolde, ancienTuple.Item4);
 
 
                                 Random rnd = new Random();
@@ -123,7 +123,7 @@ namespace ChezRheyyBot
                             if (DataBase.SupprimerStockParId(item.First().Id))
                             {
                                 double nouveauSolde = ancienTuple.Item3 - prix;
-                                config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2 + 1, nouveauSolde);
+                                config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2 + 1, nouveauSolde, ancienTuple.Item4);
 
 
                                 Random rnd = new Random();

@@ -132,7 +132,8 @@ namespace ChezRheyyBot
                     config.UserSave[index] = Tuple.Create(
                         user.Item1,
                         user.Item2 + 1,
-                        nouveauSolde
+                        nouveauSolde,
+                        user.Item4
                     );
 
 

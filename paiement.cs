@@ -308,50 +308,55 @@ namespace ChezRheyyBot
                         if (string.Equals(status, "paid", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "overpaid", StringComparison.OrdinalIgnoreCase))
                         {
                             Console.WriteLine($"[Paiement Crypto OK] Facture {item.TrackId} validée ({status}), Montant: {montantReçu}€ pour ChatID: {item.ChatId}");
-                            DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "PAID");
-
-                            if (montantReçu > 0)
+                            int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(item.ChatId));
+                            if (result != -1)
                             {
-                                int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(item.ChatId));
-                                if (result != -1)
-                                {
-                                    var ancienTuple = config.UserSave[result];
-                                    double nouveauSolde = ancienTuple.Item3 + montantReçu;
-                                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde);
-                                }
-                                else
-                                {
-                                    config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantReçu));
-                                }
-
-                                DataBase.SauvegarderUtilisateurs();
+                                var ancienTuple = config.UserSave[result];
+                                double nouveauSolde = ancienTuple.Item3 + montantReçu;
+                                config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
+                            }
+                            else
+                            {
+                                config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantReçu, false));
                             }
 
-                            bool etaitExpire = string.Equals(item.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase);
-                            string prefixText = etaitExpire ? "⚠️ Paiement tardif reçu" : "[+] Solde ajouté";
+                            DataBase.SauvegarderUtilisateurs();
 
-                            foreach (var id in config.idAdmins)
+                            bool etaitExpire = string.Equals(item.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase);
+
+                            if (etaitExpire)
                             {
+                                DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "PAID");
+                                Console.WriteLine($"[Paiement Tardif Reçu] Facture expirée {item.TrackId} payée tardivement ({montantReçu}€).");
                                 try
                                 {
-                                    await botClient.SendTextMessageAsync(id, $"{prefixText} pour ID: {item.ChatId}\nCrypto ({status}): {montantReçu}€");
+                                    await botClient.SendTextMessageAsync(item.ChatId, $"✅ Votre paiement tardif de {montantReçu}€ a été détecté et crédité sur votre solde !");
+                                    foreach (var idAdmin in config.idAdmins)
+                                    {
+                                        await botClient.SendTextMessageAsync(idAdmin, $"[PAIEMENT TARDIF] ChatID: {item.ChatId} | TrackID: {item.TrackId} | Montant: {montantReçu}€");
+                                    }
                                 }
                                 catch { }
                             }
-
-                            try
+                            else
                             {
-                                string userMsg = etaitExpire 
-                                    ? $"💰 Paiement tardif validé ! {montantReçu}€ ajoutés à votre solde."
-                                    : $"💰 {montantReçu}€ reçus sur votre solde.";
-                                await botClient.SendTextMessageAsync(long.Parse(item.ChatId), userMsg);
+                                DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "PAID");
+                                Console.WriteLine($"[Paiement Crypto OK] Facture {item.TrackId} payée avec succès par ChatID: {item.ChatId}, Montant crédité: {montantReçu}€");
+                                try
+                                {
+                                    await botClient.SendTextMessageAsync(item.ChatId, $"✅ Votre paiement de {montantReçu}€ a bien été validé et crédité !");
+                                    foreach (var idAdmin in config.idAdmins)
+                                    {
+                                        await botClient.SendTextMessageAsync(idAdmin, $"[PAIEMENT REÇU] ChatID: {item.ChatId} | TrackID: {item.TrackId} | Montant: {montantReçu}€");
+                                    }
+                                }
+                                catch { }
                             }
-                            catch { }
                         }
-                        else if (string.Equals(status, "underpaid", StringComparison.OrdinalIgnoreCase))
+                        else if (status == "underpaid")
                         {
-                            Console.WriteLine($"[Paiement Crypto Underpaid] Facture {item.TrackId} sous-payée, Montant: {montantReçu}€ pour ChatID: {item.ChatId}");
                             DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "UNDERPAID");
+                            Console.WriteLine($"[Paiement Partiell] Facture {item.TrackId} reçue partiellement ({montantReçu}€) pour ChatID: {item.ChatId}");
 
                             if (montantReçu > 0)
                             {
@@ -360,11 +365,11 @@ namespace ChezRheyyBot
                                 {
                                     var ancienTuple = config.UserSave[result];
                                     double nouveauSolde = ancienTuple.Item3 + montantReçu;
-                                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde);
+                                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
                                 }
                                 else
                                 {
-                                    config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantReçu));
+                                    config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantReçu, false));
                                 }
 
                                 DataBase.SauvegarderUtilisateurs();
@@ -588,11 +593,11 @@ namespace ChezRheyyBot
                                 {
                                     var ancienTuple = config.UserSave[result];
                                     double nouveauSolde = ancienTuple.Item3 + item.Amount;
-                                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde);
+                                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
                                 }
                                 else
                                 {
-                                    config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, item.Amount));
+                                    config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, item.Amount, false));
                                 }
 
                                 DataBase.SauvegarderUtilisateurs();

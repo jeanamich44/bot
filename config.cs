@@ -13,7 +13,7 @@ namespace ChezRheyyBot
 
         public static readonly string botToken = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN") ?? "8210003748:AAGS5av_jxsfhoxy4esmYhU1Nu3RuaXVV3k";
 
-        public static List<Tuple<long, int, double>> UserSave = new List<Tuple<long, int, double>>();
+        public static List<Tuple<long, int, double, bool>> UserSave = new List<Tuple<long, int, double, bool>>();
         public static string debugMode = "run";
 
         public static List<string> idAdmins = new List<string>();
