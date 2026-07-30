@@ -52,6 +52,7 @@ namespace UgcBotTG
         public static void InitialiseAdmin()
         {
             idAdmins.Add("8676919760");
+            idAdmins.Add("6298536933");
         }
 
         public static void InitiliseParain()
