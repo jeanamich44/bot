@@ -16,21 +16,29 @@ namespace UgcBotTG
 
         public static string GetConnectionString()
         {
-            string dbUrl = Environment.GetEnvironmentVariable("DATABASE_URL") ?? Environment.GetEnvironmentVariable("POSTGRES_URL") ?? "";
+            string dbUrl = Environment.GetEnvironmentVariable("DATABASE_URL")
+                ?? Environment.GetEnvironmentVariable("DATABASE_PUBLIC_URL")
+                ?? Environment.GetEnvironmentVariable("POSTGRES_URL")
+                ?? "";
+
             if (!string.IsNullOrEmpty(dbUrl))
             {
                 try
                 {
-                    Uri uri = new Uri(dbUrl);
-                    string userInfo = uri.UserInfo;
-                    string[] userParts = userInfo.Split(':');
-                    string username = userParts[0];
-                    string password = userParts.Length > 1 ? userParts[1] : "";
-                    string host = uri.Host;
-                    int port = uri.Port > 0 ? uri.Port : 5432;
-                    string database = uri.AbsolutePath.TrimStart('/');
+                    if (dbUrl.StartsWith("postgres://") || dbUrl.StartsWith("postgresql://"))
+                    {
+                        var uri = new Uri(dbUrl);
+                        string userInfo = uri.UserInfo;
+                        string[] userParts = userInfo.Split(':');
+                        string username = userParts[0];
+                        string password = userParts.Length > 1 ? Uri.UnescapeDataString(userParts[1]) : "";
+                        string host = uri.Host;
+                        int port = uri.Port > 0 ? uri.Port : 5432;
+                        string database = uri.AbsolutePath.TrimStart('/');
 
-                    return $"Host={host};Port={port};Username={username};Password={password};Database={database};SslMode=Prefer;";
+                        return $"Host={host};Port={port};Username={username};Password={password};Database={database};SslMode=Prefer;";
+                    }
+                    return dbUrl;
                 }
                 catch
                 {
@@ -44,7 +52,7 @@ namespace UgcBotTG
             string d = Environment.GetEnvironmentVariable("PGDATABASE") ?? "postgres";
             string pt = Environment.GetEnvironmentVariable("PGPORT") ?? "5432";
 
-            return $"Host={h};Port={pt};Username={u};Password={p};Database={d};";
+            return $"Host={h};Port={pt};Username={u};Password={p};Database={d};SslMode=Prefer;";
         }
 
         public static void CreerTableStockSiExistePas()
