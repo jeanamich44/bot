@@ -1,6 +1,6 @@
 using Npgsql;
 
-namespace UgcBotTG
+namespace ChezRheyyBot
 {
     internal class DataBase
     {

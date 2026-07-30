@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using Telegram.Bot.Types;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace UgcBotTG
+namespace ChezRheyyBot
 {
     internal class profile
     {

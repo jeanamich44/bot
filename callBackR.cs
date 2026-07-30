@@ -7,7 +7,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace UgcBotTG
+namespace ChezRheyyBot
 {
     internal class callBackR
     {

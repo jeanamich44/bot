@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace UgcBotTG
+namespace ChezRheyyBot
 {
     internal class message
     {

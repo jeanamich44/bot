@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using Telegram.Bot.Types;
 using Telegram.Bot;
 
-namespace UgcBotTG
+namespace ChezRheyyBot
 {
     internal class Blocks
     {

@@ -3,7 +3,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot.Types.Enums;
 
-namespace UgcBotTG
+namespace ChezRheyyBot
 {
     internal class SampleM
     {

@@ -6,7 +6,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace UgcBotTG
+namespace ChezRheyyBot
 {
     internal class paiement
     {

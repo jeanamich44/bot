@@ -3,7 +3,7 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
 using Telegram.Bot;
-using UgcBotTG;
+using ChezRheyyBot;
 using Telegram.Bot.Types.ReplyMarkups;
 
 class Program

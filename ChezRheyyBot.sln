@@ -1,9 +1,8 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.4.11626.88 stable
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UgcBotTG", "UgcBotTG.csproj", "{FF42763A-FA2C-4530-9F07-CF8B0755CB05}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChezRheyyBot", "ChezRheyyBot.csproj", "{FF42763A-FA2C-4530-9F07-CF8B0755CB05}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

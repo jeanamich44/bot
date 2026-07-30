@@ -1,9 +1,9 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
-namespace UgcBotTG
+namespace ChezRheyyBot
 {
     internal class admin
     {

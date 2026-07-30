@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace UgcBotTG
+namespace ChezRheyyBot
 {
     internal class config
     {
