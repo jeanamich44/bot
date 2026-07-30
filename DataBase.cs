@@ -531,6 +531,13 @@ namespace UgcBotTG
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
+
+                    string reqClean = "UPDATE payments SET Status = 'EXPIRED' WHERE Status = 'PENDING' AND CreatedAt < NOW() - INTERVAL '45 minutes'";
+                    using (var cmdClean = new NpgsqlCommand(reqClean, connexion))
+                    {
+                        cmdClean.ExecuteNonQuery();
+                    }
+
                     string requete = "SELECT COUNT(1) FROM payments WHERE ChatId = @chatId AND Status = 'PENDING'";
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     {

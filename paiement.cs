@@ -192,7 +192,7 @@ namespace UgcBotTG
                             }
                         }
 
-                        if (string.Equals(status, "paid", StringComparison.OrdinalIgnoreCase))
+                        if (string.Equals(status, "paid", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "overpaid", StringComparison.OrdinalIgnoreCase))
                         {
                             DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "PAID");
 
@@ -214,7 +214,7 @@ namespace UgcBotTG
                             {
                                 try
                                 {
-                                    await botClient.SendTextMessageAsync(id, $"[+] Solde ajouté à ID: {item.ChatId}\nCrypto: {montantReçu}€");
+                                    await botClient.SendTextMessageAsync(id, $"[+] Solde ajouté à ID: {item.ChatId}\nCrypto ({status}): {montantReçu}€");
                                 }
                                 catch { }
                             }
@@ -225,6 +225,42 @@ namespace UgcBotTG
                             }
                             catch { }
                         }
+                        else if (string.Equals(status, "underpaid", StringComparison.OrdinalIgnoreCase))
+                        {
+                            DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "UNDERPAID");
+
+                            if (montantReçu > 0)
+                            {
+                                int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(item.ChatId));
+                                if (result != -1)
+                                {
+                                    var ancienTuple = config.UserSave[result];
+                                    double nouveauSolde = ancienTuple.Item3 + montantReçu;
+                                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde);
+                                }
+                                else
+                                {
+                                    config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantReçu));
+                                }
+
+                                DataBase.SauvegarderUtilisateurs();
+                            }
+
+                            foreach (var id in config.idAdmins)
+                            {
+                                try
+                                {
+                                    await botClient.SendTextMessageAsync(id, $"⚠️ Paiement partiel (Underpaid) pour ID: {item.ChatId}\nCrédité: {montantReçu}€");
+                                }
+                                catch { }
+                            }
+
+                            try
+                            {
+                                await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"⚠️ Paiement partiel reçu. {montantReçu}€ ajoutés à votre solde.");
+                            }
+                            catch { }
+                        }
                         else if (string.Equals(status, "expired", StringComparison.OrdinalIgnoreCase))
                         {
                             DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "EXPIRED");
@@ -232,6 +268,16 @@ namespace UgcBotTG
                             try
                             {
                                 await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"Paiement <code>{item.TrackId}</code> expiré", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                            }
+                            catch { }
+                        }
+                        else if (string.Equals(status, "canceled", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "failed", StringComparison.OrdinalIgnoreCase))
+                        {
+                            DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "FAILED");
+
+                            try
+                            {
+                                await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"Paiement <code>{item.TrackId}</code> annulé ou échoué", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                             }
                             catch { }
                         }
