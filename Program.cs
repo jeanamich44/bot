@@ -183,7 +183,8 @@ class Program
                             return;
                         }
                         
-                       // await paiement.GenerateLink(botClient, update, cancellationToken,update.Message.Text);
+                        Console.WriteLine($"[Paiement] Demande rechargement Crypto manuel: {mtn}€ par {config.CurrentChatId}");
+                        await paiement.GenerateLink(botClient, update, cancellationToken, update.Message.Text);
                         return;
                     }
                     else if(update.Message.Text != "" && config.AttentePaiement.Contains(config.CurrentChatId))
@@ -236,7 +237,8 @@ class Program
                             return;
                         }
 
-                       // await paiement.GenerateLink(botClient, update, cancellationToken, update.Message.Text);
+                        Console.WriteLine($"[Paiement] Demande rechargement Crypto manuel: {mtn}€ par {config.CurrentChatId}");
+                        await paiement.GenerateLink(botClient, update, cancellationToken, update.Message.Text);
                         return;
                     }
                     else if (update.Message.Text != "" && config.AttentePaiement.Contains(config.CurrentChatId))

@@ -59,6 +59,8 @@ namespace UgcBotTG
             string chatId = config.CurrentChatId;
             if (string.IsNullOrEmpty(chatId)) return;
 
+            Console.WriteLine($"[Paiement] Menu sélection montant affiché pour ChatID: {chatId}");
+
             if (DataBase.AUnPaiementEnAttenteBDD(chatId))
             {
                 var cancelKeyboard = new InlineKeyboardMarkup(new[]
@@ -80,11 +82,6 @@ namespace UgcBotTG
                 },
                 new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("💵 50 €", "iPayAmt_50"),
-                    InlineKeyboardButton.WithCallbackData("💵 100 €", "iPayAmt_100")
-                },
-                new[]
-                {
                     InlineKeyboardButton.WithCallbackData("✏️ Saisir un montant personnalisé", "iMontantPersoCrypto")
                 },
                 new[]
@@ -101,17 +98,21 @@ namespace UgcBotTG
             string chatId = config.CurrentChatId;
             if (string.IsNullOrEmpty(chatId)) return;
 
+            Console.WriteLine($"[Paiement] Activation de la saisie personnalisée pour ChatID: {chatId}");
+
             if (!config.CustomPaiement.Contains(chatId))
             {
                 config.CustomPaiement.Add(chatId);
             }
-            await botClient.SendTextMessageAsync(chatId, "✏️ <b>Veuillez inscrire le montant souhaité en € :</b>\n<i>(Exemple: 15, 35, 75)</i>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, "✏️ <b>Veuillez inscrire le montant souhaité en € :</b>\n<i>(Exemple: 15, 25, 35)</i>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
         }
 
         public static async Task AnnulerPaiement(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             string chatId = config.CurrentChatId;
             if (string.IsNullOrEmpty(chatId)) return;
+
+            Console.WriteLine($"[Paiement] Demande d'annulation de facture en attente pour ChatID: {chatId}");
 
             bool annule = DataBase.AnnulerPaiementEnAttenteBDD(chatId);
             if (annule)
@@ -123,10 +124,12 @@ namespace UgcBotTG
                 }
                 catch { }
 
+                Console.WriteLine($"[Paiement OK] Facture en attente annulée avec succès pour ChatID: {chatId}");
                 await botClient.SendTextMessageAsync(chatId, "✅ <b>Votre facture en attente a été annulée.</b> Vous pouvez à présent créer une nouvelle facture.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
             }
             else
             {
+                Console.WriteLine($"[Paiement] Aucune facture en attente trouvée à annuler pour ChatID: {chatId}");
                 await botClient.SendTextMessageAsync(chatId, "ℹ️ Aucune facture en attente à annuler.");
             }
         }
@@ -136,8 +139,11 @@ namespace UgcBotTG
             string chatId = config.CurrentChatId;
             if (string.IsNullOrEmpty(chatId)) return "";
 
+            Console.WriteLine($"[Paiement Crypto] Génération facture demandée par ChatID: {chatId}, Montant brut: '{montant}'");
+
             if (DataBase.AUnPaiementEnAttenteBDD(chatId))
             {
+                Console.WriteLine($"[Paiement Crypto] Facture refusée: ChatID {chatId} a déjà un paiement en attente");
                 var cancelKeyboard = new InlineKeyboardMarkup(new[]
                 {
                     new[] { InlineKeyboardButton.WithCallbackData("❌ Annuler ma facture en attente", "iCancelPaiement") },
@@ -169,6 +175,7 @@ namespace UgcBotTG
 
             if (priceValue <= 0)
             {
+                Console.WriteLine($"[Paiement Crypto Erreur] Montant invalide parsing: {priceValue} (brut: '{montant}')");
                 await botClient.SendTextMessageAsync(chatId, "❌ Montant invalide. Veuillez réessayer.");
                 return "";
             }
@@ -199,6 +206,8 @@ namespace UgcBotTG
             var response = await _httpClient.SendAsync(request, cancellationToken);
             var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
+            Console.WriteLine($"[Paiement Crypto OxaPay] Reponse API status {(int)response.StatusCode}: {responseBody}");
+
             using JsonDocument doc = JsonDocument.Parse(responseBody);
             var root = doc.RootElement;
 
@@ -207,7 +216,8 @@ namespace UgcBotTG
                 var trackId = data.GetProperty("track_id").GetString() ?? "";
                 var paymentUrl = data.GetProperty("payment_url").GetString() ?? "";
 
-                DataBase.CreerPaiementEnBDD(chatId, trackId, priceValue, "CRYPTO", paymentUrl);
+                bool cree = DataBase.CreerPaiementEnBDD(chatId, trackId, priceValue, "CRYPTO", paymentUrl);
+                Console.WriteLine($"[Paiement Crypto BDD] Facture enregistrée en BDD ({cree}): TrackID={trackId}, ChatID={chatId}, Montant={priceValue}€");
 
                 try
                 {
@@ -226,7 +236,7 @@ namespace UgcBotTG
 
                 var paymentKeyboard = new InlineKeyboardMarkup(new[]
                 {
-                    new[] { InlineKeyboardButton.WithUrl($"🔗 Payer ma commande ({priceValue} €)", paymentUrl) },
+                    new[] { InlineKeyboardButton.WithUrl($"🔗 Payer ma commande ({priceValue:0.00} €)", paymentUrl) },
                     new[] { InlineKeyboardButton.WithCallbackData("❌ Annuler ma facture", "iCancelPaiement") },
                     new[] { InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome") }
                 });
@@ -241,6 +251,7 @@ namespace UgcBotTG
             }
             else
             {
+                Console.WriteLine($"[Paiement Crypto Erreur] Impossible de créer la facture OxaPay pour ChatID {chatId}");
                 await botClient.SendTextMessageAsync(config.idAdmin, $"Erreur: Impossible de créer facture pour l'ID: {chatId}");
                 await botClient.SendTextMessageAsync(chatId, "❌ Erreur lors de la génération de la facture.");
                 return "";
@@ -251,6 +262,8 @@ namespace UgcBotTG
 
         public static async Task VerifierPaiement(ITelegramBotClient botClient, CancellationToken cancellationToken)
         {
+            Console.WriteLine("[Paiement Crypto Worker] Démarrage de la boucle de vérification OxaPay.");
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 await Task.Delay(3000, cancellationToken);
@@ -294,6 +307,7 @@ namespace UgcBotTG
 
                         if (string.Equals(status, "paid", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "overpaid", StringComparison.OrdinalIgnoreCase))
                         {
+                            Console.WriteLine($"[Paiement Crypto OK] Facture {item.TrackId} validée ({status}), Montant: {montantReçu}€ pour ChatID: {item.ChatId}");
                             DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "PAID");
 
                             if (montantReçu > 0)
@@ -336,6 +350,7 @@ namespace UgcBotTG
                         }
                         else if (string.Equals(status, "underpaid", StringComparison.OrdinalIgnoreCase))
                         {
+                            Console.WriteLine($"[Paiement Crypto Underpaid] Facture {item.TrackId} sous-payée, Montant: {montantReçu}€ pour ChatID: {item.ChatId}");
                             DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "UNDERPAID");
 
                             if (montantReçu > 0)
@@ -374,6 +389,7 @@ namespace UgcBotTG
                         {
                             if (!string.Equals(item.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase))
                             {
+                                Console.WriteLine($"[Paiement Crypto Expiré] Facture {item.TrackId} expirée pour ChatID: {item.ChatId}");
                                 DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "EXPIRED");
 
                                 try
@@ -385,6 +401,7 @@ namespace UgcBotTG
                         }
                         else if (string.Equals(status, "canceled", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "failed", StringComparison.OrdinalIgnoreCase))
                         {
+                            Console.WriteLine($"[Paiement Crypto Annulé/Échec] Facture {item.TrackId} annulée pour ChatID: {item.ChatId}");
                             DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "FAILED");
 
                             try
@@ -406,6 +423,8 @@ namespace UgcBotTG
         {
             string chatId = config.CurrentChatId;
             if (string.IsNullOrEmpty(chatId)) return;
+
+            Console.WriteLine($"[Paiement CB] Génération facture demandée par ChatID: {chatId}, Montant: {montant}€");
 
             try
             {
@@ -478,6 +497,7 @@ namespace UgcBotTG
                 string payementlink = secondJson.RootElement.GetProperty("hosted_checkout_url").GetString() ?? "";
 
                 DataBase.CreerPaiementEnBDD(chatId, id, montant, "CB", payementlink);
+                Console.WriteLine($"[Paiement CB BDD] Facture enregistrée en BDD: TrackID={id}, ChatID={chatId}, Montant={montant}€");
 
                 foreach (var ids in config.idAdmins)
                 {
@@ -506,6 +526,8 @@ namespace UgcBotTG
 
         public static async Task VerifierPaiementSumAPI(ITelegramBotClient botClient, CancellationToken cancellationToken)
         {
+            Console.WriteLine("[Paiement CB Worker] Démarrage de la boucle de vérification SumUp.");
+
             try
             {
                 var proxyAddress = "50.117.12.56";
@@ -558,6 +580,7 @@ namespace UgcBotTG
 
                             if (rsp2 == "PAID")
                             {
+                                Console.WriteLine($"[Paiement CB OK] Facture {item.TrackId} validée, Montant: {item.Amount}€ pour ChatID: {item.ChatId}");
                                 DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "PAID");
 
                                 int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(item.ChatId));
@@ -586,6 +609,7 @@ namespace UgcBotTG
                             }
                             else if (rsp2 == "EXPIRED")
                             {
+                                Console.WriteLine($"[Paiement CB Expiré] Facture {item.TrackId} expirée pour ChatID: {item.ChatId}");
                                 DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "EXPIRED");
 
                                 try
