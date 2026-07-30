@@ -532,7 +532,7 @@ namespace UgcBotTG
                 {
                     connexion.Open();
 
-                    string reqClean = "UPDATE payments SET Status = 'EXPIRED' WHERE Status = 'PENDING' AND CreatedAt < NOW() - INTERVAL '45 minutes'";
+                    string reqClean = "UPDATE payments SET Status = 'EXPIRED' WHERE Status = 'PENDING' AND CreatedAt < NOW() - INTERVAL '30 minutes'";
                     using (var cmdClean = new NpgsqlCommand(reqClean, connexion))
                     {
                         cmdClean.ExecuteNonQuery();
