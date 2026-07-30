@@ -5,7 +5,7 @@ namespace UgcBotTG
     internal class config
     {
         public readonly static string apiUrl = "https://api.oxapay.com/v1/payment/invoice";
-        public readonly static string apiKey = Environment.GetEnvironmentVariable("OXAPAY_API_KEY") ?? "DQ3KHE-OMS0VW-NLJND7-GJGXZM";
+        public readonly static string apiKey = Environment.GetEnvironmentVariable("OXAPAY_API_KEY") ?? "XZSCYQ-MDQCKO-1VNVKO-BBCWR7";
 
         public static Dictionary<string, string> PayementLink = new Dictionary<string, string>();
         public static List<string> IdPaiement = new List<string>();
