@@ -90,7 +90,7 @@ namespace ChezRheyyBot
                 }
             });
 
-            await botClient.SendTextMessageAsync(chatId, "<b>₿ PAIMENT CRYPTOMONNAIE</b>\n\nSélectionnez un montant rapide ou saisissez le montant de votre choix :", replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, "<b>₿ PAIEMENT CRYPTOMONNAIE</b>\n\nSélectionnez un montant rapide ou saisissez le montant de votre choix :", replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
         }
 
         public static async Task ActiverSaisieCustom(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -424,6 +424,31 @@ namespace ChezRheyyBot
             }
         }
 
+        private static string? _sumUpAccessToken = null;
+        private static DateTime _sumUpTokenExpiration = DateTime.MinValue;
+
+        private static async Task<string> ObtenirSumUpAccessToken(HttpClient client, CancellationToken cancellationToken)
+        {
+            if (!string.IsNullOrEmpty(_sumUpAccessToken) && DateTime.UtcNow < _sumUpTokenExpiration)
+            {
+                return _sumUpAccessToken;
+            }
+
+            var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/token");
+            var postData = "grant_type=client_credentials&client_id=cc_classic_PFUMM8wpZdtpvxx1I71gMv2a6PbQQ&client_secret=cc_sk_classic_JIDwonLeeMtiT7csQ4uvCIhU42dTvd0qOFPHWFqZAZwjkxpYRF";
+            tokenRequest.Content = new StringContent(postData, Encoding.UTF8, "application/x-www-form-urlencoded");
+            tokenRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "sup_sk_gn5RFRxslgQZ2Ca010BIry33E9l56yQ5f");
+
+            var tokenResponse = await client.SendAsync(tokenRequest, cancellationToken);
+            var tokenContent = await tokenResponse.Content.ReadAsStringAsync(cancellationToken);
+
+            using var tokenJson = JsonDocument.Parse(tokenContent);
+            _sumUpAccessToken = tokenJson.RootElement.GetProperty("access_token").GetString() ?? "";
+            _sumUpTokenExpiration = DateTime.UtcNow.AddMinutes(50);
+
+            return _sumUpAccessToken;
+        }
+
         public static async Task CreerPaiementSumAPI(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken, int montant)
         {
             string chatId = config.CurrentChatId;
@@ -468,16 +493,7 @@ namespace ChezRheyyBot
                 Random rnd = new Random();
                 int nombre = rnd.Next(10000, 100000);
 
-                var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/token");
-                var postData = "grant_type=client_credentials&client_id=cc_classic_PFUMM8wpZdtpvxx1I71gMv2a6PbQQ&client_secret=cc_sk_classic_JIDwonLeeMtiT7csQ4uvCIhU42dTvd0qOFPHWFqZAZwjkxpYRF";
-                tokenRequest.Content = new StringContent(postData, Encoding.UTF8, "application/x-www-form-urlencoded");
-                tokenRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "sup_sk_gn5RFRxslgQZ2Ca010BIry33E9l56yQ5f");
-
-                var tokenResponse = await client.SendAsync(tokenRequest, cancellationToken);
-                var tokenContent = await tokenResponse.Content.ReadAsStringAsync(cancellationToken);
-
-                using var tokenJson = JsonDocument.Parse(tokenContent);
-                string accessToken = tokenJson.RootElement.GetProperty("access_token").GetString() ?? "";
+                string accessToken = await ObtenirSumUpAccessToken(client, cancellationToken);
 
                 var secondRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/v0.1/checkouts");
                 var jsonPayload = new
@@ -485,7 +501,8 @@ namespace ChezRheyyBot
                     amount = montant,
                     checkout_reference = $"k8237fN914-6c0e-30f11-a5a52-{nombre}0285bggd",
                     currency = "EUR",
-                    description = "Paiement de produit",
+                    description = $"Rechargement solde ChezRheyyBot #{nombre}",
+                    return_url = "https://t.me/ChezRheyyBot",
                     merchant_code = "M5QBRGXB",
                     valid_until = formatted,
                     hosted_checkout = new { enabled = true }
@@ -520,7 +537,7 @@ namespace ChezRheyyBot
                     new[] { InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome") }
                 });
 
-                await botClient.SendTextMessageAsync(chatId, $"<b>💳 FACTURE CARTE BANCAIRE GENEREE</b>\n\nMontant : <b>{montant} €</b>\n\nCliquez ci-dessous pour procéder au paiement sécurisé :", replyMarkup: cbKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                await botClient.SendTextMessageAsync(chatId, $"<b>💳 FACTURE CARTE BANCAIRE GÉNÉRÉE</b>\n\nMontant : <b>{montant} €</b>\n\nCliquez ci-dessous pour procéder au paiement sécurisé :", replyMarkup: cbKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
             }
             catch (Exception ex)
             {
@@ -558,22 +575,14 @@ namespace ChezRheyyBot
                     await Task.Delay(5000, cancellationToken);
 
                     var paiementsEnAttente = DataBase.ObtenirPaiementsEnAttenteBDD("CB");
+                    if (paiementsEnAttente.Count == 0) continue;
+
+                    string accessToken = await ObtenirSumUpAccessToken(client, cancellationToken);
 
                     foreach (var item in paiementsEnAttente)
                     {
                         try
                         {
-                            var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/token");
-                            var postData = "grant_type=client_credentials&client_id=cc_classic_PFUMM8wpZdtpvxx1I71gMv2a6PbQQ&client_secret=cc_sk_classic_JIDwonLeeMtiT7csQ4uvCIhU42dTvd0qOFPHWFqZAZwjkxpYRF";
-                            tokenRequest.Content = new StringContent(postData, Encoding.UTF8, "application/x-www-form-urlencoded");
-                            tokenRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "sup_sk_gn5RFRxslgQZ2Ca010BIry33E9l56yQ5f");
-
-                            var tokenResponse = await client.SendAsync(tokenRequest, cancellationToken);
-                            var tokenContent = await tokenResponse.Content.ReadAsStringAsync(cancellationToken);
-
-                            using var tokenJson = JsonDocument.Parse(tokenContent);
-                            string accessToken = tokenJson.RootElement.GetProperty("access_token").GetString() ?? "";
-
                             var paiementverifier = new HttpRequestMessage(HttpMethod.Get, $"https://api.sumup.com/v0.1/checkouts/{item.TrackId}");
                             paiementverifier.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -581,23 +590,35 @@ namespace ChezRheyyBot
                             var tokenContent2 = await tokenResponse2.Content.ReadAsStringAsync(cancellationToken);
 
                             using var tokenJson2 = JsonDocument.Parse(tokenContent2);
-                            string rsp2 = tokenJson2.RootElement.GetProperty("status").GetString() ?? "";
+                            var root = tokenJson2.RootElement;
+                            string rsp2 = root.GetProperty("status").GetString() ?? "";
 
-                            if (rsp2 == "PAID")
+                            double montantSumUp = item.Amount;
+                            if (root.TryGetProperty("amount", out var amtElem))
                             {
-                                Console.WriteLine($"[Paiement CB OK] Facture {item.TrackId} validée, Montant: {item.Amount}€ pour ChatID: {item.ChatId}");
+                                if (amtElem.ValueKind == JsonValueKind.Number)
+                                    montantSumUp = amtElem.GetDouble();
+                                else if (amtElem.ValueKind == JsonValueKind.String && double.TryParse(amtElem.GetString(), out double dblAmt))
+                                    montantSumUp = dblAmt;
+                            }
+
+                            if (string.Equals(rsp2, "PAID", StringComparison.OrdinalIgnoreCase) || string.Equals(rsp2, "SUCCESSFUL", StringComparison.OrdinalIgnoreCase))
+                            {
+                                Console.WriteLine($"[Paiement CB OK] Facture {item.TrackId} validée ({rsp2}), Montant: {montantSumUp}€ pour ChatID: {item.ChatId}");
                                 DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "PAID");
 
+                                double nouveauSoldeTotal = 0;
                                 int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(item.ChatId));
                                 if (result != -1)
                                 {
                                     var ancienTuple = config.UserSave[result];
-                                    double nouveauSolde = ancienTuple.Item3 + item.Amount;
-                                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
+                                    nouveauSoldeTotal = ancienTuple.Item3 + montantSumUp;
+                                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSoldeTotal, ancienTuple.Item4);
                                 }
                                 else
                                 {
-                                    config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, item.Amount, false));
+                                    nouveauSoldeTotal = montantSumUp;
+                                    config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantSumUp, false));
                                 }
 
                                 DataBase.SauvegarderUtilisateurs();
@@ -606,20 +627,55 @@ namespace ChezRheyyBot
                                 {
                                     try
                                     {
-                                        await botClient.SendTextMessageAsync(idAdmin, $"**Paiement finalisé par CB**\nID: {item.ChatId}\nMontant: {item.Amount}€", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                                        await botClient.SendTextMessageAsync(idAdmin, $"<b>[PAIEMENT CB REÇU]</b>\nUser ID: <code>{item.ChatId}</code>\nMontant: <b>{montantSumUp}€</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                                     }
                                     catch { }
                                 }
-                                await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"Paiement reçu de votre part {item.Amount}€");
+
+                                try
+                                {
+                                    var homeKb = new InlineKeyboardMarkup(new[]
+                                    {
+                                        new[] { InlineKeyboardButton.WithCallbackData("🏠 Retour au menu principal", "iHome") }
+                                    });
+                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"✅ <b>PAIEMENT CARTE BANCAIRE REÇU</b>\n\nVotre compte a été crédité de <b>{montantSumUp} €</b> !\n💰 <b>Nouveau solde : {nouveauSoldeTotal} €</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: homeKb);
+                                }
+                                catch { }
                             }
-                            else if (rsp2 == "EXPIRED")
+                            else if (string.Equals(rsp2, "FAILED", StringComparison.OrdinalIgnoreCase))
+                            {
+                                Console.WriteLine($"[Paiement CB Échec] Facture {item.TrackId} refusée/échouée pour ChatID: {item.ChatId}");
+                                DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "FAILED");
+
+                                try
+                                {
+                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), "❌ <b>PAIEMENT ÉCHOUÉ</b>\n\nVotre transaction par Carte Bancaire a été refusée par la banque.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                }
+                                catch { }
+                            }
+                            else if (string.Equals(rsp2, "CANCELLED", StringComparison.OrdinalIgnoreCase) || string.Equals(rsp2, "CANCELED", StringComparison.OrdinalIgnoreCase))
+                            {
+                                Console.WriteLine($"[Paiement CB Annulé] Facture {item.TrackId} annulée pour ChatID: {item.ChatId}");
+                                DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "FAILED");
+
+                                try
+                                {
+                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), "❌ <b>FACTURE ANNULÉE</b>\n\nLa facture par Carte Bancaire a été annulée.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                }
+                                catch { }
+                            }
+                            else if (string.Equals(rsp2, "EXPIRED", StringComparison.OrdinalIgnoreCase))
                             {
                                 Console.WriteLine($"[Paiement CB Expiré] Facture {item.TrackId} expirée pour ChatID: {item.ChatId}");
                                 DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "EXPIRED");
 
                                 try
                                 {
-                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"Paiement expiré.");
+                                    var homeKb = new InlineKeyboardMarkup(new[]
+                                    {
+                                        new[] { InlineKeyboardButton.WithCallbackData("💳 Nouveau paiement", "iCustomP"), InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome") }
+                                    });
+                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), "⌛ <b>FACTURE EXPIRÉE</b>\n\nLe délai de 15 minutes pour effectuer le paiement par carte est dépassé.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: homeKb);
                                 }
                                 catch { }
 
@@ -627,7 +683,7 @@ namespace ChezRheyyBot
                                 {
                                     try
                                     {
-                                        await botClient.SendTextMessageAsync(idAdmin, $"**Paiement expiré**\nId :{item.ChatId}", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                                        await botClient.SendTextMessageAsync(idAdmin, $"[PAIEMENT CB EXPIRÉ] ChatID: {item.ChatId} | TrackID: {item.TrackId}");
                                     }
                                     catch { }
                                 }
