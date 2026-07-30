@@ -66,7 +66,7 @@ class Program
 
             if (config.BanniUser.Contains(config.CurrentChatId))
             {
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Vous avez ete bannie de @ChezQuickkBot, en cas de besoin contacter un admin");
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "Vous avez été banni de @ChezRheyyBot, en cas de besoin contactez un administrateur.");
                 return;
             }
 
