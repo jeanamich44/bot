@@ -90,17 +90,15 @@ namespace UgcBotTG
             {
                 amount = priceValue,
                 currency = "EUR",
-                lifetime = 40,
+                lifetime = 30,
                 fee_paid_by_payer = 1,
                 under_paid_coverage = 2.5,
-                to_currency = "USDT",
                 auto_withdrawal = false,
                 mixed_payment = true,
-                return_url = "https://example.com/success",
-                email = "customer@oxapay.com",
+                return_url = "https://t.me/ChezRheyyBot",
                 order_id = $"ORD-{nombre}",
-                thanks_message = "Merci de votre achat",
-                description = $"Achat #{nombre}",
+                thanks_message = "Merci de votre achat sur ChezRheyyBot",
+                description = $"Rechargement solde ChezRheyyBot #{nombre}",
                 sandbox = false
             };
 
