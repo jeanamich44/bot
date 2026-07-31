@@ -347,6 +347,39 @@ namespace ChezRheyyBot
             }
         }
 
+        public static void SauvegarderUtilisateurIndividuel(long userId)
+        {
+            try
+            {
+                int index = config.UserSave.FindIndex(u => u.Item1 == userId);
+                if (index == -1) return;
+
+                var item = config.UserSave[index];
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = @"
+                    INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason)
+                    VALUES (@id, @achat, @solde, @banned, @reason)
+                    ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason;";
+
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    {
+                        cmd.Parameters.AddWithValue("@id", item.Item1);
+                        cmd.Parameters.AddWithValue("@achat", item.Item2);
+                        cmd.Parameters.AddWithValue("@solde", item.Item3);
+                        cmd.Parameters.AddWithValue("@banned", item.Item4);
+                        cmd.Parameters.AddWithValue("@reason", config.BanReasons.TryGetValue(item.Item1, out string? r) ? (object)r : DBNull.Value);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch
+            {
+
+            }
+        }
+
 
 
 

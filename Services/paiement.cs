@@ -321,7 +321,7 @@ namespace ChezRheyyBot
                                 config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantReçu, false));
                             }
 
-                            DataBase.SauvegarderUtilisateurs();
+                            DataBase.SauvegarderUtilisateurIndividuel(long.Parse(item.ChatId));
 
                             bool etaitExpire = string.Equals(item.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase);
 
@@ -373,7 +373,7 @@ namespace ChezRheyyBot
                                     config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantReçu, false));
                                 }
 
-                                DataBase.SauvegarderUtilisateurs();
+                                DataBase.SauvegarderUtilisateurIndividuel(long.Parse(item.ChatId));
                             }
 
                             foreach (var id in config.idAdmins)
@@ -673,7 +673,7 @@ namespace ChezRheyyBot
                 config.UserSave.Add(Tuple.Create(long.Parse(chatId), 0, montantSumUp, false));
             }
 
-            DataBase.SauvegarderUtilisateurs();
+            DataBase.SauvegarderUtilisateurIndividuel(long.Parse(chatId));
 
             string urlPaiement = DataBase.ObtenirUrlPaiementBDD(trackId);
             string texteLien = string.IsNullOrEmpty(urlPaiement) ? "" : $"\nLien: {urlPaiement}";

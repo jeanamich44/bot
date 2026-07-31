@@ -196,7 +196,7 @@ namespace ChezRheyyBot
                         double nouveauSolde = ancienTuple.Item3 + mtn;
 
                         config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
-                        DataBase.SauvegarderUtilisateurs();
+                        DataBase.SauvegarderUtilisateurIndividuel(userId);
 
                         try
                         {
@@ -241,7 +241,7 @@ namespace ChezRheyyBot
                         if (nouveauSolde < 0) nouveauSolde = 0.0;
 
                         config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
-                        DataBase.SauvegarderUtilisateurs();
+                        DataBase.SauvegarderUtilisateurIndividuel(userId);
 
                         try
                         {
@@ -281,7 +281,7 @@ namespace ChezRheyyBot
                     if (!string.IsNullOrEmpty(reason))
                     {
                         config.BanReasons[userId] = reason;
-                        DataBase.SauvegarderUtilisateurs();
+                        DataBase.SauvegarderUtilisateurIndividuel(userId);
                         await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {userId} était déjà banni. Raison mise à jour : {reason}", cancellationToken: cancellationToken);
                     }
                     else
@@ -311,7 +311,7 @@ namespace ChezRheyyBot
                 {
                     config.UserSave.Add(Tuple.Create(userId, 0, 0.0, true));
                 }
-                DataBase.SauvegarderUtilisateurs();
+                DataBase.SauvegarderUtilisateurIndividuel(userId);
 
                 string responseMsg = string.IsNullOrEmpty(reason)
                     ? $"L'ID {userId} a bien été banni."
@@ -349,7 +349,7 @@ namespace ChezRheyyBot
                     var old = config.UserSave[idx];
                     config.UserSave[idx] = Tuple.Create(old.Item1, old.Item2, old.Item3, false);
                 }
-                DataBase.SauvegarderUtilisateurs();
+                DataBase.SauvegarderUtilisateurIndividuel(userId);
 
                 await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {msg[1]} a bien été débanni.", cancellationToken: cancellationToken);
                 foreach (var id in config.idAdmins)

@@ -43,6 +43,7 @@ namespace ChezRheyyBot
                     {
                         double nouveauSolde = ancienTuple.Item3 - double.Parse(prix);
                         config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2 + 1, nouveauSolde, ancienTuple.Item4);
+                        DataBase.SauvegarderUtilisateurIndividuel(ancienTuple.Item1);
 
 
                         Random rnd = new Random();
