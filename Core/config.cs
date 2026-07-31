@@ -47,7 +47,6 @@ namespace ChezRheyyBot
         {
             categorie.Clear();
             categorie.Add("Carrefour");
-            categorie.Add("Quick");
         }
 
         public static void GetProfileSettings()

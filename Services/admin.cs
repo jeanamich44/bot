@@ -392,7 +392,7 @@ namespace ChezRheyyBot
             {
                 //DataBase.StockItem Connaitre = new DataBase.StockItem();
 
-                var Connaitre = DataBase.ObtenirStocksParBrand("quick");
+                var Connaitre = DataBase.ObtenirStocksParBrand("carrefour");
 
                 if(Connaitre.Count == 0)
                 {

@@ -20,19 +20,14 @@ namespace ChezRheyyBot
                 {
                     new List<InlineKeyboardButton>
                     {
-                        InlineKeyboardButton.WithCallbackData("🍔 Quick", "iQuick")
+                        InlineKeyboardButton.WithCallbackData("📺 IPTV","iIPTV"),
+                        InlineKeyboardButton.WithCallbackData("🛒 Carrefour","iCarrefour"),
+                    },
+                    new List<InlineKeyboardButton>
+                    {
+                        InlineKeyboardButton.WithCallbackData("💳 Paiement", "iPaiement")
                     }
                 };
-                keyboardButtons.Add(new List<InlineKeyboardButton>
-                {
-                    InlineKeyboardButton.WithCallbackData("📺 IPTV","iIPTV"),
-                    InlineKeyboardButton.WithCallbackData("🛒 Carrefour","iCarrefour"),
-                });
-
-                keyboardButtons.Add(new List<InlineKeyboardButton>
-                {
-                    InlineKeyboardButton.WithCallbackData("💳 Paiement", "iPaiement")
-                });
 
                 var inlineKeyboard = new InlineKeyboardMarkup(keyboardButtons);
                 string valeur = "";
@@ -54,19 +49,14 @@ namespace ChezRheyyBot
                 {
                     new List<InlineKeyboardButton>
                     {
-                        InlineKeyboardButton.WithCallbackData("🍔 Quick", "iQuick")
+                        InlineKeyboardButton.WithCallbackData("📺 IPTV","iIPTV"),
+                        InlineKeyboardButton.WithCallbackData("🛒 Carrefour","iCarrefour")
+                    },
+                    new List<InlineKeyboardButton>
+                    {
+                        InlineKeyboardButton.WithCallbackData("💳 Paiement", "iPaiement")
                     }
                 };
-                keyboardButtons.Add(new List<InlineKeyboardButton>
-                {
-                    InlineKeyboardButton.WithCallbackData("📺 IPTV","iIPTV"),
-                    InlineKeyboardButton.WithCallbackData("🛒 Carrefour","iCarrefour")
-                });
-
-                keyboardButtons.Add(new List<InlineKeyboardButton>
-                {
-                    InlineKeyboardButton.WithCallbackData("💳 Paiement", "iPaiement")
-                });
 
                 var inlineKeyboard = new InlineKeyboardMarkup(keyboardButtons);
                 string valeur = "";
