@@ -477,7 +477,6 @@ namespace ChezRheyyBot
                     { "api_url", "https://cms-4k.com/api/api.php" },
                     { "pack", "43551" },
                     { "type", "m3u" },
-                    { "action", "new" },
                     { "price_1m", "5" },
                     { "price_3m", "10" },
                     { "price_6m", "15" },
@@ -491,7 +490,6 @@ namespace ChezRheyyBot
                 config.CategorySettings["iptv"]["api_url"] = "https://cms-4k.com/api/api.php";
                 config.CategorySettings["iptv"]["pack"] = "43551";
                 config.CategorySettings["iptv"]["type"] = "m3u";
-                config.CategorySettings["iptv"]["action"] = "new";
                 if (!config.CategorySettings["iptv"].ContainsKey("price_1m")) config.CategorySettings["iptv"]["price_1m"] = "5";
                 if (!config.CategorySettings["iptv"].ContainsKey("price_3m")) config.CategorySettings["iptv"]["price_3m"] = "10";
                 if (!config.CategorySettings["iptv"].ContainsKey("price_6m")) config.CategorySettings["iptv"]["price_6m"] = "15";
