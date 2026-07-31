@@ -145,13 +145,13 @@ namespace ChezRheyyBot
                     Uri uri = new Uri(link);
                     var query = HttpUtility.ParseQueryString(uri.Query);
 
-                   // string baseUrl = $"{uri.Scheme}://{uri.Host}";
-                    string baseUrl = "http://cf.business-cloud-neo.ru/";
+                    string baseUrl = $"{uri.Scheme}://{uri.Host}";
                     string username = query["username"];
                     string password = query["password"];
                     await botClient.SendTextMessageAsync(config.CurrentChatId, $"*ChezRheyy IPTV*\n\nHost:{baseUrl}\nUsername:{username}\nPassword:{password}\n", parseMode: ParseMode.Markdown);
 
-                    System.IO.File.AppendAllText("vendu.txt", $"Brand = IPTV | Carte = {number} | Solde = 0 | Prix = {prix} | Id = 0\n");
+                    long.TryParse(config.CurrentChatId, out long userIdIptv);
+                    DataBase.EnregistrerTransaction(userIdIptv, "IPTV", number.ToString(), "", 0, prix);
                 }
 
                 else if (update.CallbackQuery.Data == "iCanal")

@@ -183,7 +183,10 @@ namespace ChezRheyyBot
         {
             try
             {
-                System.IO.File.AppendAllText("vendu.txt",$"Brand = {brand} | Carte = {carte} | Solde = {valeur} | Prix = {prix} | Id = {id}\n");
+                long.TryParse(config.CurrentChatId, out long userId);
+                int.TryParse(valeur, out int val);
+                double.TryParse(prix, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double prx);
+                DataBase.EnregistrerTransaction(userId, brand, carte, "", val, prx);
             }
             catch
             {

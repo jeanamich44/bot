@@ -70,40 +70,35 @@ namespace ChezRheyyBot
         {
             try
             {
-                var lignes = System.IO.File.ReadAllLines("vendu.txt");
+                var transactions = DataBase.ObtenirTransactions();
+                Dictionary<string, (double total, int count)> stats = new Dictionary<string, (double total, int count)>();
 
-                // Dictionary pour stocker total + nombre de ventes
-                Dictionary<string, (int total, int count)> stats = new Dictionary<string, (int total, int count)>();
-
-                foreach (var line in lignes)
+                foreach (var tx in transactions)
                 {
-                    try
+                    string brand = string.IsNullOrEmpty(tx.Brand) ? "Inconnu" : tx.Brand;
+                    if (stats.ContainsKey(brand))
                     {
-                        var parts = line.Split('|');
-                        string brand = parts[0].Split('=')[1].Trim();
-                        int prix = int.Parse(parts[3].Split('=')[1].Trim());
-
-                        if (stats.ContainsKey(brand))
-                        {
-                            var s = stats[brand];
-                            stats[brand] = (s.total + prix, s.count + 1);
-                        }
-                        else
-                        {
-                            stats[brand] = (prix, 1);
-                        }
+                        var s = stats[brand];
+                        stats[brand] = (s.total + tx.Price, s.count + 1);
                     }
-                    catch
+                    else
                     {
-
+                        stats[brand] = (tx.Price, 1);
                     }
                 }
 
                 var message = new StringBuilder();
-                message.AppendLine("📊 Statistiques des ventes :");
-                foreach (var s in stats)
+                message.AppendLine("📊 Statistiques des ventes (BDD PostgreSQL) :");
+                if (stats.Count == 0)
                 {
-                    message.AppendLine($"{s.Key} → {s.Value.count} ventes, total = {s.Value.total}");
+                    message.AppendLine("Aucune vente enregistrée.");
+                }
+                else
+                {
+                    foreach (var s in stats)
+                    {
+                        message.AppendLine($"{s.Key} → {s.Value.count} ventes, total = {s.Value.total}€");
+                    }
                 }
 
                 await botClient.SendTextMessageAsync(config.CurrentChatId, message.ToString());
@@ -422,35 +417,25 @@ namespace ChezRheyyBot
                     return;
                 }
 
-                if (!System.IO.File.Exists("vendu.txt"))
-                {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Fichier d'achat introuvable");
-                    return;
-                }
+                var transactions = DataBase.ObtenirTransactions();
+                long.TryParse(message[1], out long searchUserId);
 
-                var read = System.IO.File.ReadAllLines("vendu.txt");
-                if(read.Length == 0)
+                foreach (var tx in transactions)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Aucun achat detecter , fichier vide ");
-                    return;
-                }
-
-                for(int i = 0; i  < read.Length; i++)
-                {
-                    if (read[i].Contains(message[1]))
+                    if (tx.UserId == searchUserId || tx.Code.Contains(message[1]) || tx.Brand.Equals(message[1], StringComparison.OrdinalIgnoreCase))
                     {
-                        sd += $"{read[i]}\n";
+                        sd += $"Brand = {tx.Brand} | Carte = {tx.Code} | Solde = {tx.Value} | Prix = {tx.Price}€ | Date = {tx.CreatedAt:dd/MM/yyyy HH:mm}\n";
                     }
                 }
 
-                if(sd.Length == 0)
+                if (sd.Length == 0)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Aucune commandes pour {message[1]}");
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Aucune commande trouvée pour {message[1]}");
                     return;
                 }
                 else
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Historique achat de {message[1]}\n\n{sd}\n");
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Historique d'achats pour {message[1]} :\n\n{sd}\n");
                     return;
                 }
             }

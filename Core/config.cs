@@ -33,7 +33,8 @@ namespace ChezRheyyBot
         public static bool promotion = false;
 
         public static List<string> categorie = new List<string>();
-        public static Dictionary<string, string> ProfileSettings = new Dictionary<string, string>();
+        public static Dictionary<string, string> Settings = new Dictionary<string, string>();
+        public static Dictionary<string, string> ProfileSettings => Settings;
 
         public static void InitialiseAdmin()
         {
@@ -47,12 +48,12 @@ namespace ChezRheyyBot
 
         public static void GetProfileSettings()
         {
-            DataBase.ChargerProfile();
+            DataBase.ChargerSettings();
         }
 
         public static void SetProfileSettings()
         {
-            DataBase.SauvegarderProfile();
+            DataBase.SauvegarderSettings();
         }
 
         public static async Task ReadJson()

@@ -81,9 +81,26 @@ namespace ChezRheyyBot
                 DELETE FROM stock WHERE LOWER(Brand) IN ('flunch', 'quick');
                 DROP TABLE IF EXISTS bans;
                 DROP TABLE IF EXISTS parrainage;
+                CREATE TABLE IF NOT EXISTS settings (
+                    Key TEXT PRIMARY KEY,
+                    Value TEXT
+                );
                 CREATE TABLE IF NOT EXISTS profile (
                     Key TEXT PRIMARY KEY,
                     Value TEXT
+                );
+                INSERT INTO settings (Key, Value)
+                SELECT Key, Value FROM profile ON CONFLICT (Key) DO NOTHING;
+
+                CREATE TABLE IF NOT EXISTS transactions (
+                    Id SERIAL PRIMARY KEY,
+                    UserId BIGINT DEFAULT 0,
+                    Brand TEXT NOT NULL,
+                    Code TEXT,
+                    Pin TEXT,
+                    Value INTEGER DEFAULT 0,
+                    Price DOUBLE PRECISION DEFAULT 0.0,
+                    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
                 CREATE TABLE IF NOT EXISTS payments (
                     Id SERIAL PRIMARY KEY,
@@ -330,21 +347,98 @@ namespace ChezRheyyBot
 
 
 
-        public static void ChargerProfile()
+        public static void EnregistrerTransaction(long userId, string brand, string code, string pin, int value, double price)
         {
             try
             {
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
-                    string requete = "SELECT Key, Value FROM profile";
+                    string requete = @"
+                    INSERT INTO transactions (UserId, Brand, Code, Pin, Value, Price)
+                    VALUES (@userId, @brand, @code, @pin, @value, @price);";
+
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    {
+                        cmd.Parameters.AddWithValue("@userId", userId);
+                        cmd.Parameters.AddWithValue("@brand", brand ?? "");
+                        cmd.Parameters.AddWithValue("@code", code ?? "");
+                        cmd.Parameters.AddWithValue("@pin", pin ?? "");
+                        cmd.Parameters.AddWithValue("@value", value);
+                        cmd.Parameters.AddWithValue("@price", price);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch
+            {
+
+            }
+        }
+
+        public class TransactionItem
+        {
+            public int Id { get; set; }
+            public long UserId { get; set; }
+            public string Brand { get; set; } = "";
+            public string Code { get; set; } = "";
+            public string Pin { get; set; } = "";
+            public int Value { get; set; }
+            public double Price { get; set; }
+            public DateTime CreatedAt { get; set; }
+        }
+
+        public static List<TransactionItem> ObtenirTransactions()
+        {
+            var liste = new List<TransactionItem>();
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = "SELECT Id, UserId, Brand, Code, Pin, Value, Price, CreatedAt FROM transactions ORDER BY CreatedAt DESC";
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     using (var reader = cmd.ExecuteReader())
                     {
-                        config.ProfileSettings.Clear();
                         while (reader.Read())
                         {
-                            config.ProfileSettings[reader.GetString(0)] = reader.GetString(1);
+                            liste.Add(new TransactionItem
+                            {
+                                Id = reader.GetInt32(0),
+                                UserId = reader.IsDBNull(1) ? 0 : reader.GetInt64(1),
+                                Brand = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                Code = reader.IsDBNull(3) ? "" : reader.GetString(3),
+                                Pin = reader.IsDBNull(4) ? "" : reader.GetString(4),
+                                Value = reader.IsDBNull(5) ? 0 : reader.GetInt32(5),
+                                Price = reader.IsDBNull(6) ? 0.0 : reader.GetDouble(6),
+                                CreatedAt = reader.IsDBNull(7) ? DateTime.MinValue : reader.GetDateTime(7)
+                            });
+                        }
+                    }
+                }
+            }
+            catch
+            {
+
+            }
+            return liste;
+        }
+
+        public static void ChargerSettings()
+        {
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = "SELECT Key, Value FROM settings";
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        config.Settings.Clear();
+                        while (reader.Read())
+                        {
+                            config.Settings[reader.GetString(0)] = reader.GetString(1);
                         }
                     }
                 }
@@ -355,17 +449,17 @@ namespace ChezRheyyBot
             }
         }
 
-        public static void SauvegarderProfile()
+        public static void SauvegarderSettings()
         {
             try
             {
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
-                    foreach (var item in config.ProfileSettings)
+                    foreach (var item in config.Settings)
                     {
                         string requete = @"
-                        INSERT INTO profile (Key, Value)
+                        INSERT INTO settings (Key, Value)
                         VALUES (@k, @v)
                         ON CONFLICT (Key) DO UPDATE SET Value = EXCLUDED.Value;";
 
