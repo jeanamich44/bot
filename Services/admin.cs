@@ -7,63 +7,60 @@ namespace ChezRheyyBot
 {
     internal class admin
     {
-        public static List<string> command = new List<string>() { "/addMoney", "/removeMoney", "/ban", "/message","/info", "/stock", "/commandes","/help","/crypto","/unlock","/deban","/clear","/stat" };
+        public static List<string> command = new List<string>() { "/addMoney", "/removeMoney", "/ban", "/deban", "/message", "/info", "/stock", "/commandes", "/help", "/crypto", "/unlock", "/stat" };
+
         public static async Task<bool> CommandeAdmin(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
-            string? commandeTrouvee = command.FirstOrDefault(cmd => message.Contains(cmd));
+            if (string.IsNullOrWhiteSpace(message)) return false;
+
+            string firstWord = message.Split(' ')[0].Trim();
+            string? commandeTrouvee = command.FirstOrDefault(cmd => cmd.Equals(firstWord, StringComparison.OrdinalIgnoreCase));
 
             if (commandeTrouvee != null)
             {
-                switch (commandeTrouvee)
+                switch (commandeTrouvee.ToLower())
                 {
-                    case "/addMoney":
-                        await AjouterArgent(message,botClient,update,cancellationToken);
+                    case "/addmoney":
+                        await AjouterArgent(message, botClient, update, cancellationToken);
                         break;
-                    case "/removeMoney":
-                        await RemoveMoney(message,botClient,update,cancellationToken);
+                    case "/removemoney":
+                        await RemoveMoney(message, botClient, update, cancellationToken);
                         break;
                     case "/ban":
-                        await BanUser(botClient,update,cancellationToken);
+                        await BanUser(botClient, update, cancellationToken);
                         break;
                     case "/deban":
-                        await DebanUser(botClient,update,cancellationToken);
+                        await DebanUser(botClient, update, cancellationToken);
                         break;
                     case "/message":
-                        await SendMessageAll(botClient,update,cancellationToken);
+                        await SendMessageAll(botClient, update, cancellationToken);
                         break;
                     case "/info":
-                        await GetInFoUser(botClient,update,cancellationToken);
+                        await GetInFoUser(botClient, update, cancellationToken);
                         break;
                     case "/stock":
                         await ConnaitreNombreDeStock(botClient, update, cancellationToken);
                         break;
                     case "/commandes":
-                        await RecupererAchatId(botClient,update,cancellationToken);
+                        await RecupererAchatId(botClient, update, cancellationToken);
                         break;
                     case "/help":
-                        await HelpCommande(botClient,update,cancellationToken);
+                        await HelpCommande(botClient, update, cancellationToken);
                         break;
                     case "/crypto":
-                        await GetInfoDePaiementId(botClient,update,cancellationToken);
+                        await GetInfoDePaiementId(botClient, update, cancellationToken);
                         break;
-
                     case "/unlock":
-                        await UnLockPaiement(botClient,update,cancellationToken);
-                        break;
-                    case "/clear":
-
+                        await UnLockPaiement(botClient, update, cancellationToken);
                         break;
                     case "/stat":
-                        await SendStat(botClient,update,cancellationToken);
+                        await SendStat(botClient, update, cancellationToken);
                         break;
                 }
 
                 return true;
             }
-            else
-            {
-                return false;
-            }
+            return false;
         }
 
         private static async Task SendStat(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -101,40 +98,36 @@ namespace ChezRheyyBot
                     }
                 }
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, message.ToString());
+                await botClient.SendTextMessageAsync(config.CurrentChatId, message.ToString(), cancellationToken: cancellationToken);
             }
-            catch
-            {
-
-            }
+            catch { }
         }
 
         private static async Task SendMessageAll(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
-                var msg = update.Message.Text.Split('-');
-
-                if(msg.Length != 1)
+                string text = update.Message.Text ?? "";
+                int index = text.IndexOf('-');
+                if (index != -1 && index + 1 < text.Length)
                 {
+                    string contenu = text.Substring(index + 1).Trim();
                     foreach (var item in config.UserSave)
                     {
-                        long userid = item.Item1;
                         try
                         {
-                            botClient.SendTextMessageAsync(userid, msg[1]);
+                            await botClient.SendTextMessageAsync(item.Item1, contenu, cancellationToken: cancellationToken);
                         }
-                        catch
-                        {
-
-                        }
+                        catch { }
                     }
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Message envoyé à tous les utilisateurs.", cancellationToken: cancellationToken);
+                }
+                else
+                {
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur format: /message - <votre message>", cancellationToken: cancellationToken);
                 }
             }
-            catch
-            {
-
-            }
+            catch { }
         }
 
         private static async Task UnLockPaiement(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -142,77 +135,64 @@ namespace ChezRheyyBot
             try
             {
                 var msg = update.Message.Text.Split(' ');
-
-                if(msg.Length == 2)
+                if (msg.Length == 2)
                 {
                     if (config.banAPI.Contains(msg[1]))
                     {
                         config.banAPI.Remove(msg[1]);
-                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"User {msg[1]} peut payer");
-                        return;
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"User {msg[1]} peut payer", cancellationToken: cancellationToken);
                     }
                     else
                     {
-                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"User {msg[1]} n'est pas bloquer");
-                        return;
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"User {msg[1]} n'est pas bloqué", cancellationToken: cancellationToken);
                     }
                 }
             }
-            catch
-            {
-
-            }
+            catch { }
         }
+
         private static async Task AjouterArgent(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
                 var msg = message.Split(' ');
-
-                if (msg.Length == 3)
+                if (msg.Length == 3 && long.TryParse(msg[1], out long userId) && double.TryParse(msg[2], out double mtn))
                 {
-                    int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(msg[1]));
-
+                    int result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
                     if (result != -1)
                     {
                         var ancienTuple = config.UserSave[result];
-                        double nouveauSolde = ancienTuple.Item3 + double.Parse(msg[2]);
+                        double nouveauSolde = ancienTuple.Item3 + mtn;
 
                         config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
                         DataBase.SauvegarderUtilisateurs();
+
                         try
                         {
-                            await botClient.SendTextMessageAsync(msg[1], $"💰 {msg[2]}€ reçus sur votre solde.");
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde ajouter a {msg[1]}");
-                            foreach(var id in config.idAdmins)
+                            await botClient.SendTextMessageAsync(userId, $"💰 {mtn}€ reçus sur votre solde.", cancellationToken: cancellationToken);
+                            await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde ajouté à {userId}", cancellationToken: cancellationToken);
+                            foreach (var id in config.idAdmins)
                             {
-                                await botClient.SendTextMessageAsync(id, $"Solde mis a {msg[1]} montant {msg[2]}");
+                                await botClient.SendTextMessageAsync(id, $"Solde mis à {userId} montant {mtn}€", cancellationToken: cancellationToken);
                             }
-
                             return;
                         }
                         catch
                         {
-                            Console.WriteLine("[-] Impossible d'envoyer les message {Money}");
+                            Console.WriteLine("[-] Impossible d'envoyer le message de solde");
                             return;
                         }
                     }
                     else
                     {
-                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"ID:{msg[1]} introuvables.");
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"ID:{userId} introuvable.", cancellationToken: cancellationToken);
                         return;
                     }
-
-
                 }
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /addMoney <id> <montant>\n");
-                return;
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /addMoney <id> <montant>", cancellationToken: cancellationToken);
             }
-            catch
-            {
-
-            }
+            catch { }
         }
 
         private static async Task RemoveMoney(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -220,53 +200,36 @@ namespace ChezRheyyBot
             try
             {
                 var msg = message.Split(' ');
-
-                if (msg.Length == 3)
+                if (msg.Length == 3 && long.TryParse(msg[1], out long userId) && double.TryParse(msg[2], out double mtn))
                 {
-                    int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(msg[1]));
-
+                    int result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
                     if (result != -1)
                     {
                         var ancienTuple = config.UserSave[result];
-                        double nouveauSolde = ancienTuple.Item3 - double.Parse(msg[2]);
+                        double nouveauSolde = ancienTuple.Item3 - mtn;
+                        if (nouveauSolde < 0) nouveauSolde = 0.0;
 
-                        if(nouveauSolde < 0)
-                        {
-                            config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, 0.0, ancienTuple.Item4);
-                        }
-                        else
-                        {
-                            config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
-
-                        }
+                        config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
                         DataBase.SauvegarderUtilisateurs();
+
                         try
                         {
-                            await botClient.SendTextMessageAsync(msg[1], $"Solde déduit de {msg[2]}€.");
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde retiré à {msg[1]}");
+                            await botClient.SendTextMessageAsync(userId, $"Solde déduit de {mtn}€.", cancellationToken: cancellationToken);
+                            await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde retiré à {userId}", cancellationToken: cancellationToken);
                             return;
                         }
-                        catch
-                        {
-                            return;
-                        }
+                        catch { return; }
                     }
                     else
                     {
-                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"ID:{msg[1]} introuvables.");
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"ID:{userId} introuvable.", cancellationToken: cancellationToken);
                         return;
                     }
-
-
                 }
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /removeMoney <id> <montant>\n");
-                return;
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /removeMoney <id> <montant>", cancellationToken: cancellationToken);
             }
-            catch
-            {
-
-            }
+            catch { }
         }
 
         private static async Task BanUser(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -274,16 +237,15 @@ namespace ChezRheyyBot
             try
             {
                 var msg = update.Message.Text.Split(' ');
-
-                if(msg.Length != 2)
+                if (msg.Length != 2)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /ban <id>\n");
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /ban <id>", cancellationToken: cancellationToken);
                     return;
                 }
 
                 if (config.BanniUser.Contains(msg[1]))
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"{msg[1]} est déjà banni.");
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"{msg[1]} est déjà banni.", cancellationToken: cancellationToken);
                     return;
                 }
 
@@ -301,28 +263,23 @@ namespace ChezRheyyBot
                 }
                 DataBase.SauvegarderUtilisateurs();
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {msg[1]} a bien été banni.");
+                await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {msg[1]} a bien été banni.", cancellationToken: cancellationToken);
                 foreach (var id in config.idAdmins)
                 {
-                    await botClient.SendTextMessageAsync(id, $"BAN USER: {msg[1]}\n");
+                    await botClient.SendTextMessageAsync(id, $"BAN USER: {msg[1]}", cancellationToken: cancellationToken);
                 }
-
-                return;
             }
-            catch
-            {
-
-            }
+            catch { }
         }
+
         private static async Task DebanUser(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
                 var msg = update.Message.Text.Split(' ');
-
                 if (msg.Length != 2)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /deban <id>\n");
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /deban <id>", cancellationToken: cancellationToken);
                     return;
                 }
 
@@ -340,126 +297,100 @@ namespace ChezRheyyBot
                 }
                 DataBase.SauvegarderUtilisateurs();
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {msg[1]} a bien été débanni.");
+                await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {msg[1]} a bien été débanni.", cancellationToken: cancellationToken);
                 foreach (var id in config.idAdmins)
                 {
-                    await botClient.SendTextMessageAsync(id, $"DEBAN USER: {msg[1]}\n");
+                    await botClient.SendTextMessageAsync(id, $"DEBAN USER: {msg[1]}", cancellationToken: cancellationToken);
                 }
-
-                return;
             }
-            catch
-            {
-
-            }
+            catch { }
         }
-
 
         private static async Task GetInFoUser(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
                 var msg = update.Message.Text.Split(' ');
-
-                if(msg.Length == 2)
+                if (msg.Length == 2 && long.TryParse(msg[1], out long userId))
                 {
-                    int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(msg[1]));
-
-                    if(result == -1)
+                    int result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
+                    if (result == -1)
                     {
-                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"Erreur: {msg[1]} ID introuvables !!");
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"Erreur: {msg[1]} ID introuvable !!", cancellationToken: cancellationToken);
                         return;
                     }
 
                     var ancienTuple = config.UserSave[result];
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Info de {msg[1]}\n\nAchat: {ancienTuple.Item2}\nSolde: {ancienTuple.Item3}\n");
-                    return;
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Info de {msg[1]}\n\nAchat: {ancienTuple.Item2}\nSolde: {ancienTuple.Item3}€\nBanni: {ancienTuple.Item4}", cancellationToken: cancellationToken);
                 }
             }
-            catch
-            {
-
-            }
+            catch { }
         }
+
         private static async Task ConnaitreNombreDeStock(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
-                //DataBase.StockItem Connaitre = new DataBase.StockItem();
-
-                var Connaitre = DataBase.ObtenirStocksParBrand("carrefour");
-
-                if(Connaitre.Count == 0)
+                var connaitre = DataBase.ObtenirStocksParBrand("carr");
+                if (connaitre.Count == 0)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Aucun STOCK !");
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Aucun STOCK !", cancellationToken: cancellationToken);
                     return;
                 }
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, $"Le stock es de {Connaitre.Count}\n", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
-                return;
+                await botClient.SendTextMessageAsync(config.CurrentChatId, $"Le stock Carrefour est de {connaitre.Count}\n", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
             }
-            catch
-            {
-                return;
-            }
+            catch { }
         }
+
         private static async Task RecupererAchatId(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
-                var sd = "";
-
                 var message = update.Message.Text.Split(' ');
-
-                if(message.Length != 2)
+                if (message.Length != 2)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: /commandes <id>\n");
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: /commandes <id | marque | code>", cancellationToken: cancellationToken);
                     return;
                 }
 
+                string searchArg = message[1];
+                long.TryParse(searchArg, out long searchUserId);
                 var transactions = DataBase.ObtenirTransactions();
-                long.TryParse(message[1], out long searchUserId);
+                var sb = new StringBuilder();
 
                 foreach (var tx in transactions)
                 {
-                    if (tx.UserId == searchUserId || tx.Code.Contains(message[1]) || tx.Brand.Equals(message[1], StringComparison.OrdinalIgnoreCase))
+                    bool codeMatch = !string.IsNullOrEmpty(tx.Code) && tx.Code.Contains(searchArg, StringComparison.OrdinalIgnoreCase);
+                    bool brandMatch = !string.IsNullOrEmpty(tx.Brand) && tx.Brand.Equals(searchArg, StringComparison.OrdinalIgnoreCase);
+                    bool userMatch = tx.UserId == searchUserId && searchUserId > 0;
+
+                    if (userMatch || codeMatch || brandMatch)
                     {
-                        sd += $"Brand = {tx.Brand} | Carte = {tx.Code} | Solde = {tx.Value} | Prix = {tx.Price}€ | Date = {tx.CreatedAt:dd/MM/yyyy HH:mm}\n";
+                        sb.AppendLine($"Brand = {tx.Brand} | Carte = {tx.Code} | Solde = {tx.Value} | Prix = {tx.Price}€ | Date = {tx.CreatedAt:dd/MM/yyyy HH:mm}");
                     }
                 }
 
-                if (sd.Length == 0)
+                if (sb.Length == 0)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Aucune commande trouvée pour {message[1]}");
-                    return;
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Aucune commande trouvée pour {searchArg}", cancellationToken: cancellationToken);
                 }
                 else
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Historique d'achats pour {message[1]} :\n\n{sd}\n");
-                    return;
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Historique d'achats pour {searchArg} :\n\n{sb}", cancellationToken: cancellationToken);
                 }
             }
-            catch
-            {
-                return;
-            }
+            catch { }
         }
+
         private static async Task HelpCommande(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
-                var commandmsg = "";
-                for(int i = 0;i < command.Count; i++)
-                {
-                    commandmsg += command[i].ToString() + "\n";
-                }
-
-                await botClient.SendTextMessageAsync(config.CurrentChatId, $"*Listes des commandes*\n{commandmsg}",parseMode:Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                var commandmsg = string.Join("\n", command);
+                await botClient.SendTextMessageAsync(config.CurrentChatId, $"*Listes des commandes*\n{commandmsg}", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown, cancellationToken: cancellationToken);
             }
-            catch
-            {
-
-            }
+            catch { }
         }
 
         private static async Task GetInfoDePaiementId(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -469,22 +400,23 @@ namespace ChezRheyyBot
                 var id = update.Message.Text.Split(' ');
                 if (id.Length != 2)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur commandes: /crypto (trackId)");
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur commandes: /crypto <trackId>", cancellationToken: cancellationToken);
                     return;
                 }
 
-                var httpClient = new HttpClient();
-                var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.oxapay.com/v1/payment/{id[1]}");
+                using var httpClient = new HttpClient();
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.oxapay.com/v1/payment/{id[1]}");
                 request.Headers.Add("merchant_api_key", config.apiKey);
 
-                var response = await httpClient.SendAsync(request);
-                var responseBody = await response.Content.ReadAsStringAsync();
+                var response = await httpClient.SendAsync(request, cancellationToken);
+                var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
-                if(response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId,$"Transaction {id[1]} introuvables.");
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Transaction {id[1]} introuvable.", cancellationToken: cancellationToken);
                     return;
                 }
+
                 using JsonDocument doc = JsonDocument.Parse(responseBody);
                 var root = doc.RootElement;
 
@@ -493,26 +425,10 @@ namespace ChezRheyyBot
                     var status = data.GetProperty("status").GetString();
                     var montant = data.GetProperty("amount").GetDouble();
 
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Transaction {id[1]} [Montant={montant} | Status={status}]");
-                    return;
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Transaction {id[1]} [Montant={montant}€ | Status={status}]", cancellationToken: cancellationToken);
                 }
             }
-            catch
-            {
-
-            }
-        }
-
-        private static async Task ClearCategorie(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
-        {
-            var categorie = update.Message.Text.Split(' ');
-            if (categorie.Length != 2)
-            {
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur commandes: /clear (categorie)");
-                return;
-            }
-
-
+            catch { }
         }
     }
 }
