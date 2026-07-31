@@ -16,27 +16,24 @@ namespace ChezRheyyBot
                 int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(config.CurrentChatId));
                 var ancienTuple = config.UserSave[result];
 
-               // await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]) - 1);
-
                 var keyboardButtons = new List<List<InlineKeyboardButton>>
+                {
+                    new List<InlineKeyboardButton>
                     {
-                        new List<InlineKeyboardButton>
-                        {
-                            InlineKeyboardButton.WithCallbackData("🍔 Quick", "iQuick"),
-                            InlineKeyboardButton.WithCallbackData("🍴​ Flunch","iFlunch"),
-
-                        }
-                    };
+                        InlineKeyboardButton.WithCallbackData("🍔 Quick", "iQuick"),
+                        InlineKeyboardButton.WithCallbackData("🍴​ Flunch","iFlunch"),
+                    }
+                };
                 keyboardButtons.Add(new List<InlineKeyboardButton>
-                                        {
-                                         InlineKeyboardButton.WithCallbackData("📺 IPTV","iIPTV"),
-                                         InlineKeyboardButton.WithCallbackData("🛒 Carrefour","iCarrefour"),
-                                    });
+                {
+                    InlineKeyboardButton.WithCallbackData("📺 IPTV","iIPTV"),
+                    InlineKeyboardButton.WithCallbackData("🛒 Carrefour","iCarrefour"),
+                });
 
                 keyboardButtons.Add(new List<InlineKeyboardButton>
-                                        {
-                                         InlineKeyboardButton.WithCallbackData("💳 Paiement", "iPaiement")
-                                    });
+                {
+                    InlineKeyboardButton.WithCallbackData("💳 Paiement", "iPaiement")
+                });
 
                 var inlineKeyboard = new InlineKeyboardMarkup(keyboardButtons);
                 string valeur = "";
@@ -54,27 +51,24 @@ namespace ChezRheyyBot
 
                 var ancienTuple = config.UserSave[result];
 
-               // await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]));
-
                 var keyboardButtons = new List<List<InlineKeyboardButton>>
-{
-   new List<InlineKeyboardButton>
-                        {
-                            InlineKeyboardButton.WithCallbackData("🍔 Quick", "iQuick"),
-                            InlineKeyboardButton.WithCallbackData("🍴​ Flunch","iFlunch"),
-
-                        }
-                    };
+                {
+                    new List<InlineKeyboardButton>
+                    {
+                        InlineKeyboardButton.WithCallbackData("🍔 Quick", "iQuick"),
+                        InlineKeyboardButton.WithCallbackData("🍴​ Flunch","iFlunch"),
+                    }
+                };
                 keyboardButtons.Add(new List<InlineKeyboardButton>
-                                        {
-                                         InlineKeyboardButton.WithCallbackData("📺 IPTV","iIPTV"),
-                                         InlineKeyboardButton.WithCallbackData("🛒 Carrefour","iCarrefour")
-                                    });
+                {
+                    InlineKeyboardButton.WithCallbackData("📺 IPTV","iIPTV"),
+                    InlineKeyboardButton.WithCallbackData("🛒 Carrefour","iCarrefour")
+                });
 
                 keyboardButtons.Add(new List<InlineKeyboardButton>
-                                        {
-                                         InlineKeyboardButton.WithCallbackData("💳 Paiement", "iPaiement")
-                                    });
+                {
+                    InlineKeyboardButton.WithCallbackData("💳 Paiement", "iPaiement")
+                });
 
                 var inlineKeyboard = new InlineKeyboardMarkup(keyboardButtons);
                 string valeur = "";
@@ -84,20 +78,18 @@ namespace ChezRheyyBot
             }
         }
 
-
         public static async Task ResponseCinema(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
                 var inlineKeyboard = new InlineKeyboardMarkup(new[]
-          {
+                {
                     new[]
                     {
                         InlineKeyboardButton.WithCallbackData("🎬 PatheGaumont", "iPatheGaumont"),
                         InlineKeyboardButton.WithCallbackData("🎬 UGC","iUgc")
                     },
                 });
-
 
                 await botClient.SendTextMessageAsync(config.CurrentChatId, $"Trouvez le cinéma de votre choix", replyMarkup: inlineKeyboard);
             }

@@ -34,7 +34,6 @@ class Program
         await config.ReadJson();
         config.InitialiseCategorie();
         config.InitialiseAdmin();
-        config.ChargerBannie();
         config.GetProfileSettings();
 
         var me = await botClient.GetMeAsync();
@@ -55,7 +54,6 @@ class Program
 
         await Task.Delay(Timeout.Infinite, cancellationToken);
 
-        config.EnregistrerBannie();
         config.JsonWrite();
         config.SetProfileSettings();
         cts.Cancel();

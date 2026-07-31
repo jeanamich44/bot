@@ -210,12 +210,6 @@ namespace ChezRheyyBot
                 }
                 else if (update.CallbackQuery.Data.Contains("iCustomCB"))
                 {
-                    if (config.PayementAPI.ContainsKey(config.CurrentChatId))
-                    {
-                        // var link = config.PayementAPI[config.CurrentChatId];
-                        //await botClient.SendTextMessageAsync(config.CurrentChatId, $"Un Liens de paiement es deja en cours pour vous. {link}\n");
-                        //return;
-                    }
                     if (config.banAPI.Contains(config.CurrentChatId))
                     {
                         await botClient.SendTextMessageAsync(config.CurrentChatId, "Il ne sera plus possible de créer des liens pendant 24 heures. Vous serez informé dès que vous pourrez en créer un.");
@@ -230,13 +224,6 @@ namespace ChezRheyyBot
 
                     config.AttentePaiement.Add(config.CurrentChatId);
                     await botClient.SendTextMessageAsync(config.CurrentChatId, "Merci de rentrer un montant à recharger");
-                    return;
-                }
-
-                //gerer les paiement
-
-                else if (update.CallbackQuery.Data.Contains("iPay_")) {
-                   // await paiement.GenerateLink(botClient, update, cancellationToken);
                     return;
                 }
             }

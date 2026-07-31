@@ -318,15 +318,7 @@ namespace ChezRheyyBot
             }
         }
 
-        public static void ChargerBannis()
-        {
-            ChargerUtilisateurs();
-        }
 
-        public static void SauvegarderBannis()
-        {
-            SauvegarderUtilisateurs();
-        }
 
 
 
