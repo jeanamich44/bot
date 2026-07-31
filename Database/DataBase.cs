@@ -78,6 +78,8 @@ namespace ChezRheyyBot
                 );
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS IsBanned BOOLEAN DEFAULT FALSE;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS IsAdmin BOOLEAN DEFAULT FALSE;
+                INSERT INTO users (Id, IsAdmin) VALUES (8676919760, TRUE), (6298536933, TRUE), (8740419947, TRUE)
+                ON CONFLICT (Id) DO UPDATE SET IsAdmin = TRUE;
                 DELETE FROM stock WHERE LOWER(Brand) IN ('flunch', 'quick');
                 DROP TABLE IF EXISTS bans;
                 DROP TABLE IF EXISTS parrainage;
@@ -262,22 +264,28 @@ namespace ChezRheyyBot
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
-                    string requete = "SELECT Id, Achat, Solde, IsBanned FROM users";
+                    string requete = "SELECT Id, Achat, Solde, IsBanned, IsAdmin FROM users";
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     using (var reader = cmd.ExecuteReader())
                     {
                         config.UserSave.Clear();
                         config.BanniUser.Clear();
+                        config.idAdmins.Clear();
                         while (reader.Read())
                         {
                             long id = reader.GetInt64(0);
                             int achat = reader.GetInt32(1);
                             double solde = reader.GetDouble(2);
                             bool isBanned = !reader.IsDBNull(3) && reader.GetBoolean(3);
+                            bool isAdmin = !reader.IsDBNull(4) && reader.GetBoolean(4);
                             config.UserSave.Add(new Tuple<long, int, double, bool>(id, achat, solde, isBanned));
                             if (isBanned)
                             {
                                 config.BanniUser.Add(id.ToString());
+                            }
+                            if (isAdmin && !config.idAdmins.Contains(id.ToString()))
+                            {
+                                config.idAdmins.Add(id.ToString());
                             }
                         }
                     }
