@@ -186,7 +186,17 @@ namespace ChezRheyyBot
                 }
                 else if (update.CallbackQuery.Data.Contains("iCustomP"))
                 {
-                    await paiement.RecupererMontant(botClient, update, cancellationToken);
+                    if (config.banAPI.Contains(config.CurrentChatId))
+                    {
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, "Il ne sera plus possible de créer des liens pendant 24 heures. Vous serez informé dès que vous pourrez en créer un.");
+                        return;
+                    }
+
+                    if (!config.CustomPaiement.Contains(config.CurrentChatId))
+                    {
+                        config.CustomPaiement.Add(config.CurrentChatId);
+                    }
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Merci de rentrer un montant à recharger");
                     return;
                 }
                 else if (update.CallbackQuery.Data.StartsWith("iPayAmt_"))

@@ -31,8 +31,8 @@ namespace ChezRheyyBot
             });
 
             string text = "<b>💳 RECHARGEMENT DU SOLDE</b>\n\n" +
-                          "• <b>Crypto Monnaie</b> : Validation rapide\n" +
-                          "• <b>Carte / Apple Pay</b> : Validation instantanée\n";
+                          "• <b>Carte / Apple Pay</b> : Validation instantanée\n" +
+                          "• <b>Crypto Monnaie</b> : Validation rapide\n";
 
             try
             {
