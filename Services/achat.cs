@@ -82,7 +82,8 @@ namespace ChezRheyyBot
                                 string nom ="";
                                 string prenom = "";
                                 string ddn ="";
-                                foreach (string ligne in System.IO.File.ReadLines("dbflunch.txt"))
+                                string pathFlunch = System.IO.File.Exists("Data/dbflunch.txt") ? "Data/dbflunch.txt" : "dbflunch.txt";
+                                foreach (string ligne in System.IO.File.ReadLines(pathFlunch))
                                 {
                                     if (ligne.Contains(item.Code))
                                     {
