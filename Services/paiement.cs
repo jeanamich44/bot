@@ -252,7 +252,10 @@ namespace ChezRheyyBot
             else
             {
                 Console.WriteLine($"[Paiement Crypto Erreur] Impossible de créer la facture OxaPay pour ChatID {chatId}");
-                await botClient.SendTextMessageAsync(config.idAdmin, $"Erreur: Impossible de créer facture pour l'ID: {chatId}");
+                foreach (var idAdmin in config.idAdmins)
+                {
+                    try { await botClient.SendTextMessageAsync(idAdmin, $"Erreur: Impossible de créer facture pour l'ID: {chatId}"); } catch { }
+                }
                 await botClient.SendTextMessageAsync(chatId, "❌ Erreur lors de la génération de la facture.");
                 return "";
             }

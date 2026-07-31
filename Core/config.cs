@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-
 namespace ChezRheyyBot
 {
     internal class config
@@ -17,7 +15,6 @@ namespace ChezRheyyBot
         public static string debugMode = "run";
 
         public static List<string> idAdmins = new List<string>();
-        public static string idAdmin = "6298536933";
 
         public static List<string> BanniUser = new List<string>();
         public static string CurrentChatId = "";
@@ -40,6 +37,7 @@ namespace ChezRheyyBot
 
         public static void InitialiseAdmin()
         {
+            idAdmins.Clear();
             idAdmins.Add("8676919760");
             idAdmins.Add("6298536933");
             idAdmins.Add("8740419947");
@@ -47,6 +45,7 @@ namespace ChezRheyyBot
 
         public static void InitialiseCategorie()
         {
+            categorie.Clear();
             categorie.Add("Carrefour");
             categorie.Add("Quick");
         }
