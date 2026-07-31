@@ -41,6 +41,7 @@ namespace ChezRheyyBot
 
         public static async Task<bool> CommandeAdmin(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
+            if (!config.idAdmins.Contains(config.CurrentChatId)) return false;
             if (string.IsNullOrWhiteSpace(message)) return false;
 
             string firstWord = message.Split(' ')[0].Trim();
