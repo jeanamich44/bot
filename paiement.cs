@@ -493,6 +493,11 @@ namespace ChezRheyyBot
                 Random rnd = new Random();
                 int nombre = rnd.Next(10000, 100000);
 
+                string domainEnv = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN") ?? Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL") ?? "";
+                string webhookUrl = !string.IsNullOrEmpty(domainEnv)
+                    ? $"https://{domainEnv}/webhook/sumup/"
+                    : "https://t.me/ChezRheyyBot";
+
                 string accessToken = await ObtenirSumUpAccessToken(client, cancellationToken);
 
                 var secondRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/v0.1/checkouts");
@@ -502,7 +507,7 @@ namespace ChezRheyyBot
                     checkout_reference = $"k8237fN914-6c0e-30f11-a5a52-{nombre}0285bggd",
                     currency = "EUR",
                     description = $"Rechargement solde ChezRheyyBot #{nombre}",
-                    return_url = "https://t.me/ChezRheyyBot",
+                    return_url = webhookUrl,
                     merchant_code = "M5QBRGXB",
                     valid_until = formatted,
                     hosted_checkout = new { enabled = true }
@@ -719,10 +724,20 @@ namespace ChezRheyyBot
                 listener.Start();
                 Console.WriteLine($"[Webhook SumUp] Serveur d'écoute HTTP démarré sur le port {port}.");
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"[Webhook SumUp Erreur Initialisation] {ex.Message}");
-                return;
+                try
+                {
+                    listener.Prefixes.Clear();
+                    listener.Prefixes.Add($"http://+:{port}/webhook/sumup/");
+                    listener.Start();
+                    Console.WriteLine($"[Webhook SumUp] Serveur d'écoute HTTP démarré sur le port {port} (fallback +).");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Webhook SumUp Erreur Initialisation] {ex.Message}");
+                    return;
+                }
             }
 
             while (!cancellationToken.IsCancellationRequested)
