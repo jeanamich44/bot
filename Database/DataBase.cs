@@ -77,6 +77,8 @@ namespace ChezRheyyBot
                     IsBanned BOOLEAN DEFAULT FALSE
                 );
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS IsBanned BOOLEAN DEFAULT FALSE;
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS IsAdmin BOOLEAN DEFAULT FALSE;
+                DELETE FROM stock WHERE LOWER(Brand) IN ('flunch', 'quick');
                 DROP TABLE IF EXISTS bans;
                 DROP TABLE IF EXISTS parrainage;
                 CREATE TABLE IF NOT EXISTS profile (
