@@ -35,11 +35,12 @@ namespace ChezRheyyBot
         public static string apiUrl => config.GetSetting("iptv", "api_url", "https://cms-4k.com/api/api.php");
         public static string apiPack => config.GetSetting("iptv", "pack", "43551");
         public static string apiType => config.GetSetting("iptv", "type", "m3u");
+        public static string apiAction => config.GetSetting("iptv", "action", "new");
 
         public static async Task<string> GenerateIPTV(string date)
         {
             string url = $"{apiUrl}" +
-                         $"?action=new" +
+                         $"?action={apiAction}" +
                          $"&type={apiType}" +
                          $"&sub={date}" +
                          $"&pack={apiPack}" +

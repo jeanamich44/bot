@@ -72,12 +72,17 @@ namespace ChezRheyyBot
                 {
 
 
+                    double.TryParse(config.GetSetting("iptv", "price_1m", "5"), out double p1);
+                    double.TryParse(config.GetSetting("iptv", "price_3m", "10"), out double p3);
+                    double.TryParse(config.GetSetting("iptv", "price_6m", "15"), out double p6);
+                    double.TryParse(config.GetSetting("iptv", "price_12m", "30"), out double p12);
+
                     Dictionary<int, double> prixParMois = new()
                     {
-                        { 1, 5 },
-                        { 3, 10 },
-                        { 6, 15 },
-                        { 12, 30 }
+                        { 1, p1 },
+                        { 3, p3 },
+                        { 6, p6 },
+                        { 12, p12 }
                     };
 
                     var msg = update.CallbackQuery.Data;
