@@ -1,4 +1,5 @@
 using Npgsql;
+using System.Text.Json;
 
 namespace ChezRheyyBot
 {
@@ -435,10 +436,30 @@ namespace ChezRheyyBot
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     using (var reader = cmd.ExecuteReader())
                     {
+                        config.CategorySettings.Clear();
                         config.Settings.Clear();
                         while (reader.Read())
                         {
-                            config.Settings[reader.GetString(0)] = reader.GetString(1);
+                            string key = reader.GetString(0);
+                            string val = reader.GetString(1);
+                            config.Settings[key] = val;
+
+                            try
+                            {
+                                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(val);
+                                if (dict != null)
+                                {
+                                    config.CategorySettings[key] = new Dictionary<string, string>(dict, StringComparer.OrdinalIgnoreCase);
+                                }
+                            }
+                            catch
+                            {
+                                if (!config.CategorySettings.ContainsKey("general"))
+                                {
+                                    config.CategorySettings["general"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                                }
+                                config.CategorySettings["general"][key] = val;
+                            }
                         }
                     }
                 }
@@ -446,6 +467,26 @@ namespace ChezRheyyBot
             catch
             {
 
+            }
+
+            if (!config.CategorySettings.ContainsKey("iptv"))
+            {
+                config.CategorySettings["iptv"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    { "api_key", "16b9b89931169d6a4fd534c10e24ebad" },
+                    { "api_url", "https://cms-4k.com/api/api.php" },
+                    { "pack", "43551" },
+                    { "type", "m3u" }
+                };
+                SauvegarderSettings();
+            }
+            else
+            {
+                config.CategorySettings["iptv"]["api_key"] = "16b9b89931169d6a4fd534c10e24ebad";
+                config.CategorySettings["iptv"]["api_url"] = "https://cms-4k.com/api/api.php";
+                config.CategorySettings["iptv"]["pack"] = "43551";
+                config.CategorySettings["iptv"]["type"] = "m3u";
+                SauvegarderSettings();
             }
         }
 
@@ -456,8 +497,9 @@ namespace ChezRheyyBot
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
-                    foreach (var item in config.Settings)
+                    foreach (var cat in config.CategorySettings)
                     {
+                        string jsonValue = JsonSerializer.Serialize(cat.Value);
                         string requete = @"
                         INSERT INTO settings (Key, Value)
                         VALUES (@k, @v)
@@ -465,8 +507,8 @@ namespace ChezRheyyBot
 
                         using (var cmd = new NpgsqlCommand(requete, connexion))
                         {
-                            cmd.Parameters.AddWithValue("@k", item.Key);
-                            cmd.Parameters.AddWithValue("@v", item.Value);
+                            cmd.Parameters.AddWithValue("@k", cat.Key);
+                            cmd.Parameters.AddWithValue("@v", jsonValue);
                             cmd.ExecuteNonQuery();
                         }
                     }

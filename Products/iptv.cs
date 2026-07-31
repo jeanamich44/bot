@@ -31,14 +31,18 @@ namespace ChezRheyyBot
             public string Url { get; set; }
         }
 
-        public static string apiKey = "7d825d543f4582de824e83046d0aa8fa";
+        public static string apiKey => config.GetSetting("iptv", "api_key", "16b9b89931169d6a4fd534c10e24ebad");
+        public static string apiUrl => config.GetSetting("iptv", "api_url", "https://cms-4k.com/api/api.php");
+        public static string apiPack => config.GetSetting("iptv", "pack", "43551");
+        public static string apiType => config.GetSetting("iptv", "type", "m3u");
+
         public static async Task<string> GenerateIPTV(string date)
         {
-            string url = $"https://cms-4k.com/api/api.php" +
+            string url = $"{apiUrl}" +
                          $"?action=new" +
-                         $"&type=m3u" +
+                         $"&type={apiType}" +
                          $"&sub={date}" +
-                         $"&pack=43551" +
+                         $"&pack={apiPack}" +
                          $"&country=" +
                          $"&notes=" +
                          $"&api_key={apiKey}";

@@ -33,8 +33,28 @@ namespace ChezRheyyBot
         public static bool promotion = false;
 
         public static List<string> categorie = new List<string>();
+        public static Dictionary<string, Dictionary<string, string>> CategorySettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         public static Dictionary<string, string> Settings = new Dictionary<string, string>();
         public static Dictionary<string, string> ProfileSettings => Settings;
+
+        public static string GetSetting(string category, string key, string defaultValue = "")
+        {
+            if (CategorySettings.TryGetValue(category, out var dict) && dict.TryGetValue(key, out var val))
+            {
+                return val;
+            }
+            return defaultValue;
+        }
+
+        public static void SetSetting(string category, string key, string value)
+        {
+            if (!CategorySettings.ContainsKey(category))
+            {
+                CategorySettings[category] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            }
+            CategorySettings[category][key] = value;
+            DataBase.SauvegarderSettings();
+        }
 
         public static void InitialiseAdmin()
         {
