@@ -3,7 +3,7 @@ namespace ChezRheyyBot
     internal class config
     {
         public readonly static string apiUrl = "https://api.oxapay.com/v1/payment/invoice";
-        public static string apiKey => Environment.GetEnvironmentVariable("OXAPAY_API_KEY") ?? throw new InvalidOperationException("Variable d'environnement OXAPAY_API_KEY manquante.");
+        public static string apiKey => GetSetting("oxapay", "api_key", Environment.GetEnvironmentVariable("OXAPAY_API_KEY") ?? "");
 
         public static Dictionary<string, string> PayementLink = new Dictionary<string, string>();
         public static List<string> IdPaiement = new List<string>();
