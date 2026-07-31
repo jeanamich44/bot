@@ -61,26 +61,5 @@ namespace ChezRheyyBot
                 return;
             }
         }
-
-        public static async Task ResponseCinema(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
-        {
-            try
-            {
-                var inlineKeyboard = new InlineKeyboardMarkup(new[]
-                {
-                    new[]
-                    {
-                        InlineKeyboardButton.WithCallbackData("🎬 PatheGaumont", "iPatheGaumont"),
-                        InlineKeyboardButton.WithCallbackData("🎬 UGC","iUgc")
-                    },
-                });
-
-                await botClient.SendTextMessageAsync(config.CurrentChatId, $"Trouvez le cinéma de votre choix", replyMarkup: inlineKeyboard);
-            }
-            catch
-            {
-
-            }
-        }
     }
 }

@@ -46,40 +46,7 @@ class codebarre
     const int CARD_W = 1011;
     const int CARD_H = 638;
 
-    public static void GenerateFnacCard(string loyaltyNumber16, string outputFile)
-    {
-        if (string.IsNullOrWhiteSpace(loyaltyNumber16))
-            throw new ArgumentException("Numéro vide");
-        if (NormalizeDigits(loyaltyNumber16).Length != 16)
-            throw new ArgumentException("Le numéro doit contenir 16 chiffres");
 
-        string digits16 = NormalizeDigits(loyaltyNumber16);
-
-        using var bitmap = new SKBitmap(CARD_W, CARD_H);
-        using var canvas = new SKCanvas(bitmap);
-        canvas.Clear(SKColors.Black);
-
-        var fnacYellow = new SKColor(0xFF, 0xD2, 0x00);
-        using (var yellowPaint = new SKPaint { Color = fnacYellow, IsAntialias = true, Style = SKPaintStyle.Fill })
-        {
-            using var path = new SKPath();
-            path.MoveTo(0, CARD_H * 0.15f);
-            path.LineTo(CARD_W * 0.70f, 0);
-            path.LineTo(CARD_W, 0);
-            path.LineTo(CARD_W, CARD_H * 0.35f);
-            path.LineTo(CARD_W * 0.30f, CARD_H * 0.50f);
-            path.LineTo(0, CARD_H * 0.50f);
-            path.Close();
-            canvas.DrawPath(path, yellowPaint);
-        }
-
-        DrawBarcodeSkia(canvas, digits16, CARD_W, CARD_H);
-
-        using var image = SKImage.FromBitmap(bitmap);
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        using var stream = System.IO.File.Create(outputFile);
-        data.SaveTo(stream);
-    }
 
     private static void DrawBarcodeSkia(SKCanvas canvas, string content, int cardW, int cardH)
     {
@@ -242,53 +209,7 @@ class codebarre
             GenerateMcDoCode128Card(alnum, outputFile, addPrefixM);
     }
 
-    public static void GenerateMonoprixBarcode(string raw, string outputPath)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-            throw new ArgumentException("Numéro vide");
 
-        string content = raw;
-        BarcodeFormat format;
-
-        if (IsAllDigits(raw) && raw.Length == 12)
-        {
-            int check = ComputeEan13CheckDigit(raw);
-            content = raw + check;
-            format = BarcodeFormat.EAN_13;
-        }
-        else
-        {
-            format = BarcodeFormat.CODE_128;
-        }
-
-        var writer = new ZXing.BarcodeWriterPixelData
-        {
-            Format = format,
-            Options = new EncodingOptions
-            {
-                Height = 120,
-                Width = Math.Max(300, content.Length * 20),
-                Margin = 2,
-                PureBarcode = true
-            }
-        };
-
-        var pixelData = writer.Write(content);
-        using var bitmap = new SKBitmap(pixelData.Width, pixelData.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
-        var handle = System.Runtime.InteropServices.GCHandle.Alloc(pixelData.Pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
-        try
-        {
-            bitmap.InstallPixels(bitmap.Info, handle.AddrOfPinnedObject(), bitmap.RowBytes);
-            using var image = SKImage.FromBitmap(bitmap);
-            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-            using var stream = System.IO.File.Create(outputPath);
-            data.SaveTo(stream);
-        }
-        finally
-        {
-            handle.Free();
-        }
-    }
 
     static bool IsAllDigits(string s)
     {
