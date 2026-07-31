@@ -434,14 +434,14 @@ namespace ChezRheyyBot
                 return _sumUpAccessToken;
             }
 
-            string clientId = Environment.GetEnvironmentVariable("SUMUP_CLIENT_ID") ?? "cc_classic_PFUMM8wpZdtpvxx1I71gMv2a6PbQQ";
-            string clientSecret = Environment.GetEnvironmentVariable("SUMUP_CLIENT_SECRET") ?? "cc_sk_classic_JIDwonLeeMtiT7csQ4uvCIhU42dTvd0qOFPHWFqZAZwjkxpYRF";
-            string bearerKey = Environment.GetEnvironmentVariable("SUMUP_BEARER_KEY") ?? "sup_sk_gn5RFRxslgQZ2Ca010BIry33E9l56yQ5f";
+            string apiKey = Environment.GetEnvironmentVariable("SUMUP_API_KEY") ?? throw new InvalidOperationException("Variable d'environnement SUMUP_API_KEY manquante.");
+            string clientId = Environment.GetEnvironmentVariable("SUMUP_CLIENT_ID") ?? throw new InvalidOperationException("Variable d'environnement SUMUP_CLIENT_ID manquante.");
+            string clientSecret = Environment.GetEnvironmentVariable("SUMUP_CLIENT_SECRET") ?? throw new InvalidOperationException("Variable d'environnement SUMUP_CLIENT_SECRET manquante.");
 
             var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/token");
             var postData = $"grant_type=client_credentials&client_id={clientId}&client_secret={clientSecret}";
             tokenRequest.Content = new StringContent(postData, Encoding.UTF8, "application/x-www-form-urlencoded");
-            tokenRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerKey);
+            tokenRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
             var tokenResponse = await client.SendAsync(tokenRequest, cancellationToken);
             var tokenContent = await tokenResponse.Content.ReadAsStringAsync(cancellationToken);
@@ -502,6 +502,7 @@ namespace ChezRheyyBot
                     ? $"https://{domainEnv}/webhook/sumup/"
                     : "https://t.me/ChezRheyyBot";
 
+                string payToEmail = Environment.GetEnvironmentVariable("SUMUP_PAY_TO_EMAIL") ?? throw new InvalidOperationException("Variable d'environnement SUMUP_PAY_TO_EMAIL manquante.");
                 string accessToken = await ObtenirSumUpAccessToken(client, cancellationToken);
 
                 var secondRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/v0.1/checkouts");
@@ -512,7 +513,7 @@ namespace ChezRheyyBot
                     currency = "EUR",
                     description = $"Rechargement solde ChezRheyyBot #{nombre}",
                     return_url = webhookUrl,
-                    merchant_code = "M5QBRGXB",
+                    pay_to_email = payToEmail,
                     valid_until = formatted,
                     hosted_checkout = new { enabled = true }
                 };
