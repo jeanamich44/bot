@@ -40,6 +40,9 @@
                 <a class="nav-item" data-tab="stock">
                     <span>🛒</span> Gestion du Stock
                 </a>
+                <a class="nav-item" data-tab="payments">
+                    <span>💳</span> Rechargements CB/Crypto
+                </a>
                 <a class="nav-item" data-tab="transactions">
                     <span>📜</span> Historique Achats
                 </a>
@@ -148,22 +151,24 @@
             <div id="tab-stock" class="tab-content" style="display: none;">
                 <div class="card-panel">
                     <div class="card-panel-header">
-                        <h2 class="card-panel-title">Ajouter du Stock (Carrefour)</h2>
+                        <h2 class="card-panel-title">Ajout de Stock en Masse (Carrefour)</h2>
                     </div>
-                    <form id="add-stock-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; align-items: end;">
-                        <div class="form-group" style="margin: 0;">
-                            <label class="form-label">Code Carte</label>
-                            <input type="text" id="stock-code-input" class="form-input" placeholder="Ex: 987654321" required>
+                    <form id="add-stock-form">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label class="form-label">Solde Carte par défaut (€)</label>
+                                <input type="number" id="stock-default-value-input" class="form-input" placeholder="Ex: 20" required>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label class="form-label">Prix de Vente par défaut (€)</label>
+                                <input type="number" step="0.1" id="stock-default-price-input" class="form-input" placeholder="Ex: 10" required>
+                            </div>
                         </div>
-                        <div class="form-group" style="margin: 0;">
-                            <label class="form-label">Solde Carte (€)</label>
-                            <input type="number" id="stock-value-input" class="form-input" placeholder="Ex: 20" required>
+                        <div class="form-group">
+                            <label class="form-label">Liste des Cartes Carrefour (Un code par ligne ou format CODE|SOLDE|PRIX ou CODE|PIN|SOLDE|PRIX)</label>
+                            <textarea id="stock-bulk-textarea" class="form-input" rows="6" placeholder="Exemplaires :&#10;9876543210123&#10;9876543210124&#10;9876543210125|50|25&#10;9876543210126|1234|100|50" style="resize: vertical; font-family: monospace;" required></textarea>
                         </div>
-                        <div class="form-group" style="margin: 0;">
-                            <label class="form-label">Prix de vente (€)</label>
-                            <input type="number" step="0.1" id="stock-price-input" class="form-input" placeholder="Ex: 10" required>
-                        </div>
-                        <button type="submit" class="btn-primary" style="height: 44px;">+ Ajouter au Stock</button>
+                        <button type="submit" class="btn-primary" style="width: auto; padding: 12px 30px;">📥 Importer le Stock en Masse</button>
                     </form>
                 </div>
 
@@ -183,6 +188,31 @@
                                 </tr>
                             </thead>
                             <tbody id="stock-table">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-payments" class="tab-content" style="display: none;">
+                <div class="card-panel">
+                    <div class="card-panel-header">
+                        <h2 class="card-panel-title">Historique des Rechargements (CB & Crypto)</h2>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ID Telegram</th>
+                                    <th>Methode</th>
+                                    <th>Montant</th>
+                                    <th>Statut</th>
+                                    <th>Track ID</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-payments-table">
                             </tbody>
                         </table>
                     </div>

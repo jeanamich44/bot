@@ -127,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'dashboard': 'Vue d\'Ensemble',
                 'users': 'Gestion des Utilisateurs',
                 'stock': 'Gestion du Stock Carrefour',
+                'payments': 'Rechargements (CB & Crypto)',
                 'transactions': 'Historique des Achats',
                 'settings': 'Configuration du Bot'
             };
@@ -135,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (tab === 'dashboard') loadDashboardData();
             else if (tab === 'users') loadUsersData();
             else if (tab === 'stock') loadStockData();
+            else if (tab === 'payments') loadPaymentsData();
             else if (tab === 'transactions') loadTransactionsData();
             else if (tab === 'settings') loadSettingsData();
         });
@@ -321,18 +323,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('add-stock-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const code = document.getElementById('stock-code-input').value.trim();
-        const value = parseInt(document.getElementById('stock-value-input').value);
-        const price = parseFloat(document.getElementById('stock-price-input').value);
+        const defaultValue = parseInt(document.getElementById('stock-default-value-input').value) || 0;
+        const defaultPrice = parseFloat(document.getElementById('stock-default-price-input').value) || 0.0;
+        const text = document.getElementById('stock-bulk-textarea').value.trim();
 
-        if (!code || isNaN(value) || isNaN(price)) return;
+        if (!text) {
+            showToast('Veuillez saisir au moins un code carte.', 'danger');
+            return;
+        }
 
-        const res = await apiRequest('/stock/add', 'POST', { brand: 'carr', code, pin: '', value, price });
+        const lines = text.split('\n');
+        const items = [];
+
+        lines.forEach(line => {
+            const l = line.trim();
+            if (!l) return;
+
+            const parts = l.split('|');
+            if (parts.length >= 4) {
+                items.push({
+                    brand: 'carr',
+                    code: parts[0].trim(),
+                    pin: parts[1].trim(),
+                    value: parseInt(parts[2].trim()) || defaultValue,
+                    price: parseFloat(parts[3].trim()) || defaultPrice
+                });
+            } else if (parts.length === 3) {
+                items.push({
+                    brand: 'carr',
+                    code: parts[0].trim(),
+                    pin: '',
+                    value: parseInt(parts[1].trim()) || defaultValue,
+                    price: parseFloat(parts[2].trim()) || defaultPrice
+                });
+            } else if (parts.length === 2) {
+                items.push({
+                    brand: 'carr',
+                    code: parts[0].trim(),
+                    pin: '',
+                    value: parseInt(parts[1].trim()) || defaultValue,
+                    price: defaultPrice
+                });
+            } else {
+                items.push({
+                    brand: 'carr',
+                    code: l,
+                    pin: '',
+                    value: defaultValue,
+                    price: defaultPrice
+                });
+            }
+        });
+
+        if (items.length === 0) {
+            showToast('Aucun code valide trouvé.', 'danger');
+            return;
+        }
+
+        const res = await apiRequest('/stock/add', 'POST', { items });
         if (res && res.success) {
-            showToast('Carte Carrefour ajoutée au stock !', 'success');
-            document.getElementById('stock-code-input').value = '';
-            document.getElementById('stock-value-input').value = '';
-            document.getElementById('stock-price-input').value = '';
+            showToast(`✅ ${res.count || items.length} carte(s) Carrefour ajoutée(s) au stock !`, 'success');
+            document.getElementById('stock-bulk-textarea').value = '';
             loadStockData();
         }
     });
@@ -377,6 +428,32 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('setting-iptv-3m').value = iptv.price_3m || '10';
         document.getElementById('setting-iptv-6m').value = iptv.price_6m || '15';
         document.getElementById('setting-iptv-12m').value = iptv.price_12m || '30';
+    }
+
+    async function loadPaymentsData() {
+        const data = await apiRequest('/payments');
+        if (!data) return;
+
+        const tbody = document.getElementById('all-payments-table');
+        tbody.innerHTML = '';
+        (data.payments || []).forEach(p => {
+            const tr = document.createElement('tr');
+            let statusBadge = `<span class="badge badge-warning">${p.status}</span>`;
+            if (p.status.toUpperCase() === 'PAID') statusBadge = `<span class="badge badge-success">PAYÉ</span>`;
+            else if (p.status.toUpperCase() === 'FAILED' || p.status.toUpperCase() === 'CANCELED') statusBadge = `<span class="badge badge-danger">ÉCHOUÉ</span>`;
+            else if (p.status.toUpperCase() === 'EXPIRED') statusBadge = `<span class="badge badge-muted">EXPIRÉ</span>`;
+
+            tr.innerHTML = `
+                <td>#${p.id}</td>
+                <td><code>${p.chatId}</code></td>
+                <td><strong>${p.method}</strong></td>
+                <td><strong>${p.amount.toFixed(2)} €</strong></td>
+                <td>${statusBadge}</td>
+                <td><code>${p.trackId}</code></td>
+                <td>${new Date(p.createdAt).toLocaleString('fr-FR')}</td>
+            `;
+            tbody.appendChild(tr);
+        });
     }
 
     document.getElementById('settings-iptv-form').addEventListener('submit', async (e) => {

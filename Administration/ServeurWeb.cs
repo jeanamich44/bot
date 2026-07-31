@@ -122,7 +122,10 @@ namespace ChezRheyyBot
             if (path == "/api/admin/stats" && request.HttpMethod == "GET")
             {
                 var transactions = DataBase.ObtenirTransactions();
-                double totalCa = transactions.Sum(t => t.Price);
+                var allPayments = DataBase.ObtenirTousLesPaiementsBDD();
+                double totalRecharges = allPayments.Where(p => string.Equals(p.Status, "PAID", StringComparison.OrdinalIgnoreCase)).Sum(p => p.Amount);
+                double totalVentes = transactions.Sum(t => t.Price);
+                double totalCa = totalRecharges > 0 ? totalRecharges : totalVentes;
                 int totalSales = transactions.Count;
                 int totalUsers = config.UserSave.Count;
                 var stock = DataBase.ObtenirStocksParBrand("carr");
@@ -137,8 +140,35 @@ namespace ChezRheyyBot
                     createdAt = t.CreatedAt
                 }).ToList();
 
+                var recentPayments = allPayments.Take(10).Select(p => new
+                {
+                    id = p.Id,
+                    chatId = p.ChatId,
+                    trackId = p.TrackId,
+                    amount = p.Amount,
+                    method = p.PaymentMethod,
+                    status = p.Status,
+                    createdAt = p.CreatedAt
+                }).ToList();
+
                 bool maintenance = config.ModeMaintenance;
-                RepondreJson(response, 200, new { totalCa, totalSales, totalUsers, totalStock, maintenance, recentSales });
+                RepondreJson(response, 200, new { totalCa, totalRecharges, totalVentes, totalSales, totalUsers, totalStock, maintenance, recentSales, recentPayments });
+            }
+            else if (path == "/api/admin/payments" && request.HttpMethod == "GET")
+            {
+                var payments = DataBase.ObtenirTousLesPaiementsBDD().Select(p => new
+                {
+                    id = p.Id,
+                    chatId = p.ChatId,
+                    trackId = p.TrackId,
+                    amount = p.Amount,
+                    method = p.PaymentMethod,
+                    status = p.Status,
+                    url = p.PaymentUrl,
+                    createdAt = p.CreatedAt
+                }).ToList();
+
+                RepondreJson(response, 200, new { payments });
             }
             else if (path == "/api/admin/maintenance" && request.HttpMethod == "GET")
             {
@@ -248,14 +278,44 @@ namespace ChezRheyyBot
                 using var doc = JsonDocument.Parse(bodyStr);
                 var root = doc.RootElement;
 
-                string brand = root.GetProperty("brand").GetString() ?? "carr";
-                string code = root.GetProperty("code").GetString() ?? "";
-                string pin = root.TryGetProperty("pin", out var pElem) ? pElem.GetString() ?? "" : "";
-                int value = root.GetProperty("value").GetInt32();
-                double price = root.GetProperty("price").GetDouble();
+                if (root.TryGetProperty("items", out var itemsElem) && itemsElem.ValueKind == JsonValueKind.Array)
+                {
+                    var list = new List<DataBase.StockItem>();
+                    foreach (var elem in itemsElem.EnumerateArray())
+                    {
+                        string b = elem.TryGetProperty("brand", out var bE) ? bE.GetString() ?? "carr" : "carr";
+                        string c = elem.TryGetProperty("code", out var cE) ? cE.GetString() ?? "" : "";
+                        string p = elem.TryGetProperty("pin", out var pE) ? pE.GetString() ?? "" : "";
+                        int v = elem.TryGetProperty("value", out var vE) ? (vE.ValueKind == JsonValueKind.Number ? vE.GetInt32() : (int.TryParse(vE.GetString(), out int parsedV) ? parsedV : 0)) : 0;
+                        double pr = elem.TryGetProperty("price", out var prE) ? (prE.ValueKind == JsonValueKind.Number ? prE.GetDouble() : (double.TryParse(prE.GetString(), out double parsedP) ? parsedP : 0.0)) : 0.0;
 
-                DataBase.InsererDansStock(brand, code, pin, value, price);
-                RepondreJson(response, 200, new { success = true });
+                        if (!string.IsNullOrWhiteSpace(c))
+                        {
+                            list.Add(new DataBase.StockItem
+                            {
+                                Brand = b,
+                                Code = c,
+                                Pin = p,
+                                Value = v.ToString(),
+                                Price = pr.ToString()
+                            });
+                        }
+                    }
+
+                    int count = DataBase.InsererStockEnMasse(list);
+                    RepondreJson(response, 200, new { success = true, count });
+                }
+                else
+                {
+                    string brand = root.GetProperty("brand").GetString() ?? "carr";
+                    string code = root.GetProperty("code").GetString() ?? "";
+                    string pin = root.TryGetProperty("pin", out var pElem) ? pElem.GetString() ?? "" : "";
+                    int value = root.GetProperty("value").GetInt32();
+                    double price = root.GetProperty("price").GetDouble();
+
+                    DataBase.InsererDansStock(brand, code, pin, value, price);
+                    RepondreJson(response, 200, new { success = true, count = 1 });
+                }
             }
             else if (path == "/api/admin/stock/delete" && request.HttpMethod == "POST")
             {

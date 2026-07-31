@@ -805,7 +805,7 @@ namespace ChezRheyyBot
                             try
                             {
                                 var paiements = DataBase.ObtenirPaiementsEnAttenteBDD("CB");
-                                var item = paiements.FirstOrDefault(p => p.TrackId == checkoutId);
+                                var item = paiements.FirstOrDefault(p => p.TrackId == checkoutId) ?? DataBase.ObtenirPaiementParTrackIdBDD(checkoutId);
 
                                 if (item != null)
                                 {

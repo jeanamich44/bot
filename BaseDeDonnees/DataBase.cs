@@ -134,6 +134,38 @@ namespace ChezRheyyBot
             }
         }
 
+        public static int InsererStockEnMasse(List<StockItem> items)
+        {
+            if (items == null || items.Count == 0) return 0;
+            int count = 0;
+            using (var connexion = new NpgsqlConnection(GetConnectionString()))
+            {
+                connexion.Open();
+                using (var transaction = connexion.BeginTransaction())
+                {
+                    string requete = @"
+                    INSERT INTO stock (Brand, Code, Pin, Value, Price)
+                    VALUES (@brand, @code, @pin, @value, @price);";
+
+                    foreach (var item in items)
+                    {
+                        using (var commande = new NpgsqlCommand(requete, connexion, transaction))
+                        {
+                            commande.Parameters.AddWithValue("@brand", string.IsNullOrEmpty(item.Brand) ? "carr" : item.Brand);
+                            commande.Parameters.AddWithValue("@code", item.Code ?? "");
+                            commande.Parameters.AddWithValue("@pin", item.Pin ?? "");
+                            commande.Parameters.AddWithValue("@value", int.TryParse(item.Value, out int v) ? v : 0);
+                            commande.Parameters.AddWithValue("@price", double.TryParse(item.Price, out double p) ? p : 0.0);
+                            commande.ExecuteNonQuery();
+                            count++;
+                        }
+                    }
+                    transaction.Commit();
+                }
+            }
+            return count;
+        }
+
         public static List<StockItem> ObtenirStocksParBrand(string brand)
         {
             var resultats = new List<StockItem>();
@@ -707,6 +739,74 @@ namespace ChezRheyyBot
             {
                 return false;
             }
+        }
+
+        public static PaymentRecord? ObtenirPaiementParTrackIdBDD(string trackId)
+        {
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = "SELECT Id, ChatId, TrackId, Amount, PaymentMethod, Status, PaymentUrl, CreatedAt FROM payments WHERE TrackId = @trackId";
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    {
+                        cmd.Parameters.AddWithValue("@trackId", trackId);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                return new PaymentRecord
+                                {
+                                    Id = reader.GetInt32(0),
+                                    ChatId = reader.GetString(1),
+                                    TrackId = reader.GetString(2),
+                                    Amount = reader.GetDouble(3),
+                                    PaymentMethod = reader.GetString(4),
+                                    Status = reader.GetString(5),
+                                    PaymentUrl = reader.IsDBNull(6) ? "" : reader.GetString(6),
+                                    CreatedAt = reader.IsDBNull(7) ? DateTime.UtcNow : reader.GetDateTime(7)
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        public static List<PaymentRecord> ObtenirTousLesPaiementsBDD()
+        {
+            var list = new List<PaymentRecord>();
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = "SELECT Id, ChatId, TrackId, Amount, PaymentMethod, Status, PaymentUrl, CreatedAt FROM payments ORDER BY CreatedAt DESC";
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            list.Add(new PaymentRecord
+                            {
+                                Id = reader.GetInt32(0),
+                                ChatId = reader.GetString(1),
+                                TrackId = reader.GetString(2),
+                                Amount = reader.GetDouble(3),
+                                PaymentMethod = reader.GetString(4),
+                                Status = reader.GetString(5),
+                                PaymentUrl = reader.IsDBNull(6) ? "" : reader.GetString(6),
+                                CreatedAt = reader.IsDBNull(7) ? DateTime.UtcNow : reader.GetDateTime(7)
+                            });
+                        }
+                    }
+                }
+            }
+            catch { }
+            return list;
         }
     }
 }
