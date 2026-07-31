@@ -78,8 +78,6 @@ namespace ChezRheyyBot
                 );
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS IsBanned BOOLEAN DEFAULT FALSE;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS IsAdmin BOOLEAN DEFAULT FALSE;
-                INSERT INTO users (Id, IsAdmin) VALUES (8676919760, TRUE), (6298536933, TRUE), (8740419947, TRUE)
-                ON CONFLICT (Id) DO UPDATE SET IsAdmin = TRUE;
                 DELETE FROM stock WHERE LOWER(Brand) IN ('flunch', 'quick');
                 DROP TABLE IF EXISTS bans;
                 DROP TABLE IF EXISTS parrainage;
