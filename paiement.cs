@@ -582,43 +582,7 @@ namespace ChezRheyyBot
 
                             if (string.Equals(rsp2, "PAID", StringComparison.OrdinalIgnoreCase) || string.Equals(rsp2, "SUCCESSFUL", StringComparison.OrdinalIgnoreCase))
                             {
-                                Console.WriteLine($"[Paiement CB OK] Facture {item.TrackId} validée ({rsp2}), Montant: {montantSumUp}€ pour ChatID: {item.ChatId}");
-                                DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "PAID");
-
-                                double nouveauSoldeTotal = 0;
-                                int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(item.ChatId));
-                                if (result != -1)
-                                {
-                                    var ancienTuple = config.UserSave[result];
-                                    nouveauSoldeTotal = ancienTuple.Item3 + montantSumUp;
-                                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSoldeTotal, ancienTuple.Item4);
-                                }
-                                else
-                                {
-                                    nouveauSoldeTotal = montantSumUp;
-                                    config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantSumUp, false));
-                                }
-
-                                DataBase.SauvegarderUtilisateurs();
-
-                                foreach (var idAdmin in config.idAdmins)
-                                {
-                                    try
-                                    {
-                                        await botClient.SendTextMessageAsync(idAdmin, $"<b>[PAIEMENT CB REÇU]</b>\nUser ID: <code>{item.ChatId}</code>\nMontant: <b>{montantSumUp}€</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
-                                    }
-                                    catch { }
-                                }
-
-                                try
-                                {
-                                    var homeKb = new InlineKeyboardMarkup(new[]
-                                    {
-                                        new[] { InlineKeyboardButton.WithCallbackData("🏠 Retour au menu principal", "iHome") }
-                                    });
-                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"✅ <b>PAIEMENT CARTE BANCAIRE REÇU</b>\n\nVotre compte a été crédité de <b>{montantSumUp} €</b> !\n💰 <b>Nouveau solde : {nouveauSoldeTotal} €</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: homeKb);
-                                }
-                                catch { }
+                                await TraiterValidationPaiementSumUp(botClient, item.ChatId, item.TrackId, montantSumUp, "PAIEMENT CB OK");
                             }
                             else if (string.Equals(rsp2, "FAILED", StringComparison.OrdinalIgnoreCase))
                             {
@@ -677,6 +641,60 @@ namespace ChezRheyyBot
                 }
             }
             catch { }
+        }
+
+        private static readonly object _lockPaiementGlobal = new object();
+
+        public static async Task<bool> TraiterValidationPaiementSumUp(ITelegramBotClient botClient, string chatId, string trackId, double montantSumUp, string sourceLabel)
+        {
+            lock (_lockPaiementGlobal)
+            {
+                string statutActuel = DataBase.ObtenirStatutPaiementBDD(trackId);
+                if (string.Equals(statutActuel, "PAID", StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+                DataBase.MettreAJourPaiementStatutBDD(trackId, "PAID");
+            }
+
+            Console.WriteLine($"[{sourceLabel}] Facture {trackId} validée et payée ! ChatID: {chatId}, Montant: {montantSumUp}€");
+
+            double nouveauSoldeTotal = 0;
+            int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(chatId));
+            if (result != -1)
+            {
+                var ancienTuple = config.UserSave[result];
+                nouveauSoldeTotal = ancienTuple.Item3 + montantSumUp;
+                config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSoldeTotal, ancienTuple.Item4);
+            }
+            else
+            {
+                nouveauSoldeTotal = montantSumUp;
+                config.UserSave.Add(Tuple.Create(long.Parse(chatId), 0, montantSumUp, false));
+            }
+
+            DataBase.SauvegarderUtilisateurs();
+
+            foreach (var idAdmin in config.idAdmins)
+            {
+                try
+                {
+                    await botClient.SendTextMessageAsync(idAdmin, $"<b>[{sourceLabel}]</b>\nUser ID: <code>{chatId}</code>\nMontant: <b>{montantSumUp}€</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                }
+                catch { }
+            }
+
+            try
+            {
+                var homeKb = new InlineKeyboardMarkup(new[]
+                {
+                    new[] { InlineKeyboardButton.WithCallbackData("🏠 Retour au menu principal", "iHome") }
+                });
+                await botClient.SendTextMessageAsync(long.Parse(chatId), $"✅ <b>PAIEMENT CARTE BANCAIRE REÇU</b>\n\nVotre compte a été crédité de <b>{montantSumUp} €</b> !\n💰 <b>Nouveau solde : {nouveauSoldeTotal} €</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: homeKb);
+            }
+            catch { }
+
+            return true;
         }
 
         private static readonly HashSet<string> _locksWebhook = new HashSet<string>();
@@ -803,43 +821,7 @@ namespace ChezRheyyBot
 
                                     if (string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "SUCCESSFUL", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        Console.WriteLine($"[Webhook SumUp VALIDÉ] Facture {checkoutId} payée avec succès !");
-                                        DataBase.MettreAJourPaiementStatutBDD(checkoutId, "PAID");
-
-                                        double nouveauSoldeTotal = 0;
-                                        int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(item.ChatId));
-                                        if (result != -1)
-                                        {
-                                            var ancienTuple = config.UserSave[result];
-                                            nouveauSoldeTotal = ancienTuple.Item3 + montantSumUp;
-                                            config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSoldeTotal, ancienTuple.Item4);
-                                        }
-                                        else
-                                        {
-                                            nouveauSoldeTotal = montantSumUp;
-                                            config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantSumUp, false));
-                                        }
-
-                                        DataBase.SauvegarderUtilisateurs();
-
-                                        foreach (var idAdmin in config.idAdmins)
-                                        {
-                                            try
-                                            {
-                                                await botClient.SendTextMessageAsync(idAdmin, $"<b>[WEBHOOK SUMUP REÇU]</b>\nUser ID: <code>{item.ChatId}</code>\nMontant: <b>{montantSumUp}€</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
-                                            }
-                                            catch { }
-                                        }
-
-                                        try
-                                        {
-                                            var homeKb = new InlineKeyboardMarkup(new[]
-                                            {
-                                                new[] { InlineKeyboardButton.WithCallbackData("🏠 Retour au menu principal", "iHome") }
-                                            });
-                                            await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"✅ <b>PAIEMENT CARTE BANCAIRE REÇU (WEBHOOK)</b>\n\nVotre compte a été crédité de <b>{montantSumUp} €</b> !\n💰 <b>Nouveau solde : {nouveauSoldeTotal} €</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: homeKb);
-                                        }
-                                        catch { }
+                                        await TraiterValidationPaiementSumUp(botClient, item.ChatId, checkoutId, montantSumUp, "WEBHOOK SUMUP REÇU");
                                     }
                                 }
                             }
