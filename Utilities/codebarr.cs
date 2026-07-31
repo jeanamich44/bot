@@ -1,9 +1,6 @@
-﻿using ZXing;
+using SkiaSharp;
+using ZXing;
 using ZXing.Common;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
-using System.Drawing.Drawing2D;
 using ZXing.QrCode;
 using System.Text;
 
@@ -25,26 +22,19 @@ class codebarre
             };
 
             var pixelData = writer.Write(content);
-
-            // Crée un Bitmap à partir des données brutes
-            using (var bitmap = new Bitmap(pixelData.Width, pixelData.Height, PixelFormat.Format32bppRgb))
+            using var bitmap = new SKBitmap(pixelData.Width, pixelData.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+            var pixelsHandle = System.Runtime.InteropServices.GCHandle.Alloc(pixelData.Pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+            try
             {
-                var bitmapData = bitmap.LockBits(
-                    new Rectangle(0, 0, pixelData.Width, pixelData.Height),
-                    ImageLockMode.WriteOnly,
-                    PixelFormat.Format32bppRgb);
-
-                try
-                {
-                    // Copie les pixels dans le bitmap
-                    Marshal.Copy(pixelData.Pixels, 0, bitmapData.Scan0, pixelData.Pixels.Length);
-                }
-                finally
-                {
-                    bitmap.UnlockBits(bitmapData);
-                }
-
-                bitmap.Save(outputFile, ImageFormat.Png);
+                bitmap.InstallPixels(bitmap.Info, pixelsHandle.AddrOfPinnedObject(), bitmap.RowBytes);
+                using var image = SKImage.FromBitmap(bitmap);
+                using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+                using var stream = System.IO.File.Create(outputFile);
+                data.SaveTo(stream);
+            }
+            finally
+            {
+                pixelsHandle.Free();
             }
         }
         catch
@@ -52,9 +42,9 @@ class codebarre
 
         }
     }
+
     const int CARD_W = 1011;
     const int CARD_H = 638;
-    const int DPI = 300;
 
     public static void GenerateFnacCard(string loyaltyNumber16, string outputFile)
     {
@@ -65,106 +55,62 @@ class codebarre
 
         string digits16 = NormalizeDigits(loyaltyNumber16);
 
-        using (var bmp = new Bitmap(CARD_W, CARD_H, PixelFormat.Format32bppArgb))
+        using var bitmap = new SKBitmap(CARD_W, CARD_H);
+        using var canvas = new SKCanvas(bitmap);
+        canvas.Clear(SKColors.Black);
+
+        var fnacYellow = new SKColor(0xFF, 0xD2, 0x00);
+        using (var yellowPaint = new SKPaint { Color = fnacYellow, IsAntialias = true, Style = SKPaintStyle.Fill })
         {
-            bmp.SetResolution(DPI, DPI);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                g.Clear(Color.Black);
-
-                // fond esthétique
-                var fnacYellow = Color.FromArgb(0xFF, 0xD2, 0x00);
-                DrawBackground(g, fnacYellow);
-
-                // logo simple "fnac"
-                DrawLogo(g);
-
-                // textes (numéro groupé)
-              //  DrawTexts(g, digits16);
-
-                // code-barres
-                DrawBarcode(g, digits16);
-            }
-
-            bmp.Save(outputFile, ImageFormat.Png);
-        }
-    }
-
-    // --- FONCTIONS INTERNES ---
-
-    static void DrawBackground(Graphics g, Color fnacYellow)
-    {
-        using var path = RoundedRect(new Rectangle(0, 0, CARD_W, CARD_H), 28);
-        using var clip = new Region(path);
-        g.Clip = clip;
-
-        // Bande diagonale jaune
-        using (var yellow = new SolidBrush(fnacYellow))
-        {
-            PointF[] poly = new[]
-            {
-                new PointF(0, CARD_H * 0.15f),
-                new PointF(CARD_W * 0.70f, 0),
-                new PointF(CARD_W, 0),
-                new PointF(CARD_W, CARD_H * 0.35f),
-                new PointF(CARD_W * 0.30f, CARD_H * 0.50f),
-                new PointF(0, CARD_H * 0.50f),
-            };
-            g.FillPolygon(yellow, poly);
+            using var path = new SKPath();
+            path.MoveTo(0, CARD_H * 0.15f);
+            path.LineTo(CARD_W * 0.70f, 0);
+            path.LineTo(CARD_W, 0);
+            path.LineTo(CARD_W, CARD_H * 0.35f);
+            path.LineTo(CARD_W * 0.30f, CARD_H * 0.50f);
+            path.LineTo(0, CARD_H * 0.50f);
+            path.Close();
+            canvas.DrawPath(path, yellowPaint);
         }
 
-        g.ResetClip();
+        DrawBarcodeSkia(canvas, digits16, CARD_W, CARD_H);
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var stream = System.IO.File.Create(outputFile);
+        data.SaveTo(stream);
     }
 
-    static void DrawLogo(Graphics g)
-    {
-        var rect = new Rectangle((int)(CARD_W * 0.06f), (int)(CARD_H * 0.08f), 200, 100);
-        using var f = new Font("Segoe UI", 60, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var w = new SolidBrush(Color.White);
-        g.DrawString("fnac", f, w, rect);
-    }
-
-    static void DrawTexts(Graphics g, string digits16)
-    {
-        // Numéro groupé 4x4
-        string grouped = $"{digits16.Substring(0, 4)} {digits16.Substring(4, 4)} {digits16.Substring(8, 4)} {digits16.Substring(12, 4)}";
-
-        using (var numFont = new Font("Consolas", 42, FontStyle.Regular, GraphicsUnit.Pixel))
-        using (var numBrush = new SolidBrush(Color.White))
-        {
-            g.DrawString(grouped, numFont, numBrush, new PointF(CARD_W * 0.06f, CARD_H * 0.70f));
-        }
-    }
-
-    static void DrawBarcode(Graphics g, string digits16)
+    private static void DrawBarcodeSkia(SKCanvas canvas, string content, int cardW, int cardH)
     {
         var writer = new BarcodeWriterPixelData
         {
             Format = BarcodeFormat.CODE_128,
             Options = new EncodingOptions
             {
-                Height = (int)(CARD_H * 0.19f),
-                Width = (int)(CARD_W * 0.85f),
+                Height = (int)(cardH * 0.19f),
+                Width = (int)(cardW * 0.85f),
                 Margin = 0,
                 PureBarcode = true
             }
         };
 
-        var pixelData = writer.Write(digits16);
-
-        using var barcodeBmp = new Bitmap(pixelData.Width, pixelData.Height, PixelFormat.Format32bppArgb);
-        var bd = barcodeBmp.LockBits(new Rectangle(0, 0, pixelData.Width, pixelData.Height),
-                                     ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
-        try { Marshal.Copy(pixelData.Pixels, 0, bd.Scan0, pixelData.Pixels.Length); }
-        finally { barcodeBmp.UnlockBits(bd); }
-
-        int targetW = (int)(CARD_W * 0.82f);
-        int targetH = (int)(CARD_H * 0.16f);
-        int x = (CARD_W - targetW) / 2;
-        int y = (int)(CARD_H * 0.78f);
-        g.DrawImage(barcodeBmp, new Rectangle(x, y, targetW, targetH));
+        var pd = writer.Write(content);
+        using var barcodeBmp = new SKBitmap(pd.Width, pd.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(pd.Pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            barcodeBmp.InstallPixels(barcodeBmp.Info, handle.AddrOfPinnedObject(), barcodeBmp.RowBytes);
+            int targetW = (int)(cardW * 0.82f);
+            int targetH = (int)(cardH * 0.16f);
+            int x = (cardW - targetW) / 2;
+            int y = (int)(cardH * 0.78f);
+            canvas.DrawBitmap(barcodeBmp, new SKRect(x, y, x + targetW, y + targetH));
+        }
+        finally
+        {
+            handle.Free();
+        }
     }
 
     static string NormalizeDigits(string input)
@@ -176,23 +122,6 @@ class codebarre
         return new string(arr, 0, j);
     }
 
-    static GraphicsPath RoundedRect(Rectangle bounds, int radius)
-    {
-        int d = radius * 2;
-        var path = new GraphicsPath();
-        path.AddArc(bounds.X, bounds.Y, d, d, 180, 90);
-        path.AddArc(bounds.Right - d, bounds.Y, d, d, 270, 90);
-        path.AddArc(bounds.Right - d, bounds.Bottom - d, d, d, 0, 90);
-        path.AddArc(bounds.X, bounds.Bottom - d, d, d, 90, 90);
-        path.CloseFigure();
-        return path;
-    }
-
-    // =========================
-    // --- CORRECTION McDo ---
-    // =========================
-
-    // Nouveau : conserve lettres+chiffres en MAJ (ex: "VOHB0SJ0" -> "VOHB0SJ0")
     static string NormalizeAlnum(string input)
     {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;
@@ -205,128 +134,97 @@ class codebarre
         return sb.ToString();
     }
 
-    /// <summary>
-    /// Génère une carte McDo avec Code128 (ne supprime plus les lettres).
-    /// </summary>
     public static void GenerateMcDoCode128Card(string cardNumber, string outputFile, bool addPrefixM = false)
     {
         if (string.IsNullOrWhiteSpace(cardNumber))
             throw new ArgumentException("Numéro vide");
 
-        // IMPORTANT : on garde lettres+chiffres, pas seulement les chiffres
         string payload = NormalizeAlnum(cardNumber);
         if (addPrefixM) payload = "M" + payload;
 
-        using (var bmp = new Bitmap(CARD_W, CARD_H, PixelFormat.Format32bppArgb))
+        using var bitmap = new SKBitmap(CARD_W, CARD_H);
+        using var canvas = new SKCanvas(bitmap);
+        canvas.Clear(SKColors.White);
+
+        var writer = new BarcodeWriterPixelData
         {
-            bmp.SetResolution(DPI, DPI);
-            using (var g = Graphics.FromImage(bmp))
+            Format = BarcodeFormat.CODE_128,
+            Options = new EncodingOptions
             {
-                g.Clear(Color.White);
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-
-                // Titre
-                using (var titleF = new Font("Arial", 36, FontStyle.Bold, GraphicsUnit.Pixel))
-                    g.DrawString("McDonald's - Carte Fidélité", titleF, Brushes.Black, CARD_W * 0.05f, CARD_H * 0.06f);
-
-                // Génère et place le code 128 (avec le payload complet)
-                var writer = new BarcodeWriterPixelData
-                {
-                    Format = BarcodeFormat.CODE_128,
-                    Options = new EncodingOptions
-                    {
-                        Height = (int)(CARD_H * 0.28f),
-                        Width = (int)(CARD_W * 0.9f),
-                        Margin = 0,
-                        PureBarcode = true
-                    }
-                };
-                var pd = writer.Write(payload);
-
-                using var barcodeBmp = new Bitmap(pd.Width, pd.Height, PixelFormat.Format32bppArgb);
-                var bd = barcodeBmp.LockBits(new Rectangle(0, 0, pd.Width, pd.Height),
-                                             ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
-                try { Marshal.Copy(pd.Pixels, 0, bd.Scan0, pd.Pixels.Length); }
-                finally { barcodeBmp.UnlockBits(bd); }
-
-                int targetW = (int)(CARD_W * 0.9f);
-                int targetH = (int)(CARD_H * 0.32f);
-                int x = (CARD_W - targetW) / 2;
-                int y = (int)(CARD_H * 0.28f);
-                g.DrawImage(barcodeBmp, new Rectangle(x, y, targetW, targetH));
-
-                // Affiche le code complet en dessous (MAJ + préfixe si demandé)
-                using (var numFont = new Font("Consolas", 28, FontStyle.Regular, GraphicsUnit.Pixel))
-                {
-                    string display = payload; // déjà normalisé en alphanumérique
-                    var sz = g.MeasureString(display, numFont);
-                    float tx = (CARD_W - sz.Width) / 2;
-                    float ty = y + targetH + 8;
-                    g.DrawString(display, numFont, Brushes.Black, tx, ty);
-                }
+                Height = (int)(CARD_H * 0.28f),
+                Width = (int)(CARD_W * 0.9f),
+                Margin = 0,
+                PureBarcode = true
             }
+        };
+        var pd = writer.Write(payload);
 
-            bmp.Save(outputFile, ImageFormat.Png);
+        using var barcodeBmp = new SKBitmap(pd.Width, pd.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(pd.Pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            barcodeBmp.InstallPixels(barcodeBmp.Info, handle.AddrOfPinnedObject(), barcodeBmp.RowBytes);
+            int targetW = (int)(CARD_W * 0.9f);
+            int targetH = (int)(CARD_H * 0.32f);
+            int x = (CARD_W - targetW) / 2;
+            int y = (int)(CARD_H * 0.28f);
+            canvas.DrawBitmap(barcodeBmp, new SKRect(x, y, x + targetW, y + targetH));
         }
+        finally
+        {
+            handle.Free();
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var stream = System.IO.File.Create(outputFile);
+        data.SaveTo(stream);
     }
 
-    /// <summary>
-    /// Génère une carte McDo avec QR (utilise aussi NormalizeAlnum si tu fournis un simple code).
-    /// </summary>
     public static void GenerateMcDoQrCard(string content, string outputFile, int qrSizePx = 600)
     {
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException("Contenu vide");
 
-        string payload = NormalizeAlnum(content); // si tu fournis une URL complète, tu peux l'envoyer telle quelle
+        string payload = NormalizeAlnum(content);
 
-        using (var bmp = new Bitmap(CARD_W, CARD_H, PixelFormat.Format32bppArgb))
+        using var bitmap = new SKBitmap(CARD_W, CARD_H);
+        using var canvas = new SKCanvas(bitmap);
+        canvas.Clear(SKColors.White);
+
+        var qrWriter = new ZXing.BarcodeWriterPixelData
         {
-            bmp.SetResolution(DPI, DPI);
-            using (var g = Graphics.FromImage(bmp))
+            Format = BarcodeFormat.QR_CODE,
+            Options = new QrCodeEncodingOptions
             {
-                g.Clear(Color.White);
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-
-                using (var titleF = new Font("Arial", 28, FontStyle.Bold, GraphicsUnit.Pixel))
-                    g.DrawString("McDonald's - Carte Fidélité (QR)", titleF, Brushes.Black, CARD_W * 0.05f, CARD_H * 0.06f);
-
-                var qrWriter = new ZXing.BarcodeWriterPixelData
-                {
-                    Format = BarcodeFormat.QR_CODE,
-                    Options = new QrCodeEncodingOptions
-                    {
-                        Height = qrSizePx,
-                        Width = qrSizePx,
-                        Margin = 1,
-                        ErrorCorrection = ZXing.QrCode.Internal.ErrorCorrectionLevel.M
-                    }
-                };
-
-                var pd = qrWriter.Write(payload);
-
-                using var qrBmp = new Bitmap(pd.Width, pd.Height, PixelFormat.Format32bppArgb);
-                var bd = qrBmp.LockBits(new Rectangle(0, 0, pd.Width, pd.Height),
-                                        ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
-                try { Marshal.Copy(pd.Pixels, 0, bd.Scan0, pd.Pixels.Length); }
-                finally { qrBmp.UnlockBits(bd); }
-
-                int size = (int)(CARD_H * 0.6f);
-                int x = (CARD_W - size) / 2;
-                int y = (CARD_H - size) / 2;
-                g.DrawImage(qrBmp, new Rectangle(x, y, size, size));
-
-                // texte sous QR
-                using (var f = new Font("Consolas", 20, FontStyle.Regular, GraphicsUnit.Pixel))
-                {
-                    string disp = payload;
-                    var sz = g.MeasureString(disp, f);
-                    g.DrawString(disp, f, Brushes.Black, (CARD_W - sz.Width) / 2, y + size + 8);
-                }
+                Height = qrSizePx,
+                Width = qrSizePx,
+                Margin = 1,
+                ErrorCorrection = ZXing.QrCode.Internal.ErrorCorrectionLevel.M
             }
+        };
 
-            bmp.Save(outputFile, ImageFormat.Png);
+        var pd = qrWriter.Write(payload);
+
+        using var qrBmp = new SKBitmap(pd.Width, pd.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(pd.Pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            qrBmp.InstallPixels(qrBmp.Info, handle.AddrOfPinnedObject(), qrBmp.RowBytes);
+            int size = (int)(CARD_H * 0.6f);
+            int x = (CARD_W - size) / 2;
+            int y = (CARD_H - size) / 2;
+            canvas.DrawBitmap(qrBmp, new SKRect(x, y, x + size, y + size));
         }
+        finally
+        {
+            handle.Free();
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var stream = System.IO.File.Create(outputFile);
+        data.SaveTo(stream);
     }
 
     public static void GenerateMcDoCardForKiosk(string cardNumber, string outputFile, bool preferQr = false, bool addPrefixM = false)
@@ -344,13 +242,6 @@ class codebarre
             GenerateMcDoCode128Card(alnum, outputFile, addPrefixM);
     }
 
-
-    // les fonction pour monoprix
-
-    // ===============================
-    //  FONCTIONS POUR MONOPRIX
-    // ===============================
-
     public static void GenerateMonoprixBarcode(string raw, string outputPath)
     {
         if (string.IsNullOrWhiteSpace(raw))
@@ -359,19 +250,15 @@ class codebarre
         string content = raw;
         BarcodeFormat format;
 
-        // Si 12 chiffres => on calcule la clé et on génère un EAN-13
         if (IsAllDigits(raw) && raw.Length == 12)
         {
             int check = ComputeEan13CheckDigit(raw);
             content = raw + check;
             format = BarcodeFormat.EAN_13;
-            Console.WriteLine($"Génération EAN-13 : {content}");
         }
         else
         {
-            // Sinon Code 128 (Monoprix les accepte aussi)
             format = BarcodeFormat.CODE_128;
-            Console.WriteLine($"Génération Code128 : {content}");
         }
 
         var writer = new ZXing.BarcodeWriterPixelData
@@ -386,31 +273,23 @@ class codebarre
             }
         };
 
-        // Génère les pixels
         var pixelData = writer.Write(content);
-
-        // Création du bitmap
-        using (Bitmap bmp = new Bitmap(pixelData.Width, pixelData.Height, PixelFormat.Format32bppArgb))
+        using var bitmap = new SKBitmap(pixelData.Width, pixelData.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(pixelData.Pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
         {
-            var data = bmp.LockBits(new Rectangle(0, 0, pixelData.Width, pixelData.Height),
-                                    ImageLockMode.WriteOnly,
-                                    PixelFormat.Format32bppArgb);
-
-            try
-            {
-                Marshal.Copy(pixelData.Pixels, 0, data.Scan0, pixelData.Pixels.Length);
-            }
-            finally
-            {
-                bmp.UnlockBits(data);
-            }
-
-            // Sauvegarde
-            bmp.Save(outputPath, ImageFormat.Png);
+            bitmap.InstallPixels(bitmap.Info, handle.AddrOfPinnedObject(), bitmap.RowBytes);
+            using var image = SKImage.FromBitmap(bitmap);
+            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            using var stream = System.IO.File.Create(outputPath);
+            data.SaveTo(stream);
+        }
+        finally
+        {
+            handle.Free();
         }
     }
 
-    // Vérifie si tous les caractères sont des chiffres
     static bool IsAllDigits(string s)
     {
         foreach (char c in s)
@@ -418,7 +297,6 @@ class codebarre
         return true;
     }
 
-    // Calcul de clé EAN-13
     static int ComputeEan13CheckDigit(string twelveDigits)
     {
         int sum = 0;
@@ -429,7 +307,4 @@ class codebarre
         }
         return (10 - (sum % 10)) % 10;
     }
-
-
 }
-
