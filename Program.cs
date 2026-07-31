@@ -39,6 +39,15 @@ class Program
 
         var me = await botClient.GetMeAsync();
 
+        try
+        {
+            await botClient.SetMyCommandsAsync(new[]
+            {
+                new BotCommand { Command = "start", Description = "Démarrage" }
+            }, cancellationToken: cancellationToken);
+        }
+        catch { }
+
         Console.WriteLine($"Bot {me.Username} est démarré...");
         Task verifierTask = paiement.VerifierPaiement(botClient, cts.Token);
         Task verifierSumUpTask = paiement.VerifierPaiementSumAPI(botClient, cts.Token);
