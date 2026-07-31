@@ -700,5 +700,183 @@ namespace ChezRheyyBot
             }
             catch { }
         }
+
+        private static readonly HashSet<string> _locksWebhook = new HashSet<string>();
+
+        public static async Task LancerServeurWebhookSumUp(ITelegramBotClient botClient, CancellationToken cancellationToken)
+        {
+            int port = 8080;
+            string? portEnv = Environment.GetEnvironmentVariable("PORT");
+            if (!string.IsNullOrEmpty(portEnv) && int.TryParse(portEnv, out int p))
+            {
+                port = p;
+            }
+
+            HttpListener listener = new HttpListener();
+            try
+            {
+                listener.Prefixes.Add($"http://*:{port}/webhook/sumup/");
+                listener.Start();
+                Console.WriteLine($"[Webhook SumUp] Serveur d'écoute HTTP démarré sur le port {port}.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Webhook SumUp Erreur Initialisation] {ex.Message}");
+                return;
+            }
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    HttpListenerContext context = await listener.GetContextAsync();
+                    _ = Task.Run(() => TraiterRequeteWebhook(context, botClient, cancellationToken), cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    if (cancellationToken.IsCancellationRequested) break;
+                    Console.WriteLine($"[Webhook SumUp Listener Error] {ex.Message}");
+                }
+            }
+        }
+
+        private static async Task TraiterRequeteWebhook(HttpListenerContext context, ITelegramBotClient botClient, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var request = context.Request;
+                var response = context.Response;
+
+                if (request.HttpMethod == "POST" || request.HttpMethod == "GET")
+                {
+                    string checkoutId = "";
+
+                    if (request.HttpMethod == "POST")
+                    {
+                        using var reader = new System.IO.StreamReader(request.InputStream, request.ContentEncoding);
+                        string body = await reader.ReadToEndAsync();
+                        Console.WriteLine($"[Webhook SumUp Reçu POST] {body}");
+
+                        using var doc = JsonDocument.Parse(body);
+                        var root = doc.RootElement;
+
+                        if (root.TryGetProperty("checkout_id", out var cId)) checkoutId = cId.GetString() ?? "";
+                        else if (root.TryGetProperty("resource_id", out var rId)) checkoutId = rId.GetString() ?? "";
+                        else if (root.TryGetProperty("id", out var idElem)) checkoutId = idElem.GetString() ?? "";
+                    }
+                    else if (request.HttpMethod == "GET")
+                    {
+                        checkoutId = request.QueryString["checkout_id"] ?? request.QueryString["id"] ?? "";
+                    }
+
+                    if (!string.IsNullOrEmpty(checkoutId))
+                    {
+                        bool dejaEnCours = false;
+                        lock (_locksWebhook)
+                        {
+                            if (_locksWebhook.Contains(checkoutId))
+                            {
+                                dejaEnCours = true;
+                            }
+                            else
+                            {
+                                _locksWebhook.Add(checkoutId);
+                            }
+                        }
+
+                        if (!dejaEnCours)
+                        {
+                            try
+                            {
+                                var paiements = DataBase.ObtenirPaiementsEnAttenteBDD("CB");
+                                var item = paiements.FirstOrDefault(p => p.TrackId == checkoutId);
+
+                                if (item != null)
+                                {
+                                    using var client = new HttpClient();
+                                    string accessToken = await ObtenirSumUpAccessToken(client, cancellationToken);
+
+                                    var paiementverifier = new HttpRequestMessage(HttpMethod.Get, $"https://api.sumup.com/v0.1/checkouts/{checkoutId}");
+                                    paiementverifier.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+                                    var resp = await client.SendAsync(paiementverifier, cancellationToken);
+                                    var respContent = await resp.Content.ReadAsStringAsync(cancellationToken);
+
+                                    using var statusDoc = JsonDocument.Parse(respContent);
+                                    var rootStatus = statusDoc.RootElement;
+                                    string status = rootStatus.GetProperty("status").GetString() ?? "";
+
+                                    double montantSumUp = item.Amount;
+                                    if (rootStatus.TryGetProperty("amount", out var amtElem))
+                                    {
+                                        if (amtElem.ValueKind == JsonValueKind.Number) montantSumUp = amtElem.GetDouble();
+                                        else if (amtElem.ValueKind == JsonValueKind.String && double.TryParse(amtElem.GetString(), out double dblAmt)) montantSumUp = dblAmt;
+                                    }
+
+                                    if (string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "SUCCESSFUL", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        Console.WriteLine($"[Webhook SumUp VALIDÉ] Facture {checkoutId} payée avec succès !");
+                                        DataBase.MettreAJourPaiementStatutBDD(checkoutId, "PAID");
+
+                                        double nouveauSoldeTotal = 0;
+                                        int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(item.ChatId));
+                                        if (result != -1)
+                                        {
+                                            var ancienTuple = config.UserSave[result];
+                                            nouveauSoldeTotal = ancienTuple.Item3 + montantSumUp;
+                                            config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSoldeTotal, ancienTuple.Item4);
+                                        }
+                                        else
+                                        {
+                                            nouveauSoldeTotal = montantSumUp;
+                                            config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantSumUp, false));
+                                        }
+
+                                        DataBase.SauvegarderUtilisateurs();
+
+                                        foreach (var idAdmin in config.idAdmins)
+                                        {
+                                            try
+                                            {
+                                                await botClient.SendTextMessageAsync(idAdmin, $"<b>[WEBHOOK SUMUP REÇU]</b>\nUser ID: <code>{item.ChatId}</code>\nMontant: <b>{montantSumUp}€</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                            }
+                                            catch { }
+                                        }
+
+                                        try
+                                        {
+                                            var homeKb = new InlineKeyboardMarkup(new[]
+                                            {
+                                                new[] { InlineKeyboardButton.WithCallbackData("🏠 Retour au menu principal", "iHome") }
+                                            });
+                                            await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"✅ <b>PAIEMENT CARTE BANCAIRE REÇU (WEBHOOK)</b>\n\nVotre compte a été crédité de <b>{montantSumUp} €</b> !\n💰 <b>Nouveau solde : {nouveauSoldeTotal} €</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: homeKb);
+                                        }
+                                        catch { }
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                lock (_locksWebhook)
+                                {
+                                    _locksWebhook.Remove(checkoutId);
+                                }
+                            }
+                        }
+                    }
+
+                    byte[] responseBuffer = Encoding.UTF8.GetBytes("{\"success\":true}");
+                    response.ContentType = "application/json";
+                    response.ContentLength64 = responseBuffer.Length;
+                    response.StatusCode = 200;
+                    await response.OutputStream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
+                    response.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Webhook SumUp Traitement Erreur] {ex.Message}");
+            }
+        }
     }
 }
