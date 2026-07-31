@@ -476,23 +476,7 @@ namespace ChezRheyyBot
                 DateTime expirationUtc = DateTime.UtcNow.AddMinutes(15);
                 string formatted = expirationUtc.ToString("yyyy-MM-dd'T'HH:mm:sszzz");
 
-                string proxyAddress = "50.117.12.56";
-                int proxyPort = 50100;
-                string proxyUser = "btcpaiement";
-                string proxyPass = "iNDymRSU7L";
-
-                var proxy = new WebProxy(proxyAddress, proxyPort)
-                {
-                    Credentials = new NetworkCredential(proxyUser, proxyPass)
-                };
-
-                var handler = new HttpClientHandler
-                {
-                    Proxy = proxy,
-                    UseProxy = true,
-                };
-
-                using var client = new HttpClient(handler);
+                using var client = new HttpClient();
 
                 Random rnd = new Random();
                 int nombre = rnd.Next(10000, 100000);
@@ -562,23 +546,7 @@ namespace ChezRheyyBot
 
             try
             {
-                var proxyAddress = "50.117.12.56";
-                int proxyPort = 50100;
-                var proxyUser = "btcpaiement";
-                var proxyPass = "iNDymRSU7L";
-
-                var proxy = new WebProxy(proxyAddress, proxyPort)
-                {
-                    Credentials = new NetworkCredential(proxyUser, proxyPass)
-                };
-
-                var handler = new HttpClientHandler
-                {
-                    Proxy = proxy,
-                    UseProxy = true,
-                };
-
-                using var client = new HttpClient(handler);
+                using var client = new HttpClient();
 
                 while (!cancellationToken.IsCancellationRequested)
                 {
