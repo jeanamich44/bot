@@ -731,7 +731,8 @@ namespace ChezRheyyBot
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[Webhook SumUp Erreur Initialisation] {ex.Message}");
+                    Console.WriteLine($"[Webhook SumUp Erreur Initialisation] {ex.Message}. Activation du polling de secours...");
+                    _ = Task.Run(() => VerifierPaiementSumAPI(botClient, cancellationToken), cancellationToken);
                     return;
                 }
             }
@@ -747,6 +748,12 @@ namespace ChezRheyyBot
                 {
                     if (cancellationToken.IsCancellationRequested) break;
                     Console.WriteLine($"[Webhook SumUp Listener Error] {ex.Message}");
+                    if (!listener.IsListening)
+                    {
+                        Console.WriteLine("[Webhook SumUp Serveur Arrêté] Activation du polling de secours...");
+                        _ = Task.Run(() => VerifierPaiementSumAPI(botClient, cancellationToken), cancellationToken);
+                        break;
+                    }
                 }
             }
         }
