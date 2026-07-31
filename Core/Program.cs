@@ -49,7 +49,6 @@ class Program
 
         Console.WriteLine($"Bot {me.Username} est démarré...");
         Task verifierTask = paiement.VerifierPaiement(botClient, cts.Token);
-        Task verifierSumUpTask = paiement.VerifierPaiementSumAPI(botClient, cts.Token);
         Task webhookSumUpTask = paiement.LancerServeurWebhookSumUp(botClient, cts.Token);
 
         await Task.Delay(Timeout.Infinite, cancellationToken);
