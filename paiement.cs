@@ -434,9 +434,9 @@ namespace ChezRheyyBot
                 return _sumUpAccessToken;
             }
 
-            string clientId = Environment.GetEnvironmentVariable("SUMUP_BANK2_CLIENT_ID") ?? Environment.GetEnvironmentVariable("SUMUP_CLIENT_ID") ?? "cc_classic_PFUMM8wpZdtpvxx1I71gMv2a6PbQQ";
-            string clientSecret = Environment.GetEnvironmentVariable("SUMUP_BANK2_CLIENT_SECRET") ?? Environment.GetEnvironmentVariable("SUMUP_CLIENT_SECRET") ?? "cc_sk_classic_JIDwonLeeMtiT7csQ4uvCIhU42dTvd0qOFPHWFqZAZwjkxpYRF";
-            string bearerKey = Environment.GetEnvironmentVariable("SUMUP_BANK2_API_KEY") ?? Environment.GetEnvironmentVariable("SUMUP_BEARER_KEY") ?? "sup_sk_gn5RFRxslgQZ2Ca010BIry33E9l56yQ5f";
+            string clientId = Environment.GetEnvironmentVariable("SUMUP_CLIENT_ID") ?? "cc_classic_PFUMM8wpZdtpvxx1I71gMv2a6PbQQ";
+            string clientSecret = Environment.GetEnvironmentVariable("SUMUP_CLIENT_SECRET") ?? "cc_sk_classic_JIDwonLeeMtiT7csQ4uvCIhU42dTvd0qOFPHWFqZAZwjkxpYRF";
+            string bearerKey = Environment.GetEnvironmentVariable("SUMUP_BEARER_KEY") ?? "sup_sk_gn5RFRxslgQZ2Ca010BIry33E9l56yQ5f";
 
             var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/token");
             var postData = $"grant_type=client_credentials&client_id={clientId}&client_secret={clientSecret}";
