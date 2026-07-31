@@ -79,10 +79,6 @@ namespace ChezRheyyBot
                 );
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS IsBanned BOOLEAN DEFAULT FALSE;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS IsAdmin BOOLEAN DEFAULT FALSE;
-                DELETE FROM stock WHERE LOWER(Brand) IN ('flunch', 'quick');
-                DROP TABLE IF EXISTS bans;
-                DROP TABLE IF EXISTS parrainage;
-                DROP TABLE IF EXISTS profile;
                 CREATE TABLE IF NOT EXISTS settings (
                     Key TEXT PRIMARY KEY,
                     Value JSONB
@@ -112,39 +108,6 @@ namespace ChezRheyyBot
                 using (var commande = new NpgsqlCommand(requete, connexion))
                 {
                     commande.ExecuteNonQuery();
-                }
-            }
-        }
-
-        public static void LireEtInsererDepuisFichier(string cheminFichier)
-        {
-            if (!File.Exists(cheminFichier))
-            {
-                return;
-            }
-
-            foreach (var ligne in File.ReadAllLines(cheminFichier))
-            {
-                string[] parts = ligne.Split('|');
-                if (parts.Length == 5)
-                {
-                    string brand = parts[0];
-                    string code = parts[1];
-                    string pin = parts[2];
-                    int value = int.Parse(parts[3]);
-                    double price = Double.Parse(parts[4]);
-
-                    InsererDansStock(brand, code, pin, value, price);
-                }
-                else if (parts.Length == 4)
-                {
-                    string brand = parts[0];
-                    string code = parts[1];
-                    string pin = "";
-                    int value = int.Parse(parts[2]);
-                    double price = double.Parse(parts[3]);
-
-                    InsererDansStock(brand, code, pin, value, price);
                 }
             }
         }
@@ -250,23 +213,7 @@ namespace ChezRheyyBot
             }
         }
 
-        public static bool SupprimerStockParBrand(string brand)
-        {
-            using (var connexion = new NpgsqlConnection(GetConnectionString()))
-            {
-                connexion.Open();
 
-                string requete = "DELETE FROM stock WHERE Brand = @brand";
-
-                using (var cmd = new NpgsqlCommand(requete, connexion))
-                {
-                    cmd.Parameters.AddWithValue("@brand", brand);
-                    int lignesAffectees = cmd.ExecuteNonQuery();
-
-                    return lignesAffectees > 0;
-                }
-            }
-        }
 
         public static void ChargerUtilisateurs()
         {

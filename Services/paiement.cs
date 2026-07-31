@@ -198,7 +198,7 @@ namespace ChezRheyyBot
                 sandbox = false
             };
 
-            var request = new HttpRequestMessage(HttpMethod.Post, config.apiUrl);
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.oxapay.com/v1/payment/invoice");
             request.Headers.Add("merchant_api_key", config.apiKey);
             request.Content = new StringContent(JsonSerializer.Serialize(jsonBody), Encoding.UTF8, "application/json");
 

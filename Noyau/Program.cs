@@ -33,7 +33,6 @@ class Program
         DataBase.CreerTableStockSiExistePas();
         await config.ReadJson();
         config.InitialiseCategorie();
-        config.InitialiseAdmin();
         config.GetProfileSettings();
 
         var me = await botClient.GetMeAsync();
@@ -106,50 +105,7 @@ class Program
             }
 
 
-            /*
-            var chatMember = await botClient.GetChatMemberAsync(-1002661049343, long.Parse(config.CurrentChatId));
-            if(chatMember.Status == ChatMemberStatus.Kicked)
-            {
-                try
-                {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Votre compte est banni du bot.\n");
 
-                    if (!config.BanniUser.Contains(config.CurrentChatId))
-                    {
-                        config.BanniUser.Add(config.CurrentChatId);
-                    }
-                    return;
-                }
-                catch
-                {
-
-                }
-            }
-            else if (chatMember.Status == ChatMemberStatus.Left)
-            {
-                try
-                {
-                    string lienInvitation = "https://t.me/+JaBSwA5ax9kzNTM0"; // Ton lien d’invitation privé
-
-                    var bouton = new InlineKeyboardMarkup(
-                        InlineKeyboardButton.WithUrl("📢 Rejoindre le canal", lienInvitation)
-                    );
-
-
-                    await botClient.SendTextMessageAsync(
-        chatId: config.CurrentChatId,
-        text: "❗ Tu dois rejoindre notre canal pour continuer.",
-        replyMarkup: bouton
-    );
-                    return;
-                }
-                catch
-                {
-
-                }
-            }
-
-            */
 
             int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(config.CurrentChatId));
             if (result == -1)
@@ -275,10 +231,7 @@ class Program
                         await paiement.CreerPaiementSumAPI(botClient, update, cancellationToken, mtn);
                         return;
                     }
-                    else if (update.Message.Text != "" && config.AttentePaiement.Contains(config.CurrentChatId))
-                    {
 
-                    }
                 }
                 return;
             }

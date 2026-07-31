@@ -5,7 +5,6 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ChezRheyyBot
 {
@@ -15,29 +14,22 @@ namespace ChezRheyyBot
         {
             try
             {
-                if(update.CallbackQuery.Data == null)
+                if (update.CallbackQuery.Data == null)
                 {
                     return;
                 }
-
-
                 else if (update.CallbackQuery.Data == "iCarrefour")
                 {
                     await SendCarrefourStock(botClient, update, cancellationToken);
                     return;
                 }
-
-
                 else if (update.CallbackQuery.Data == "iIPTV")
                 {
                     await SendIptvStock(botClient, update, cancellationToken);
                     return;
                 }
-
                 else if (update.CallbackQuery.Data.Contains("iiptv"))
                 {
-
-
                     double.TryParse(config.GetSetting("iptv", "price_1m", "5"), out double p1);
                     double.TryParse(config.GetSetting("iptv", "price_3m", "10"), out double p3);
                     double.TryParse(config.GetSetting("iptv", "price_6m", "15"), out double p6);
@@ -53,14 +45,12 @@ namespace ChezRheyyBot
 
                     var msg = update.CallbackQuery.Data;
 
-                    // Extraction du nombre (mois)
                     if (!int.TryParse(new string(msg.Where(char.IsDigit).ToArray()), out int number))
                     {
                         await botClient.SendTextMessageAsync(config.CurrentChatId, "Offre invalide.");
                         return;
                     }
 
-                    // Recherche utilisateur
                     int index = config.UserSave.FindIndex(t => t.Item1 == long.Parse(config.CurrentChatId));
                     if (index == -1)
                     {
@@ -70,14 +60,12 @@ namespace ChezRheyyBot
                     var user = config.UserSave[index];
                     double solde = user.Item3;
 
-                    // Vérification prix
                     if (!prixParMois.TryGetValue(number, out double prix))
                     {
                         await botClient.SendTextMessageAsync(config.CurrentChatId, "Abonnement non disponible.");
                         return;
                     }
 
-                    // Vérification solde
                     if (solde < prix)
                     {
                         await botClient.SendTextMessageAsync(
@@ -87,10 +75,8 @@ namespace ChezRheyyBot
                         return;
                     }
 
-                    // Génération IPTV
                     string link = await iptv.GenerateIPTV(number.ToString());
 
-                    // Mise à jour du solde
                     double nouveauSolde = solde - prix;
                     config.UserSave[index] = Tuple.Create(
                         user.Item1,
@@ -99,7 +85,6 @@ namespace ChezRheyyBot
                         user.Item4
                     );
 
-
                     try
                     {
                         foreach (var id in config.idAdmins)
@@ -107,12 +92,8 @@ namespace ChezRheyyBot
                             await botClient.SendTextMessageAsync(id, $"[+] Achat IPTV | Id:{config.CurrentChatId} | Montant:{prix}");
                         }
                     }
-                    catch
-                    {
+                    catch { }
 
-                    }
-
-                    // Envoi du lien
                     Uri uri = new Uri(link);
                     var query = HttpUtility.ParseQueryString(uri.Query);
 
@@ -123,12 +104,6 @@ namespace ChezRheyyBot
 
                     long.TryParse(config.CurrentChatId, out long userIdIptv);
                     DataBase.EnregistrerTransaction(userIdIptv, "IPTV", number.ToString(), "", 0, prix);
-                }
-
-                else if (update.CallbackQuery.Data == "iCanal")
-                {
-                    //await SendCanal(botClient, update, cancellationToken);
-                    return;
                 }
                 else if (update.CallbackQuery.Data == "iHome")
                 {
@@ -145,7 +120,6 @@ namespace ChezRheyyBot
                     await achat.DemandeAchat("", botClient, update, cancellationToken);
                     return;
                 }
-
                 else if (update.CallbackQuery.Data.Contains("iCustomP"))
                 {
                     if (config.banAPI.Contains(config.CurrentChatId))
@@ -196,119 +170,57 @@ namespace ChezRheyyBot
                     return;
                 }
             }
-            catch
-            {
-
-            }
+            catch { }
 
             return;
         }
-
-
-
-
-
 
         private static async Task SendIptvStock(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             var message = "*ChezRheyy IPTV* \n\n1 mois ➔ 5€\n3 mois ➔ 10€\n6 mois ➔ 15€\n12 mois ➔ 30€";
 
-            var inlineKeyboard = new InlineKeyboardMarkup(new[]
-          {
-                    new[]
+            try
+            {
+                var keyboardButtons = new List<List<InlineKeyboardButton>>
+                {
+                    new List<InlineKeyboardButton>
+                    {
+                        InlineKeyboardButton.WithCallbackData("1 mois", "iiptv1mois"),
+                        InlineKeyboardButton.WithCallbackData("3 mois","iiptv3mois "),
+                    },
+                    new List<InlineKeyboardButton>
+                    {
+                        InlineKeyboardButton.WithCallbackData("6 mois","iiptv6mois"),
+                        InlineKeyboardButton.WithCallbackData("12 mois","iiptv12mois"),
+                    },
+                    new List<InlineKeyboardButton>
                     {
                         InlineKeyboardButton.WithCallbackData("Home", "iHome")
                     }
-                });
-
-            try
-            {
-
-                var keyboardButtons = new List<List<InlineKeyboardButton>>
-{
-   new List<InlineKeyboardButton>
-                        {
-                            InlineKeyboardButton.WithCallbackData("1 mois", "iiptv1mois"),
-                            InlineKeyboardButton.WithCallbackData("3 mois","iiptv3mois "),
-
-                        }
-                    };
-
-                keyboardButtons.Add(new List<InlineKeyboardButton>
-                                        {
-                                         InlineKeyboardButton.WithCallbackData("6 mois","iiptv6mois"),
-                                         InlineKeyboardButton.WithCallbackData("12 mois","iiptv12mois"),
-                                    });
-
+                };
 
                 var inlineKeyboards = new InlineKeyboardMarkup(keyboardButtons);
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId,message, parseMode: ParseMode.MarkdownV2, replyMarkup: inlineKeyboards);
+                await botClient.SendTextMessageAsync(config.CurrentChatId, message, parseMode: ParseMode.Markdown, replyMarkup: inlineKeyboards);
                 return;
             }
-            catch
-            {
-
-            }
+            catch { }
         }
 
-
-
-
-
-
-
-
-
-
-        private static async Task SendCanal(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
-        {
-            try
-            {
-                var inlineKeyboard = new InlineKeyboardMarkup(new[]
-          {
-                    new[]
-                    {
-                        InlineKeyboardButton.WithCallbackData("Home", "iHome")                    }
-                });
-                //envoyer le canal pour s'abonner
-                await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]));
-
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Voici notre canal: https://t.me/ChezRheyyBot",replyMarkup:inlineKeyboard);
-            }
-            catch
-            {
-                await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]) - 1);
-
-
-                var inlineKeyboard = new InlineKeyboardMarkup(new[]
-                          {
-                    new[]
-                    {
-                        InlineKeyboardButton.WithCallbackData("Home", "iHome")                    }
-                });
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Voici notre canal: https://t.me/ChezRheyyBot", replyMarkup: inlineKeyboard);
-            }
-        }
-
-
-
-        //gere le stock carrefour
         private static async Task SendCarrefourStock(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             var message = "*Stock Carrefour:* \n\n";
 
             var inlineKeyboard = new InlineKeyboardMarkup(new[]
-          {
-                    new[]
-                    {
-                        InlineKeyboardButton.WithCallbackData("Home", "iHome")
-                    }
-                });
+            {
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Home", "iHome")
+                }
+            });
 
             try
             {
-
                 await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]) - 1);
 
                 var stockList = DataBase.ObtenirStocksParBrand("carr");
@@ -340,9 +252,9 @@ namespace ChezRheyyBot
                 }
 
                 lignes.Add(new List<InlineKeyboardButton>
-{
-    InlineKeyboardButton.WithCallbackData("Home", "iHome")
-    });
+                {
+                    InlineKeyboardButton.WithCallbackData("Home", "iHome")
+                });
                 var keyboard = new InlineKeyboardMarkup(lignes);
 
                 await botClient.SendTextMessageAsync(
@@ -353,19 +265,15 @@ namespace ChezRheyyBot
                 );
 
                 return;
-
             }
             catch
             {
-
-
                 await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]));
 
                 var stockList = DataBase.ObtenirStocksParBrand("carr");
 
                 if (stockList.Count == 0)
                 {
-
                     await botClient.SendTextMessageAsync(config.CurrentChatId, $"😞 Aucun stock 'Carrefour', veuillez revenir plus tard", replyMarkup: inlineKeyboard);
                     return;
                 }
@@ -391,9 +299,9 @@ namespace ChezRheyyBot
                 }
 
                 lignes.Add(new List<InlineKeyboardButton>
-{
-    InlineKeyboardButton.WithCallbackData("Home", "iHome")
-    });
+                {
+                    InlineKeyboardButton.WithCallbackData("Home", "iHome")
+                });
 
                 var keyboard = new InlineKeyboardMarkup(lignes);
 
@@ -407,7 +315,5 @@ namespace ChezRheyyBot
                 return;
             }
         }
-
-
     }
 }

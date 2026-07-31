@@ -12,26 +12,16 @@ namespace ChezRheyyBot
             {
                 await Task.Delay(TimeSpan.FromMinutes(20));
 
-                foreach(var id in config.banAPI)
+                foreach (var id in config.banAPI)
                 {
-                    await botClient.SendTextMessageAsync(id, $"Cooldown finit, vous pouvez désormais créer un nouveau lien de paiement");
+                    try
+                    {
+                        await botClient.SendTextMessageAsync(id, $"Cooldown fini, vous pouvez désormais créer un nouveau lien de paiement");
+                    }
+                    catch { }
                 }
 
                 config.banAPI.Clear();
-
-                string Solde = "444";
-
-                if(Solde.Length == 4)
-                {
-                    Solde = Solde.Substring(0, 2);
-                }else if(Solde.Length == 3)
-                {
-                    Solde = Solde.Substring(0, 1);
-                }
-
-
-                Solde = Solde.Substring(0, 2);
-
                 return;
             }
         }
