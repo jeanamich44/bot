@@ -137,7 +137,21 @@ namespace ChezRheyyBot
                     createdAt = t.CreatedAt
                 }).ToList();
 
-                RepondreJson(response, 200, new { totalCa, totalSales, totalUsers, totalStock, recentSales });
+                bool maintenance = config.ModeMaintenance;
+                RepondreJson(response, 200, new { totalCa, totalSales, totalUsers, totalStock, maintenance, recentSales });
+            }
+            else if (path == "/api/admin/maintenance" && request.HttpMethod == "GET")
+            {
+                RepondreJson(response, 200, new { maintenance = config.ModeMaintenance });
+            }
+            else if (path == "/api/admin/maintenance" && request.HttpMethod == "POST")
+            {
+                using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+                string bodyStr = await reader.ReadToEndAsync();
+                using var doc = JsonDocument.Parse(bodyStr);
+                bool mtn = doc.RootElement.GetProperty("maintenance").GetBoolean();
+                config.ModeMaintenance = mtn;
+                RepondreJson(response, 200, new { success = true, maintenance = config.ModeMaintenance });
             }
             else if (path == "/api/admin/users" && request.HttpMethod == "GET")
             {

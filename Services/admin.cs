@@ -20,6 +20,7 @@ namespace ChezRheyyBot
             "/info",
             "/crypto",
             "/message",
+            "/maintenance",
             "/help"
         };
 
@@ -36,6 +37,7 @@ namespace ChezRheyyBot
             { "info", ("Affiche les informations d'un utilisateur (solde, nombre d'achats, statut banni).", "/info 123456789", "/info <id>") },
             { "crypto", ("Interroge l'API OxaPay pour connaître le statut en direct d'une transaction.", "/crypto track_123456", "/crypto <trackId>") },
             { "message", ("Envoie un message de diffusion (broadcast) à tous les utilisateurs du bot.", "/message - Bonjour à tous !", "/message - <texte>") },
+            { "maintenance", ("Active ou désactive le mode maintenance du bot.", "/maintenance on ou /maintenance off", "/maintenance [on|off]") },
             { "help", ("Affiche l'aide des commandes administration.", "/help ou /help stock ou /help all", "/help [commande|all]") }
         };
 
@@ -65,6 +67,9 @@ namespace ChezRheyyBot
                         break;
                     case "/message":
                         await SendMessageAll(botClient, update, cancellationToken);
+                        break;
+                    case "/maintenance":
+                        await ToggleMaintenance(message, botClient, update, cancellationToken);
                         break;
                     case "/info":
                         await GetInFoUser(botClient, update, cancellationToken);
@@ -534,6 +539,38 @@ namespace ChezRheyyBot
 
                     await botClient.SendTextMessageAsync(config.CurrentChatId, $"Transaction {id[1]} [Montant={montant}€ | Status={status}]", cancellationToken: cancellationToken);
                 }
+            }
+            catch { }
+        }
+
+        private static async Task ToggleMaintenance(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var parts = message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length > 1)
+                {
+                    string arg = parts[1].ToLower();
+                    if (arg == "on" || arg == "1" || arg == "true")
+                    {
+                        config.ModeMaintenance = true;
+                    }
+                    else if (arg == "off" || arg == "0" || arg == "false")
+                    {
+                        config.ModeMaintenance = false;
+                    }
+                    else
+                    {
+                        config.ModeMaintenance = !config.ModeMaintenance;
+                    }
+                }
+                else
+                {
+                    config.ModeMaintenance = !config.ModeMaintenance;
+                }
+
+                string statusText = config.ModeMaintenance ? "ACTIVÉ 🔴" : "DÉSACTIVÉ 🟢";
+                await botClient.SendTextMessageAsync(config.CurrentChatId, $"🛠️ Mode Maintenance : <b>{statusText}</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
             }
             catch { }
         }

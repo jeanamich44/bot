@@ -140,9 +140,40 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    let currentMaintenanceState = false;
+    const maintenanceBadge = document.getElementById('maintenance-badge');
+    const toggleMaintenanceBtn = document.getElementById('toggle-maintenance-btn');
+
+    function updateMaintenanceUI(isMtn) {
+        currentMaintenanceState = isMtn;
+        if (!maintenanceBadge) return;
+        if (isMtn) {
+            maintenanceBadge.className = 'badge badge-danger';
+            maintenanceBadge.innerText = '🛠️ Maintenance Active';
+        } else {
+            maintenanceBadge.className = 'badge badge-success';
+            maintenanceBadge.innerText = '🟢 Mode Normal';
+        }
+    }
+
+    if (toggleMaintenanceBtn) {
+        toggleMaintenanceBtn.addEventListener('click', () => {
+            const nextState = !currentMaintenanceState;
+            openModal('Mode Maintenance', `<p>Voulez-vous <strong>${nextState ? 'ACTIVER' : 'DÉSACTIVER'}</strong> le mode maintenance ?<br><br><small style="color: var(--text-secondary);">Toutes les actions Telegram non-admin seront immédiatement bloquées.</small></p>`, async () => {
+                const res = await apiRequest('/maintenance', 'POST', { maintenance: nextState });
+                if (res && res.success) {
+                    updateMaintenanceUI(res.maintenance);
+                    showToast(`Mode maintenance ${res.maintenance ? 'activé 🔴' : 'désactivé 🟢'} !`, res.maintenance ? 'danger' : 'success');
+                }
+            });
+        });
+    }
+
     async function loadDashboardData() {
         const stats = await apiRequest('/stats');
         if (!stats) return;
+
+        updateMaintenanceUI(stats.maintenance);
 
         document.getElementById('stat-total-ca').innerText = `${stats.totalCa.toFixed(2)} €`;
         document.getElementById('stat-total-sales').innerText = stats.totalSales;

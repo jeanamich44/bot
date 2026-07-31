@@ -29,6 +29,12 @@ namespace ChezRheyyBot
         public static Dictionary<string, string> MontantPayement = new Dictionary<string, string>();
         public static List<string> banAPI = new List<string>();
 
+        public static bool ModeMaintenance
+        {
+            get => GetSetting("general", "maintenance", "false").Equals("true", StringComparison.OrdinalIgnoreCase);
+            set => SetSetting("general", "maintenance", value ? "true" : "false");
+        }
+
         public static bool blockstart = false;
         public static bool promotion = false;
 

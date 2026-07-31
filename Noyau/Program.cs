@@ -78,6 +78,12 @@ class Program
                 return;
             }
 
+            if (config.ModeMaintenance && !config.idAdmins.Contains(config.CurrentChatId))
+            {
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "🛠️ <b>Maintenance en cours</b>\n\nLe bot est actuellement en maintenance. Veuillez réessayer ultérieurement.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                return;
+            }
+
             if(config.blockstart == false)
             {
                 Blocks.LancerActionDans24h(botClient, update, cancellationToken);
