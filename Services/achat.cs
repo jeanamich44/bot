@@ -77,24 +77,7 @@ namespace ChezRheyyBot
                         }
                         else
                         {
-                            if(item.Brand == "flunch")
-                            {
-                                string nom ="";
-                                string prenom = "";
-                                string ddn ="";
-                                string pathFlunch = System.IO.File.Exists("Data/dbflunch.txt") ? "Data/dbflunch.txt" : "dbflunch.txt";
-                                foreach (string ligne in System.IO.File.ReadLines(pathFlunch))
-                                {
-                                    if (ligne.Contains(item.Code))
-                                    {
-                                         nom = Regex.Match(ligne, @"NOM\s*=\s*([^|]+)").Groups[1].Value.Trim();
-                                         prenom = Regex.Match(ligne, @"PRENOM\s*=\s*([^|]+)").Groups[1].Value.Trim();
-                                         ddn = Regex.Match(ligne, @"DDN\s*=\s*([^|]+)").Groups[1].Value.Trim();
-                                    }
-                                }
 
-                                await botClient.SendTextMessageAsync(config.CurrentChatId, $"<b>Information FLUNCH</b>:\n🙍‍Nom: {nom}\n🙍‍Prenom: {prenom}\n📅DDN: {ddn}", parseMode: ParseMode.Html);
-                            }
 
                             await EnvoyerQrCode(chatid, botClient, update, cancellationToken);
                         }

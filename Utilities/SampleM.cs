@@ -20,8 +20,7 @@ namespace ChezRheyyBot
                 {
                     new List<InlineKeyboardButton>
                     {
-                        InlineKeyboardButton.WithCallbackData("🍔 Quick", "iQuick"),
-                        InlineKeyboardButton.WithCallbackData("🍴​ Flunch","iFlunch"),
+                        InlineKeyboardButton.WithCallbackData("🍔 Quick", "iQuick")
                     }
                 };
                 keyboardButtons.Add(new List<InlineKeyboardButton>
@@ -55,8 +54,7 @@ namespace ChezRheyyBot
                 {
                     new List<InlineKeyboardButton>
                     {
-                        InlineKeyboardButton.WithCallbackData("🍔 Quick", "iQuick"),
-                        InlineKeyboardButton.WithCallbackData("🍴​ Flunch","iFlunch"),
+                        InlineKeyboardButton.WithCallbackData("🍔 Quick", "iQuick")
                     }
                 };
                 keyboardButtons.Add(new List<InlineKeyboardButton>

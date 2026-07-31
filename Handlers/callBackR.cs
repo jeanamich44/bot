@@ -31,11 +31,7 @@ namespace ChezRheyyBot
                     return;
                 }
 
-                else if (update.CallbackQuery.Data == "iFlunch")
-                {
-                    await SendFlunchStock(botClient, update, cancellationToken);
-                    return;
-                }
+
                 else if (update.CallbackQuery.Data == "iKFC")
                 {
                     await SendKfcStock(botClient, update, cancellationToken);
@@ -312,121 +308,6 @@ namespace ChezRheyyBot
                 {
 
                     await botClient.SendTextMessageAsync(config.CurrentChatId, $"😞 Aucun stock 'Quick', veuillez revenir plus tard", replyMarkup: inlineKeyboard);
-                    return;
-                }
-
-                var lignes = new List<List<InlineKeyboardButton>>();
-
-                for (int i = 0; i < stockList.Count; i += 3)
-                {
-                    var ligne = new List<InlineKeyboardButton>();
-
-                    for (int j = 0; j < 3 && (i + j) < stockList.Count; j++)
-                    {
-                        var item = stockList[i + j];
-
-                        message += $"Points:{item.Value} => {item.Price}€\n";
-                        string texte = $"{item.Value}";
-                        string callback = $"stock_{item.Id}";
-
-                        ligne.Add(InlineKeyboardButton.WithCallbackData(texte, callback));
-                    }
-
-                    lignes.Add(ligne);
-                }
-
-                lignes.Add(new List<InlineKeyboardButton>
-{
-    InlineKeyboardButton.WithCallbackData("Home", "iHome")
-    });
-
-                var keyboard = new InlineKeyboardMarkup(lignes);
-
-                await botClient.SendTextMessageAsync(
-                    chatId: config.CurrentChatId,
-                    text: message,
-                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
-                    replyMarkup: keyboard
-                );
-
-                return;
-            }
-        }
-
-        private static async Task SendFlunchStock(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
-        {
-            var message = "*Stock Flunch:* \n\n";
-
-            var inlineKeyboard = new InlineKeyboardMarkup(new[]
-          {
-                    new[]
-                    {
-                        InlineKeyboardButton.WithCallbackData("Home", "iHome")
-                    }
-                });
-
-            try
-            {
-
-                await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]) - 1);
-
-                var stockList = DataBase.ObtenirStocksParBrand("flunch");
-
-                if (stockList.Count == 0)
-                {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"😞 Aucun stock 'flunch', veuillez revenir plus tard", replyMarkup: inlineKeyboard);
-                    return;
-                }
-
-                var lignes = new List<List<InlineKeyboardButton>>();
-
-                for (int i = 0; i < stockList.Count; i += 3)
-                {
-                    var ligne = new List<InlineKeyboardButton>();
-
-                    for (int j = 0; j < 3 && (i + j) < stockList.Count; j++)
-                    {
-                        var item = stockList[i + j];
-
-                        message += $"Points:{item.Value} => {item.Price}€\n";
-                        string texte = $"{item.Value}";
-                        string callback = $"stock_{item.Id}";
-
-                        ligne.Add(InlineKeyboardButton.WithCallbackData(texte, callback));
-                    }
-
-                    lignes.Add(ligne);
-                }
-
-                lignes.Add(new List<InlineKeyboardButton>
-{
-    InlineKeyboardButton.WithCallbackData("Home", "iHome")
-    });
-                var keyboard = new InlineKeyboardMarkup(lignes);
-
-                await botClient.SendTextMessageAsync(
-                    chatId: config.CurrentChatId,
-                    text: message,
-                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown,
-                    replyMarkup: keyboard
-                );
-
-                //await botClient.SendTextMessageAsync(config.CurrentChatId, "Stock de Quick", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
-                return;
-
-            }
-            catch
-            {
-
-
-                await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]));
-
-                var stockList = DataBase.ObtenirStocksParBrand("flunch");
-
-                if (stockList.Count == 0)
-                {
-
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"😞 Aucun stock 'flunch', veuillez revenir plus tard", replyMarkup: inlineKeyboard);
                     return;
                 }
 

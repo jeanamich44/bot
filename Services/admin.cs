@@ -7,7 +7,7 @@ namespace ChezRheyyBot
 {
     internal class admin
     {
-        public static List<string> command = new List<string>() { "/addMoney", "/removeMoney", "/ban", "/message","/info", "/stock", "/commandes","/help","/crypto","/unlock","/deban","/clear","/stat", "/flunch" };
+        public static List<string> command = new List<string>() { "/addMoney", "/removeMoney", "/ban", "/message","/info", "/stock", "/commandes","/help","/crypto","/unlock","/deban","/clear","/stat" };
         public static async Task<bool> CommandeAdmin(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             string? commandeTrouvee = command.FirstOrDefault(cmd => message.Contains(cmd));
@@ -56,9 +56,6 @@ namespace ChezRheyyBot
                     case "/stat":
                         await SendStat(botClient,update,cancellationToken);
                         break;
-                    case "/flunch":
-                        await GenNewStockFlunch(botClient,update,cancellationToken);
-                        break;
                 }
 
                 return true;
@@ -69,25 +66,6 @@ namespace ChezRheyyBot
             }
         }
 
-        private static async Task GenNewStockFlunch(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
-        {
-            try
-            {
-                if (!await flunch.GenererNouveauxStockFlunch())
-                {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Impossible de mettre le nouveaux stock flunch");
-                }
-
-
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Nouveaux restock flunch mis !!! ");
-
-                return;
-            }
-            catch
-            {
-
-            }
-        }
         private static async Task SendStat(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
