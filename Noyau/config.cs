@@ -17,6 +17,7 @@ namespace ChezRheyyBot
         public static List<string> idAdmins = new List<string>();
 
         public static List<string> BanniUser = new List<string>();
+        public static Dictionary<long, string> BanReasons = new Dictionary<long, string>();
         public static string CurrentChatId = "";
         public static Dictionary<string, string> IdMessage = new Dictionary<string, string>();
         public static string msgId = "";

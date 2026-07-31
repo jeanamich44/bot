@@ -27,7 +27,7 @@ namespace ChezRheyyBot
         {
             { "addmoney", ("Ajoute du solde en euros à un utilisateur Telegram.", "/addMoney 123456789 25", "/addMoney <id> <montant>") },
             { "removemoney", ("Retire du solde en euros à un utilisateur.", "/removeMoney 123456789 10", "/removeMoney <id> <montant>") },
-            { "ban", ("Bannit un utilisateur. L'empêche d'utiliser le bot.", "/ban 123456789", "/ban <id>") },
+            { "ban", ("Bannit un utilisateur avec une raison optionnelle.", "/ban 123456789 ou /ban 123456789 Spam / Arnaque", "/ban <id> [raison...]") },
             { "deban", ("Débannit un utilisateur préalablement banni.", "/deban 123456789", "/deban <id>") },
             { "unlock", ("Débloque la génération de liens de paiement pour un utilisateur restreint.", "/unlock 123456789", "/unlock <id>") },
             { "stat", ("Affiche les statistiques globales des ventes et le CA par marque depuis la BDD.", "/stat", "/stat") },
@@ -266,21 +266,40 @@ namespace ChezRheyyBot
         {
             try
             {
-                var msg = update.Message.Text.Split(' ');
-                if (msg.Length != 2)
+                var msg = update.Message.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (msg.Length < 2 || !long.TryParse(msg[1], out long userId))
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /ban <id>", cancellationToken: cancellationToken);
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /ban <id> [raison]", cancellationToken: cancellationToken);
                     return;
                 }
 
+                string reason = msg.Length > 2 ? string.Join(" ", msg.Skip(2)) : "";
+
                 if (config.BanniUser.Contains(msg[1]))
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"{msg[1]} est déjà banni.", cancellationToken: cancellationToken);
+                    if (!string.IsNullOrEmpty(reason))
+                    {
+                        config.BanReasons[userId] = reason;
+                        DataBase.SauvegarderUtilisateurs();
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {userId} était déjà banni. Raison mise à jour : {reason}", cancellationToken: cancellationToken);
+                    }
+                    else
+                    {
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"{userId} est déjà banni.", cancellationToken: cancellationToken);
+                    }
                     return;
                 }
 
                 config.BanniUser.Add(msg[1]);
-                long userId = long.Parse(msg[1]);
+                if (!string.IsNullOrEmpty(reason))
+                {
+                    config.BanReasons[userId] = reason;
+                }
+                else
+                {
+                    config.BanReasons.Remove(userId);
+                }
+
                 int idx = config.UserSave.FindIndex(u => u.Item1 == userId);
                 if (idx != -1)
                 {
@@ -293,10 +312,14 @@ namespace ChezRheyyBot
                 }
                 DataBase.SauvegarderUtilisateurs();
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {msg[1]} a bien été banni.", cancellationToken: cancellationToken);
+                string responseMsg = string.IsNullOrEmpty(reason)
+                    ? $"L'ID {userId} a bien été banni."
+                    : $"L'ID {userId} a bien été banni.\nRaison : {reason}";
+
+                await botClient.SendTextMessageAsync(config.CurrentChatId, responseMsg, cancellationToken: cancellationToken);
                 foreach (var id in config.idAdmins)
                 {
-                    await botClient.SendTextMessageAsync(id, $"BAN USER: {msg[1]}", cancellationToken: cancellationToken);
+                    await botClient.SendTextMessageAsync(id, $"BAN USER: {userId}\nRaison: {(string.IsNullOrEmpty(reason) ? "Aucune" : reason)}", cancellationToken: cancellationToken);
                 }
             }
             catch { }
@@ -307,7 +330,7 @@ namespace ChezRheyyBot
             try
             {
                 var msg = update.Message.Text.Split(' ');
-                if (msg.Length != 2)
+                if (msg.Length != 2 || !long.TryParse(msg[1], out long userId))
                 {
                     await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /deban <id>", cancellationToken: cancellationToken);
                     return;
@@ -317,8 +340,8 @@ namespace ChezRheyyBot
                 {
                     config.BanniUser.Remove(msg[1]);
                 }
+                config.BanReasons.Remove(userId);
 
-                long userId = long.Parse(msg[1]);
                 int idx = config.UserSave.FindIndex(u => u.Item1 == userId);
                 if (idx != -1)
                 {
@@ -351,7 +374,10 @@ namespace ChezRheyyBot
                     }
 
                     var ancienTuple = config.UserSave[result];
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Info de {msg[1]}\n\nAchat: {ancienTuple.Item2}\nSolde: {ancienTuple.Item3}€\nBanni: {ancienTuple.Item4}", cancellationToken: cancellationToken);
+                    string banReason = config.BanReasons.TryGetValue(userId, out var r) ? r : "";
+                    string reasonLine = ancienTuple.Item4 ? $"\nRaison ban: {(string.IsNullOrEmpty(banReason) ? "Aucune spécifiée" : banReason)}" : "";
+
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Info de {msg[1]}\n\nAchat: {ancienTuple.Item2}\nSolde: {ancienTuple.Item3}€\nBanni: {ancienTuple.Item4}{reasonLine}", cancellationToken: cancellationToken);
                 }
             }
             catch { }

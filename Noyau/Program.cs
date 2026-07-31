@@ -73,7 +73,9 @@ class Program
 
             if (config.BanniUser.Contains(config.CurrentChatId))
             {
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Vous avez été banni de @ChezRheyyBot, en cas de besoin contactez un administrateur.");
+                long.TryParse(config.CurrentChatId, out long bId);
+                string reasonText = config.BanReasons.TryGetValue(bId, out string? r) && !string.IsNullOrEmpty(r) ? $"\nRaison : {r}" : "";
+                await botClient.SendTextMessageAsync(config.CurrentChatId, $"Vous avez été banni de @ChezRheyyBot.{reasonText}\nEn cas de besoin contactez un administrateur.");
                 return;
             }
 
