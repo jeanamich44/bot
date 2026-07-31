@@ -18,4 +18,10 @@
     <PackageReference Include="ZXing.Net" Version="0.16.10" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Administration\Web\**\*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

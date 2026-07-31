@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChezRheyy Bot - Administration Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="login-view" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">⚡</div>
+                <h1 class="login-title">ChezRheyy Admin</h1>
+                <p class="login-subtitle">Connectez-vous pour accéder au panel</p>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label class="form-label" for="token-input">Clé Secrète / Mot de Passe Admin</label>
+                    <input type="password" id="token-input" class="form-input" placeholder="••••••••••••" required>
+                </div>
+                <button type="submit" class="btn-primary">Connexion au Panel</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-view" class="app-layout" style="display: none;">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="login-logo" style="width: 38px; height: 38px; font-size: 18px; margin: 0;">⚡</div>
+                <span class="sidebar-brand">ChezRheyy Admin</span>
+            </div>
+            <nav class="nav-menu">
+                <a class="nav-item active" data-tab="dashboard">
+                    <span>📊</span> Vue d'Ensemble
+                </a>
+                <a class="nav-item" data-tab="users">
+                    <span>👥</span> Utilisateurs
+                </a>
+                <a class="nav-item" data-tab="stock">
+                    <span>🛒</span> Gestion du Stock
+                </a>
+                <a class="nav-item" data-tab="transactions">
+                    <span>📜</span> Historique Achats
+                </a>
+                <a class="nav-item" data-tab="settings">
+                    <span>⚙️</span> Configuration
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logout-btn" class="btn-logout">
+                    <span>🚪</span> Déconnexion
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="header-bar">
+                <div>
+                    <h1 class="page-title" id="page-title-heading">Vue d'Ensemble</h1>
+                    <p class="page-subtitle">Gestion en temps réel de votre bot Telegram</p>
+                </div>
+            </header>
+
+            <div id="tab-dashboard" class="tab-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;">💶</div>
+                        <div>
+                            <div class="stat-val" id="stat-total-ca">0.00 €</div>
+                            <div class="stat-lbl">Chiffre d'Affaires Total</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">🛒</div>
+                        <div>
+                            <div class="stat-val" id="stat-total-sales">0</div>
+                            <div class="stat-lbl">Ventes Réalisées</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">👥</div>
+                        <div>
+                            <div class="stat-val" id="stat-total-users">0</div>
+                            <div class="stat-lbl">Utilisateurs Enregistrés</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">📦</div>
+                        <div>
+                            <div class="stat-val" id="stat-total-stock">0</div>
+                            <div class="stat-lbl">Cartes en Stock</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-panel">
+                    <div class="card-panel-header">
+                        <h2 class="card-panel-title">Dernières Ventes Enregistrées</h2>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID Transaction</th>
+                                    <th>ID Telegram</th>
+                                    <th>Produit</th>
+                                    <th>Prix</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-sales-table">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-users" class="tab-content" style="display: none;">
+                <div class="card-panel">
+                    <div class="card-panel-header">
+                        <h2 class="card-panel-title">Liste des Utilisateurs</h2>
+                        <input type="text" id="user-search-input" class="form-input" placeholder="Rechercher ID..." style="width: 220px;">
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID Telegram</th>
+                                    <th>Solde</th>
+                                    <th>Commandes</th>
+                                    <th>Statut</th>
+                                    <th>Raison Ban</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-stock" class="tab-content" style="display: none;">
+                <div class="card-panel">
+                    <div class="card-panel-header">
+                        <h2 class="card-panel-title">Ajouter du Stock (Carrefour)</h2>
+                    </div>
+                    <form id="add-stock-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; align-items: end;">
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label">Code Carte</label>
+                            <input type="text" id="stock-code-input" class="form-input" placeholder="Ex: 987654321" required>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label">Solde Carte (€)</label>
+                            <input type="number" id="stock-value-input" class="form-input" placeholder="Ex: 20" required>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label">Prix de vente (€)</label>
+                            <input type="number" step="0.1" id="stock-price-input" class="form-input" placeholder="Ex: 10" required>
+                        </div>
+                        <button type="submit" class="btn-primary" style="height: 44px;">+ Ajouter au Stock</button>
+                    </form>
+                </div>
+
+                <div class="card-panel">
+                    <div class="card-panel-header">
+                        <h2 class="card-panel-title">Stock Disponible</h2>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID Stock</th>
+                                    <th>Code</th>
+                                    <th>Solde Carte</th>
+                                    <th>Prix Vente</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stock-table">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-transactions" class="tab-content" style="display: none;">
+                <div class="card-panel">
+                    <div class="card-panel-header">
+                        <h2 class="card-panel-title">Historique Complet des Achats</h2>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ID Telegram</th>
+                                    <th>Marque</th>
+                                    <th>Code / Info</th>
+                                    <th>Valeur</th>
+                                    <th>Prix</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-transactions-table">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-settings" class="tab-content" style="display: none;">
+                <div class="card-panel">
+                    <div class="card-panel-header">
+                        <h2 class="card-panel-title">Tarifs IPTV & Configs</h2>
+                    </div>
+                    <form id="settings-iptv-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Prix 1 Mois (€)</label>
+                            <input type="number" id="setting-iptv-1m" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Prix 3 Mois (€)</label>
+                            <input type="number" id="setting-iptv-3m" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Prix 6 Mois (€)</label>
+                            <input type="number" id="setting-iptv-6m" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Prix 12 Mois (€)</label>
+                            <input type="number" id="setting-iptv-12m" class="form-input" required>
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <button type="submit" class="btn-primary" style="width: auto; padding: 12px 28px;">Enregistrer les Tarifs</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="custom-modal-backdrop" class="modal-backdrop">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modal-title" class="modal-title">Action</h3>
+                <button id="modal-close-btn" class="modal-close">&times;</button>
+            </div>
+            <div id="modal-body-content">
+            </div>
+            <div class="modal-actions">
+                <button id="modal-cancel-btn" class="action-btn">Annuler</button>
+                <button id="modal-confirm-btn" class="btn-primary" style="width: auto; padding: 8px 18px;">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

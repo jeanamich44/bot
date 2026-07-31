@@ -740,7 +740,7 @@ namespace ChezRheyyBot
                 try
                 {
                     HttpListenerContext context = await listener.GetContextAsync();
-                    _ = Task.Run(() => TraiterRequeteWebhook(context, botClient, cancellationToken), cancellationToken);
+                    _ = Task.Run(() => TraiterRequeteWebhookPublique(context, botClient, cancellationToken), cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -756,7 +756,7 @@ namespace ChezRheyyBot
             }
         }
 
-        private static async Task TraiterRequeteWebhook(HttpListenerContext context, ITelegramBotClient botClient, CancellationToken cancellationToken)
+        public static async Task TraiterRequeteWebhookPublique(HttpListenerContext context, ITelegramBotClient botClient, CancellationToken cancellationToken)
         {
             try
             {
