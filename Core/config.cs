@@ -5,13 +5,13 @@ namespace ChezRheyyBot
     internal class config
     {
         public readonly static string apiUrl = "https://api.oxapay.com/v1/payment/invoice";
-        public readonly static string apiKey = Environment.GetEnvironmentVariable("OXAPAY_API_KEY") ?? throw new InvalidOperationException("Variable d'environnement OXAPAY_API_KEY manquante.");
+        public static string apiKey => Environment.GetEnvironmentVariable("OXAPAY_API_KEY") ?? throw new InvalidOperationException("Variable d'environnement OXAPAY_API_KEY manquante.");
 
         public static Dictionary<string, string> PayementLink = new Dictionary<string, string>();
         public static List<string> IdPaiement = new List<string>();
         public static List<string> CustomPaiement = new List<string>();
 
-        public static readonly string botToken = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN") ?? throw new InvalidOperationException("Variable d'environnement TELEGRAM_BOT_TOKEN manquante.");
+        public static string botToken => Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN") ?? throw new InvalidOperationException("Variable d'environnement TELEGRAM_BOT_TOKEN manquante.");
 
         public static List<Tuple<long, int, double, bool>> UserSave = new List<Tuple<long, int, double, bool>>();
         public static string debugMode = "run";
