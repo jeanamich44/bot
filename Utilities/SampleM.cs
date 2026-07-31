@@ -30,9 +30,7 @@ namespace ChezRheyyBot
                 };
 
                 var inlineKeyboard = new InlineKeyboardMarkup(keyboardButtons);
-                string valeur = "";
-               
-                await botClient.SendPhotoAsync(config.CurrentChatId, photoUrl, caption: $"<strong>Bienvenue sur @ChezRheyy Bot</strong>\n\n🆔 <code>{config.CurrentChatId}</code>\n💰 {ancienTuple.Item3}€\n🏷️ {valeur}", parseMode: ParseMode.Html, replyMarkup: inlineKeyboard);
+                await botClient.SendPhotoAsync(config.CurrentChatId, photoUrl, caption: $"<strong>Bienvenue sur @ChezRheyy Bot</strong>\n\n🆔 <code>{config.CurrentChatId}</code>\n💰 {ancienTuple.Item3}€", parseMode: ParseMode.Html, replyMarkup: inlineKeyboard);
                 return;
             }
             catch
@@ -59,9 +57,7 @@ namespace ChezRheyyBot
                 };
 
                 var inlineKeyboard = new InlineKeyboardMarkup(keyboardButtons);
-                string valeur = "";
-                
-                await botClient.SendPhotoAsync(config.CurrentChatId, photoUrl, caption: $"<strong>Bienvenue sur @ChezRheyy Bot</strong>\n\n🆔 <code>{config.CurrentChatId}</code>\n💰 {ancienTuple.Item3}€\n 🏷️ {valeur}", parseMode: ParseMode.Html, replyMarkup: inlineKeyboard);
+                await botClient.SendPhotoAsync(config.CurrentChatId, photoUrl, caption: $"<strong>Bienvenue sur @ChezRheyy Bot</strong>\n\n🆔 <code>{config.CurrentChatId}</code>\n💰 {ancienTuple.Item3}€", parseMode: ParseMode.Html, replyMarkup: inlineKeyboard);
                 return;
             }
         }

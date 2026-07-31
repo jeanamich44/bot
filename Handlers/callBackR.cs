@@ -336,7 +336,6 @@ namespace ChezRheyyBot
                     replyMarkup: keyboard
                 );
 
-                //await botClient.SendTextMessageAsync(config.CurrentChatId, "Stock de Quick", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                 return;
 
             }
@@ -457,7 +456,6 @@ namespace ChezRheyyBot
                     replyMarkup: keyboard
                 );
 
-                //await botClient.SendTextMessageAsync(config.CurrentChatId, "Stock de Quick", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                 return;
 
             }
@@ -572,7 +570,6 @@ namespace ChezRheyyBot
                     replyMarkup: keyboard
                 );
 
-                //await botClient.SendTextMessageAsync(config.CurrentChatId, "Stock de Quick", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                 return;
 
             }
@@ -724,7 +721,6 @@ namespace ChezRheyyBot
                     replyMarkup: keyboard
                 );
 
-                //await botClient.SendTextMessageAsync(config.CurrentChatId, "Stock de Quick", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                 return;
 
             }
