@@ -82,16 +82,11 @@ namespace ChezRheyyBot
                 DELETE FROM stock WHERE LOWER(Brand) IN ('flunch', 'quick');
                 DROP TABLE IF EXISTS bans;
                 DROP TABLE IF EXISTS parrainage;
+                DROP TABLE IF EXISTS profile;
                 CREATE TABLE IF NOT EXISTS settings (
                     Key TEXT PRIMARY KEY,
                     Value JSONB
                 );
-                CREATE TABLE IF NOT EXISTS profile (
-                    Key TEXT PRIMARY KEY,
-                    Value TEXT
-                );
-                INSERT INTO settings (Key, Value)
-                SELECT Key, Value::jsonb FROM profile ON CONFLICT (Key) DO NOTHING;
 
                 CREATE TABLE IF NOT EXISTS transactions (
                     Id SERIAL PRIMARY KEY,
