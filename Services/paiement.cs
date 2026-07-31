@@ -677,11 +677,14 @@ namespace ChezRheyyBot
 
             DataBase.SauvegarderUtilisateurs();
 
+            string urlPaiement = DataBase.ObtenirUrlPaiementBDD(trackId);
+            string texteLien = string.IsNullOrEmpty(urlPaiement) ? "" : $"\nLien: {urlPaiement}";
+
             foreach (var idAdmin in config.idAdmins)
             {
                 try
                 {
-                    await botClient.SendTextMessageAsync(idAdmin, $"<b>[{sourceLabel}]</b>\nUser ID: <code>{chatId}</code>\nMontant: <b>{montantSumUp}€</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                    await botClient.SendTextMessageAsync(idAdmin, $"<b>[{sourceLabel}]</b>\nUser ID: <code>{chatId}</code>\nMontant: <b>{montantSumUp}€</b>{texteLien}", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                 }
                 catch { }
             }

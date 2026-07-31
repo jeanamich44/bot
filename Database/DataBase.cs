@@ -654,6 +654,28 @@ namespace ChezRheyyBot
             }
         }
 
+        public static string ObtenirUrlPaiementBDD(string trackId)
+        {
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = "SELECT PaymentUrl FROM payments WHERE TrackId = @trackId";
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    {
+                        cmd.Parameters.AddWithValue("@trackId", trackId);
+                        var obj = cmd.ExecuteScalar();
+                        return obj != null ? obj.ToString() ?? "" : "";
+                    }
+                }
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
         public static bool AUnPaiementEnAttenteBDD(string chatId)
         {
             try
