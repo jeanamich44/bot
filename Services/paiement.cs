@@ -216,7 +216,6 @@ namespace ChezRheyyBot
                 var paymentUrl = data.GetProperty("payment_url").GetString() ?? "";
 
                 bool cree = DataBase.CreerPaiementEnBDD(chatId, trackId, priceValue, "CRYPTO", paymentUrl);
-                Console.WriteLine($"[Paiement Crypto BDD] Facture enregistrée en BDD ({cree}): TrackID={trackId}, ChatID={chatId}, Montant={priceValue}€");
 
                 try
                 {
@@ -515,7 +514,6 @@ namespace ChezRheyyBot
                 string payementlink = secondJson.RootElement.GetProperty("hosted_checkout_url").GetString() ?? "";
 
                 DataBase.CreerPaiementEnBDD(chatId, id, montant, "CB", payementlink);
-                Console.WriteLine($"[Paiement CB BDD] Facture enregistrée en BDD: TrackID={id}, ChatID={chatId}, Montant={montant}€");
 
                 foreach (var ids in config.idAdmins)
                 {
