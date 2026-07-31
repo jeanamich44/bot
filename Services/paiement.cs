@@ -22,7 +22,7 @@ namespace ChezRheyyBot
                 },
                 new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("₿ Paiement Cryptomonnaie", "iCustomP"),
+                    InlineKeyboardButton.WithCallbackData("₿ Paiement Crypto Monnaie", "iCustomP"),
                 },
                 new[]
                 {
@@ -89,7 +89,7 @@ namespace ChezRheyyBot
                 }
             });
 
-            await botClient.SendTextMessageAsync(chatId, "<b>₿ PAIEMENT CRYPTOMONNAIE</b>\n\nSélectionnez un montant rapide ou saisissez le montant de votre choix :", replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, "<b>₿ PAIEMENT CRYPTO MONNAIE</b>\n\nSélectionnez un montant rapide ou saisissez le montant de votre choix :", replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
         }
 
         public static async Task ActiverSaisieCustom(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -228,7 +228,7 @@ namespace ChezRheyyBot
                 {
                     try
                     {
-                        await botClient.SendTextMessageAsync(id, $"*Paiement Cryptomonnaie en cours*\n*User*: @{config.CurrentPseudo}\n*Montant*: {priceValue}€\n*Lien*:{paymentUrl}", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+                        await botClient.SendTextMessageAsync(id, $"*Paiement Crypto Monnaie en cours*\n*User*: @{config.CurrentPseudo}\n*Montant*: {priceValue}€\n*Lien*:{paymentUrl}", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
                     }
                     catch { }
                 }
