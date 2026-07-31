@@ -145,11 +145,7 @@ namespace ChezRheyyBot
                     await achat.DemandeAchat("", botClient, update, cancellationToken);
                     return;
                 }
-                else if (update.CallbackQuery.Data.Contains("iProfile"))
-                {
-                    await profile.AfficherProfile(botClient, update, cancellationToken);
-                    return;
-                }
+
                 else if (update.CallbackQuery.Data.Contains("iCustomP"))
                 {
                     if (config.banAPI.Contains(config.CurrentChatId))

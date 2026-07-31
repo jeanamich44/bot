@@ -25,8 +25,7 @@ namespace ChezRheyyBot
                     },
                     new List<InlineKeyboardButton>
                     {
-                        InlineKeyboardButton.WithCallbackData("💳 Paiement", "iPaiement"),
-                        InlineKeyboardButton.WithCallbackData("👤 Profil", "iProfile")
+                        InlineKeyboardButton.WithCallbackData("💳 Paiement", "iPaiement")
                     }
                 };
 
@@ -53,8 +52,7 @@ namespace ChezRheyyBot
                     },
                     new List<InlineKeyboardButton>
                     {
-                        InlineKeyboardButton.WithCallbackData("💳 Paiement", "iPaiement"),
-                        InlineKeyboardButton.WithCallbackData("👤 Profil", "iProfile")
+                        InlineKeyboardButton.WithCallbackData("💳 Paiement", "iPaiement")
                     }
                 };
 
