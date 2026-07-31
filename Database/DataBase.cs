@@ -84,14 +84,14 @@ namespace ChezRheyyBot
                 DROP TABLE IF EXISTS parrainage;
                 CREATE TABLE IF NOT EXISTS settings (
                     Key TEXT PRIMARY KEY,
-                    Value TEXT
+                    Value JSONB
                 );
                 CREATE TABLE IF NOT EXISTS profile (
                     Key TEXT PRIMARY KEY,
                     Value TEXT
                 );
                 INSERT INTO settings (Key, Value)
-                SELECT Key, Value FROM profile ON CONFLICT (Key) DO NOTHING;
+                SELECT Key, Value::jsonb FROM profile ON CONFLICT (Key) DO NOTHING;
 
                 CREATE TABLE IF NOT EXISTS transactions (
                     Id SERIAL PRIMARY KEY,
@@ -510,7 +510,7 @@ namespace ChezRheyyBot
                         string jsonValue = JsonSerializer.Serialize(cat.Value);
                         string requete = @"
                         INSERT INTO settings (Key, Value)
-                        VALUES (@k, @v)
+                        VALUES (@k, @v::jsonb)
                         ON CONFLICT (Key) DO UPDATE SET Value = EXCLUDED.Value;";
 
                         using (var cmd = new NpgsqlCommand(requete, connexion))
