@@ -7,7 +7,37 @@ namespace ChezRheyyBot
 {
     internal class admin
     {
-        public static List<string> command = new List<string>() { "/addMoney", "/removeMoney", "/ban", "/deban", "/message", "/info", "/stock", "/commandes", "/help", "/crypto", "/unlock", "/stat" };
+        public static List<string> command = new List<string>()
+        {
+            "/addMoney",
+            "/removeMoney",
+            "/ban",
+            "/deban",
+            "/unlock",
+            "/stat",
+            "/stock",
+            "/commandes",
+            "/info",
+            "/crypto",
+            "/message",
+            "/help"
+        };
+
+        private static readonly Dictionary<string, (string description, string exemple, string usage)> HelpDetails = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "addmoney", ("Ajoute du solde en euros à un utilisateur Telegram.", "/addMoney 123456789 25", "/addMoney <id> <montant>") },
+            { "removemoney", ("Retire du solde en euros à un utilisateur.", "/removeMoney 123456789 10", "/removeMoney <id> <montant>") },
+            { "ban", ("Bannit un utilisateur. L'empêche d'utiliser le bot.", "/ban 123456789", "/ban <id>") },
+            { "deban", ("Débannit un utilisateur préalablement banni.", "/deban 123456789", "/deban <id>") },
+            { "unlock", ("Débloque la génération de liens de paiement pour un utilisateur restreint.", "/unlock 123456789", "/unlock <id>") },
+            { "stat", ("Affiche les statistiques globales des ventes et le CA par marque depuis la BDD.", "/stat", "/stat") },
+            { "stock", ("Affiche la quantité de stock actuellement disponible pour Carrefour.", "/stock", "/stock") },
+            { "commandes", ("Recherche l'historique des achats par ID utilisateur, nom de marque ou code carte.", "/commandes 123456789", "/commandes <id|marque|code>") },
+            { "info", ("Affiche les informations d'un utilisateur (solde, nombre d'achats, statut banni).", "/info 123456789", "/info <id>") },
+            { "crypto", ("Interroge l'API OxaPay pour connaître le statut en direct d'une transaction.", "/crypto track_123456", "/crypto <trackId>") },
+            { "message", ("Envoie un message de diffusion (broadcast) à tous les utilisateurs du bot.", "/message - Bonjour à tous !", "/message - <texte>") },
+            { "help", ("Affiche l'aide des commandes administration.", "/help ou /help stock ou /help all", "/help [commande|all]") }
+        };
 
         public static async Task<bool> CommandeAdmin(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
@@ -387,8 +417,58 @@ namespace ChezRheyyBot
         {
             try
             {
-                var commandmsg = string.Join("\n", command);
-                await botClient.SendTextMessageAsync(config.CurrentChatId, $"*Listes des commandes*\n{commandmsg}", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown, cancellationToken: cancellationToken);
+                var parts = update.Message.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (parts.Length == 1)
+                {
+                    var sb = new StringBuilder();
+                    sb.AppendLine("📋 *Commandes Administrateur* (par ordre d'importance) :\n");
+                    foreach (var cmd in command)
+                    {
+                        sb.AppendLine($"• `{cmd}`");
+                    }
+                    sb.AppendLine("\n💡 _Tapez `/help <commande>` pour voir la description et l'exemple (ex: `/help stock`)._");
+                    sb.AppendLine("💡 _Tapez `/help all` pour afficher le manuel complet._");
+
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown, cancellationToken: cancellationToken);
+                    return;
+                }
+
+                string arg = parts[1].Trim().TrimStart('/').ToLower();
+
+                if (arg == "all")
+                {
+                    var sb = new StringBuilder();
+                    sb.AppendLine("📖 *Manuel Complet des Commandes Administrateur*\n");
+                    foreach (var cmdKey in command)
+                    {
+                        string key = cmdKey.TrimStart('/').ToLower();
+                        if (HelpDetails.TryGetValue(key, out var info))
+                        {
+                            sb.AppendLine($"🔹 *{cmdKey}*");
+                            sb.AppendLine($"• *Description* : {info.description}");
+                            sb.AppendLine($"• *Usage* : `{info.usage}`");
+                            sb.AppendLine($"• *Exemple* : `{info.exemple}`\n");
+                        }
+                    }
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown, cancellationToken: cancellationToken);
+                    return;
+                }
+
+                if (HelpDetails.TryGetValue(arg, out var details))
+                {
+                    var sb = new StringBuilder();
+                    sb.AppendLine($"ℹ️ *Aide pour la commande `/{arg}`*\n");
+                    sb.AppendLine($"• *Description* : {details.description}");
+                    sb.AppendLine($"• *Usage* : `{details.usage}`");
+                    sb.AppendLine($"• *Exemple* : `{details.exemple}`");
+
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown, cancellationToken: cancellationToken);
+                }
+                else
+                {
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"❌ Commande `/{arg}` inconnue. Tapez `/help` pour la liste des commandes.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown, cancellationToken: cancellationToken);
+                }
             }
             catch { }
         }
