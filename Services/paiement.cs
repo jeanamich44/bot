@@ -18,7 +18,7 @@ namespace ChezRheyyBot
             {
                 new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("💳 Paiement Carte Bancaire", "iCustomCB")
+                    InlineKeyboardButton.WithCallbackData("💳 Paiement Carte / Apple Pay", "iCustomCB")
                 },
                 new[]
                 {
@@ -31,9 +31,8 @@ namespace ChezRheyyBot
             });
 
             string text = "<b>💳 RECHARGEMENT DU SOLDE</b>\n\n" +
-                          "Choisissez votre mode de paiement sécurisé ci-dessous :\n" +
-                          "• <b>Cryptomonnaie</b> (Validation rapide, 30 min)\n" +
-                          "• <b>Carte Bancaire</b> (Validation instantanée)\n";
+                          "• <b>Crypto Monnaie</b> (Validation rapide)\n" +
+                          "• <b>Carte / Apple Pay</b> (Validation instantanée)\n";
 
             try
             {
@@ -529,12 +528,12 @@ namespace ChezRheyyBot
 
                 var cbKeyboard = new InlineKeyboardMarkup(new[]
                 {
-                    new[] { InlineKeyboardButton.WithUrl($"💳 Payer par Carte Bancaire ({montant} €)", payementlink) },
+                    new[] { InlineKeyboardButton.WithUrl($"💳 Payer par Carte / Apple Pay ({montant} €)", payementlink) },
                     new[] { InlineKeyboardButton.WithCallbackData("❌ Annuler ma facture", "iCancelPaiement") },
                     new[] { InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome") }
                 });
 
-                await botClient.SendTextMessageAsync(chatId, $"<b>💳 FACTURE CARTE BANCAIRE GÉNÉRÉE</b>\n\nMontant : <b>{montant} €</b>\n\nCliquez ci-dessous pour procéder au paiement sécurisé :", replyMarkup: cbKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                await botClient.SendTextMessageAsync(chatId, $"<b>💳 FACTURE CARTE / APPLE PAY GÉNÉRÉE</b>\n\nMontant : <b>{montant} €</b>\n\nCliquez ci-dessous pour procéder au paiement sécurisé :", replyMarkup: cbKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
             }
             catch (Exception ex)
             {
@@ -594,7 +593,7 @@ namespace ChezRheyyBot
 
                                 try
                                 {
-                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), "❌ <b>PAIEMENT ÉCHOUÉ</b>\n\nVotre transaction par Carte Bancaire a été refusée par la banque.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), "❌ <b>PAIEMENT ÉCHOUÉ</b>\n\nVotre transaction par Carte / Apple Pay a été refusée par la banque.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                                 }
                                 catch { }
                             }
@@ -605,7 +604,7 @@ namespace ChezRheyyBot
 
                                 try
                                 {
-                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), "❌ <b>FACTURE ANNULÉE</b>\n\nLa facture par Carte Bancaire a été annulée.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), "❌ <b>FACTURE ANNULÉE</b>\n\nLa facture par Carte / Apple Pay a été annulée.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                                 }
                                 catch { }
                             }
@@ -693,7 +692,7 @@ namespace ChezRheyyBot
                 {
                     new[] { InlineKeyboardButton.WithCallbackData("🏠 Retour au menu principal", "iHome") }
                 });
-                await botClient.SendTextMessageAsync(long.Parse(chatId), $"✅ <b>PAIEMENT CARTE BANCAIRE REÇU</b>\n\nVotre compte a été crédité de <b>{montantSumUp} €</b> !\n💰 <b>Nouveau solde : {nouveauSoldeTotal} €</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: homeKb);
+                await botClient.SendTextMessageAsync(long.Parse(chatId), $"✅ <b>PAIEMENT CARTE / APPLE PAY REÇU</b>\n\nVotre compte a été crédité de <b>{montantSumUp} €</b> !\n💰 <b>Nouveau solde : {nouveauSoldeTotal} €</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: homeKb);
             }
             catch { }
 
