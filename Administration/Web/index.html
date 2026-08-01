@@ -158,11 +158,11 @@
                                 <div class="stat-icon" style="background: rgba(0, 136, 204, 0.15); color: #0088cc;">📥</div>
                                 <div style="flex: 1;">
                                     <div class="stat-val" id="metric-tg-rec" style="font-size: 24px;">0</div>
-                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Messages & Clics Reçus</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Requêtes Telegram Entrantes</div>
                                 </div>
                             </div>
                             <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
-                                Total des messages, commandes et clics sur boutons envoyés par les utilisateurs au bot.
+                                Total des requêtes HTTP et webhooks Telegram reçus par l'application.
                             </p>
                         </div>
 
@@ -171,11 +171,11 @@
                                 <div class="stat-icon" style="background: rgba(0, 136, 204, 0.15); color: #0088cc;">📤</div>
                                 <div style="flex: 1;">
                                     <div class="stat-val" id="metric-tg-sent" style="font-size: 24px;">0</div>
-                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Messages & Réponses Envoyés</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Requêtes Telegram Sortantes</div>
                                 </div>
                             </div>
                             <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
-                                Total des réponses, visuels, menus et notifications renvoyés par le bot aux utilisateurs.
+                                Total des requêtes HTTP et réponses API envoyées par le bot vers les serveurs Telegram.
                             </p>
                         </div>
 
@@ -184,11 +184,11 @@
                                 <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">⚙️</div>
                                 <div style="flex: 1;">
                                     <div class="stat-val" id="metric-commands-exec" style="font-size: 24px;">0</div>
-                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Commandes Traitées</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Requêtes & Processus Traités</div>
                                 </div>
                             </div>
                             <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
-                                Nombre d'actions utilisateur traitées (ex: /start, sélection de produit, rechargement).
+                                Total des requêtes de commandes, opérations métier et processus internes exécutés.
                             </p>
                         </div>
                     </div>
@@ -205,11 +205,11 @@
                                 <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">💳</div>
                                 <div style="flex: 1;">
                                     <div class="stat-val" id="metric-sumup-rec" style="font-size: 24px;">0</div>
-                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Webhooks SumUp (CB)</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Requêtes Webhooks SumUp</div>
                                 </div>
                             </div>
                             <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
-                                Notifications de paiement Carte / Apple Pay envoyées en temps réel par SumUp.
+                                Total des requêtes HTTP de notifications de paiement envoyées par SumUp.
                             </p>
                         </div>
 
@@ -218,11 +218,11 @@
                                 <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">⚡</div>
                                 <div style="flex: 1;">
                                     <div class="stat-val" id="metric-sumup-sent" style="font-size: 24px;">0</div>
-                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Requêtes API SumUp</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Requêtes API SumUp (Sortantes)</div>
                                 </div>
                             </div>
                             <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
-                                Interrogations automatiques effectuées par le bot pour vérifier l'état des paiements par carte.
+                                Total des requêtes API d'interrogation et vérification transmises à SumUp.
                             </p>
                         </div>
 
@@ -235,7 +235,7 @@
                                 </div>
                             </div>
                             <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
-                                Interrogations automatiques auprès d'OxaPay pour valider les factures en Cryptomonnaie.
+                                Total des requêtes API d'interrogation et création de factures transmises à OxaPay.
                             </p>
                         </div>
                     </div>
@@ -252,11 +252,11 @@
                                 <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: #a855f7;">🔑</div>
                                 <div style="flex: 1;">
                                     <div class="stat-val" id="metric-admin-logins" style="font-size: 24px;">0</div>
-                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Connexions Admin Panel</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Requêtes d'Accès Admin</div>
                                 </div>
                             </div>
                             <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
-                                Nombre total d'accès réussis à cette interface web d'administration.
+                                Total des requêtes d'authentification et d'accès réussies au panel admin.
                             </p>
                         </div>
 
@@ -265,11 +265,11 @@
                                 <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">⚠️</div>
                                 <div style="flex: 1;">
                                     <div class="stat-val" id="metric-errors-count" style="font-size: 24px;">0</div>
-                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Erreurs Interceptées</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Requêtes & Processus en Erreur</div>
                                 </div>
                             </div>
                             <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
-                                Nombre d'erreurs attrapées de manière sécurisée sans interrompre l'exécution du bot.
+                                Total des requêtes et processus ayant levé une exception attrapée par le système.
                             </p>
                         </div>
                     </div>
