@@ -473,7 +473,8 @@ namespace ChezRheyyBot
                         if (tx.Brand?.Equals("iptv", StringComparison.OrdinalIgnoreCase) == true)
                         {
                             string duree = int.TryParse(tx.Code, out int m) ? $"{m} mois" : tx.Code;
-                            sb.AppendLine($"• {HtmlEncode(duree)} | <code>{tx.UserId}</code> | {tx.Price}€ | <i>{dateParis:dd/MM à HH:mm}</i>");
+                            string iptvUsername = !string.IsNullOrWhiteSpace(tx.Pin) ? tx.Pin : "N/A";
+                            sb.AppendLine($"• {HtmlEncode(duree)} | <code>{HtmlEncode(iptvUsername)}</code> | {tx.Price}€ | <i>{dateParis:dd/MM à HH:mm}</i>");
                         }
                         else if (tx.Value <= 0)
                         {
