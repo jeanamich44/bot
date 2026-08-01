@@ -230,6 +230,8 @@ class Program
 
 
 
+            config.IncCommandsExecuted();
+
             int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(config.CurrentChatId));
             if (result == -1)
             {
@@ -377,6 +379,7 @@ class Program
     {
         try
         {
+            config.IncErrorsCount();
             var errorMessage = exception switch
             {
                 ApiRequestException apiRequestException =>
