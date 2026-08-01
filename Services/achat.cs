@@ -72,7 +72,7 @@ namespace ChezRheyyBot
                         await EnregistrerLogsVendu(item.Code, item.Pin, item.Value, formattedPrice, config.CurrentChatId, item.Brand);
                         await AvertirAchat(botClient, update, cancellationToken, formattedPrice, item.Brand);
 
-                        bool okPhoto = await EnvoyerBarcodeDirect(fileName, chatid, botClient, update, cancellationToken, item.Code, item.Pin);
+                        bool okPhoto = await EnvoyerBarcodeDirect(fileName, chatid, botClient, update, cancellationToken, item.Code, item.Pin, item.Value);
                         if (!okPhoto)
                         {
                             var inlineKeyboard = new InlineKeyboardMarkup(new[]
@@ -82,8 +82,9 @@ namespace ChezRheyyBot
                                     InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome")
                                 }
                             });
+                            string valText = string.IsNullOrWhiteSpace(item.Value) ? "" : $"💰 Solde : <b>{item.Value}€</b>\n";
                             string pinText = string.IsNullOrWhiteSpace(item.Pin) ? "" : $"\n🔑 PIN : <code>{item.Pin}</code>";
-                            string caption = $"✅ <b>Merci pour votre achat !</b>\n\n💳 Carte Carrefour : <code>{item.Code}</code>{pinText}";
+                            string caption = $"✅ <b>Merci pour votre achat !</b>\n\n{valText}💳 Carte Carrefour : <code>{item.Code}</code>{pinText}";
 
                             await botClient.SendTextMessageAsync(
                                 chatId: chatid,
@@ -112,7 +113,7 @@ namespace ChezRheyyBot
             }
         }
 
-        private static async Task<bool> EnvoyerBarcodeDirect(string fileName, string clientId, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken, string carte = "", string pin = "")
+        private static async Task<bool> EnvoyerBarcodeDirect(string fileName, string clientId, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken, string carte = "", string pin = "", string val = "")
         {
             try
             {
@@ -129,8 +130,9 @@ namespace ChezRheyyBot
                     using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read))
                     {
                         var photo = new InputOnlineFile(stream, Path.GetFileName(fileName));
+                        string valText = string.IsNullOrWhiteSpace(val) ? "" : $"💰 Solde : <b>{val}€</b>\n";
                         string pinText = string.IsNullOrWhiteSpace(pin) ? "" : $"\n🔑 PIN : <code>{pin}</code>";
-                        string caption = $"✅ <b>Merci pour votre achat !</b>\n\n💳 Carte Carrefour : <code>{carte}</code>{pinText}";
+                        string caption = $"✅ <b>Merci pour votre achat !</b>\n\n{valText}💳 Carte Carrefour : <code>{carte}</code>{pinText}";
 
                         await botClient.SendPhotoAsync(
                             chatId: clientId,
