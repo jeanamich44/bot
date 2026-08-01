@@ -11,6 +11,7 @@ class Program
     private static CancellationTokenSource? _pollingCts;
     private static CancellationTokenSource? _sumupPollingCts;
     private static readonly object _modeLock = new object();
+    private static readonly object _idMessageLock = new object();
 
     static async Task Main(string[] args)
     {
@@ -47,7 +48,7 @@ class Program
         AppliquerModeSumUp(botClient, config.ModeSumUp);
         Task verifierTask = paiement.VerifierPaiement(botClient, cts.Token);
 
-        await Task.Delay(Timeout.Infinite, cancellationToken);
+        try { await Task.Delay(Timeout.Infinite, cancellationToken); } catch (OperationCanceledException) { }
 
         config.JsonWrite();
         config.SetProfileSettings();
@@ -182,13 +183,16 @@ class Program
                 return;
             }
 
-            if (!config.IdMessage.ContainsKey(config.CurrentChatId))
+            lock (_idMessageLock)
             {
-                config.IdMessage.Add(config.CurrentChatId, config.msgId);
-            }
-            else
-            {
-                config.IdMessage[config.CurrentChatId] = config.msgId;
+                if (!config.IdMessage.ContainsKey(config.CurrentChatId))
+                {
+                    config.IdMessage.Add(config.CurrentChatId, config.msgId);
+                }
+                else
+                {
+                    config.IdMessage[config.CurrentChatId] = config.msgId;
+                }
             }
 
 
@@ -292,6 +296,7 @@ class Program
 
                         Console.WriteLine($"[Paiement] Demande rechargement Crypto manuel: {mtn}€ par {config.CurrentChatId}");
                         await paiement.GenerateLink(botClient, update, cancellationToken, update.Message.Text);
+                        config.CustomPaiement.Remove(config.CurrentChatId);
                         return;
                     }
                     else if (update.Message.Text != "" && config.AttentePaiement.Contains(config.CurrentChatId))
@@ -362,7 +367,7 @@ class Program
             if (update.Type == UpdateType.CallbackQuery)
             {
                 config.CurrentChatId = update.CallbackQuery.From.Id.ToString();
-                config.msgId = update.CallbackQuery.Message.MessageId.ToString();
+                if (update.CallbackQuery?.Message != null) { config.msgId = update.CallbackQuery.Message.MessageId.ToString(); }
                 config.CurrentPseudo = update.CallbackQuery.From.Username;
                 return true;
             }

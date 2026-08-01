@@ -154,8 +154,8 @@ namespace ChezRheyyBot
                             commande.Parameters.AddWithValue("@brand", string.IsNullOrEmpty(item.Brand) ? "carr" : item.Brand);
                             commande.Parameters.AddWithValue("@code", item.Code ?? "");
                             commande.Parameters.AddWithValue("@pin", item.Pin ?? "");
-                            commande.Parameters.AddWithValue("@value", int.TryParse(item.Value, out int v) ? v : 0);
-                            commande.Parameters.AddWithValue("@price", double.TryParse(item.Price, out double p) ? p : 0.0);
+                            commande.Parameters.AddWithValue("@value", int.TryParse(item.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out int v) ? v : 0);
+                            commande.Parameters.AddWithValue("@price", double.TryParse(item.Price, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p) ? p : 0.0);
                             commande.ExecuteNonQuery();
                             count++;
                         }
@@ -173,7 +173,7 @@ namespace ChezRheyyBot
             using (var connexion = new NpgsqlConnection(GetConnectionString()))
             {
                 connexion.Open();
-                string requete = "SELECT Id, Value, Price FROM stock WHERE Brand = @brand";
+                string requete = "SELECT Id, Value, Price, Code, Pin FROM stock WHERE Brand = @brand";
 
                 using (var cmd = new NpgsqlCommand(requete, connexion))
                 {
@@ -186,7 +186,9 @@ namespace ChezRheyyBot
                             {
                                 Id = Convert.ToInt32(reader["Id"]),
                                 Value = reader["Value"].ToString(),
-                                Price = reader["Price"].ToString()
+                                Price = reader["Price"].ToString(),
+                                Code = reader["Code"]?.ToString(),
+                                Pin = reader["Pin"]?.ToString()
                             });
                         }
                     }
@@ -488,7 +490,7 @@ namespace ChezRheyyBot
             {
                 config.CategorySettings["iptv"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "api_key", "16b9b89931169d6a4fd534c10e24ebad" },
+                    { "api_key", Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "" },
                     { "api_url", "https://cms-4k.com/api/api.php" },
                     { "pack", "43551" },
                     { "type", "m3u" },
@@ -501,7 +503,7 @@ namespace ChezRheyyBot
             }
             else
             {
-                config.CategorySettings["iptv"]["api_key"] = "16b9b89931169d6a4fd534c10e24ebad";
+                config.CategorySettings["iptv"]["api_key"] = Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "";
                 config.CategorySettings["iptv"]["api_url"] = "https://cms-4k.com/api/api.php";
                 config.CategorySettings["iptv"]["pack"] = "43551";
                 config.CategorySettings["iptv"]["type"] = "m3u";
@@ -827,7 +829,9 @@ namespace ChezRheyyBot
                 }
                 catch
                 {
-                    return dateUtc.AddHours(2);
+                    int month = dateUtc.Month;
+                    bool isWinter = month <= 3 || month >= 11;
+                    return dateUtc.AddHours(isWinter ? 1 : 2);
                 }
             }
         }

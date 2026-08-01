@@ -52,6 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
         modalOnConfirmCallback = null;
     }
 
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     window.redirectToUser = (userId) => {
         window.switchTab('users');
         const searchInput = document.getElementById('user-search-input');
@@ -270,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>#${tx.id}</td>
                 <td style="cursor: pointer; color: var(--accent-primary);" onclick="window.redirectToUser('${tx.userId}')"><code>${tx.userId}</code></td>
-                <td>${tx.brand}</td>
+                <td>${escapeHtml(tx.brand)}</td>
                 <td><strong>${tx.price} €</strong></td>
                 <td>${formatParisDate(tx.createdAt)}</td>
             `;
@@ -301,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><strong>${user.solde.toFixed(2)} €</strong></td>
                 <td>${user.achats}</td>
                 <td>${statusBadge}</td>
-                <td>${user.banReason || '-'}</td>
+                <td>${user.banReason ? escapeHtml(user.banReason) : '-'}</td>
                 <td>
                     <button class="action-btn" onclick="btnEditSolde('${user.id}', ${user.solde})">💳 Solde</button>
                     ${user.isBanned 
@@ -488,8 +493,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>#${tx.id}</td>
                 <td style="cursor: pointer; color: var(--accent-primary);" onclick="window.redirectToUser('${tx.userId}')"><code>${tx.userId}</code></td>
-                <td>${tx.brand}</td>
-                <td><code>${tx.code}</code></td>
+                <td>${escapeHtml(tx.brand)}</td>
+                <td><code>${escapeHtml(tx.code)}</code></td>
                 <td>${tx.value} €</td>
                 <td><strong>${tx.price} €</strong></td>
                 <td>${formatParisDate(tx.createdAt)}</td>

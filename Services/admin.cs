@@ -141,7 +141,7 @@ namespace ChezRheyyBot
 
                 await botClient.SendTextMessageAsync(config.CurrentChatId, message.ToString(), cancellationToken: cancellationToken);
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Admin Erreur] {ex.Message}"); }
         }
 
         private static async Task SendMessageAll(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -153,11 +153,12 @@ namespace ChezRheyyBot
                 if (index != -1 && index + 1 < text.Length)
                 {
                     string contenu = text.Substring(index + 1).Trim();
-                    foreach (var item in config.UserSave)
+                    foreach (var item in config.UserSave.ToList())
                     {
                         try
                         {
                             await botClient.SendTextMessageAsync(item.Item1, contenu, cancellationToken: cancellationToken);
+                            await Task.Delay(35);
                         }
                         catch { }
                     }
@@ -168,7 +169,7 @@ namespace ChezRheyyBot
                     await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur format: /message - <votre message>", cancellationToken: cancellationToken);
                 }
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Admin Erreur] {ex.Message}"); }
         }
 
         private static async Task UnLockPaiement(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -189,7 +190,7 @@ namespace ChezRheyyBot
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Admin Erreur] {ex.Message}"); }
         }
 
         private static async Task AjouterArgent(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -197,7 +198,7 @@ namespace ChezRheyyBot
             try
             {
                 var msg = message.Split(' ');
-                if (msg.Length == 3 && long.TryParse(msg[1], out long userId) && double.TryParse(msg[2], out double mtn))
+                if (msg.Length == 3 && long.TryParse(msg[1], out long userId) && double.TryParse(msg[2], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double mtn))
                 {
                     int result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
                     if (result != -1)
@@ -233,7 +234,7 @@ namespace ChezRheyyBot
 
                 await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /addMoney <id> <montant>", cancellationToken: cancellationToken);
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Admin Erreur] {ex.Message}"); }
         }
 
         private static async Task RemoveMoney(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -241,7 +242,7 @@ namespace ChezRheyyBot
             try
             {
                 var msg = message.Split(' ');
-                if (msg.Length == 3 && long.TryParse(msg[1], out long userId) && double.TryParse(msg[2], out double mtn))
+                if (msg.Length == 3 && long.TryParse(msg[1], out long userId) && double.TryParse(msg[2], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double mtn))
                 {
                     int result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
                     if (result != -1)
@@ -270,7 +271,7 @@ namespace ChezRheyyBot
 
                 await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /removeMoney <id> <montant>", cancellationToken: cancellationToken);
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Admin Erreur] {ex.Message}"); }
         }
 
         private static async Task BanUser(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -333,7 +334,7 @@ namespace ChezRheyyBot
                     await botClient.SendTextMessageAsync(id, $"BAN USER: {userId}\nRaison: {(string.IsNullOrEmpty(reason) ? "Aucune" : reason)}", cancellationToken: cancellationToken);
                 }
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Admin Erreur] {ex.Message}"); }
         }
 
         private static async Task DebanUser(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -426,6 +427,7 @@ namespace ChezRheyyBot
                 var transactions = DataBase.ObtenirTransactions();
                 var sb = new StringBuilder();
 
+                int compteur = 0;
                 foreach (var tx in transactions)
                 {
                     bool codeMatch = !string.IsNullOrEmpty(tx.Code) && tx.Code.Contains(searchArg, StringComparison.OrdinalIgnoreCase);
@@ -434,6 +436,12 @@ namespace ChezRheyyBot
 
                     if (userMatch || codeMatch || brandMatch)
                     {
+                        compteur++;
+                        if (compteur > 20)
+                        {
+                            sb.AppendLine("... (Résultats tronqués, trop d'entrées)");
+                            break;
+                        }
                         DateTime dateParis = DataBase.ConvertirEnHeureParis(tx.CreatedAt);
                         sb.AppendLine($"Brand = {tx.Brand} | Carte = {tx.Code} | Solde = {tx.Value} | Prix = {tx.Price}€ | Date = {dateParis:dd/MM/yyyy HH:mm}");
                     }

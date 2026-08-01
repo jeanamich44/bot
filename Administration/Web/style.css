@@ -163,6 +163,7 @@ body {
     position: fixed;
     height: 100vh;
     z-index: 100;
+    overflow-y: auto;
 }
 
 .sidebar-header {
@@ -293,7 +294,7 @@ body {
 
 .stat-card-interactive:hover {
     transform: translateY(-4px) scale(1.02);
-    border-color: var(--accent);
+    border-color: var(--accent-primary);
     box-shadow: 0 10px 28px rgba(99, 102, 241, 0.22);
 }
 
@@ -568,7 +569,7 @@ tr:hover td {
         padding-bottom: 16px;
     }
 
-    .table-container {
+    .table-wrapper {
         overflow-x: auto;
     }
 

@@ -154,7 +154,7 @@ namespace ChezRheyyBot
                 var stock = DataBase.ObtenirStocksParBrand("carr");
                 int totalStock = stock.Count;
 
-                var recentSales = transactions.Take(10).Select(t => new
+                var recentSales = transactions.OrderByDescending(x => x.CreatedAt).Take(10).Select(t => new
                 {
                     id = t.Id,
                     userId = t.UserId,
@@ -163,7 +163,7 @@ namespace ChezRheyyBot
                     createdAt = DataBase.ConvertirEnHeureParis(t.CreatedAt).ToString("yyyy-MM-ddTHH:mm:ss")
                 }).ToList();
 
-                var recentPayments = allPayments.Take(10).Select(p => new
+                var recentPayments = allPayments.OrderByDescending(x => x.CreatedAt).Take(10).Select(p => new
                 {
                     id = p.Id,
                     chatId = p.ChatId,
@@ -287,7 +287,7 @@ namespace ChezRheyyBot
                 var stock = DataBase.ObtenirStocksParBrand("carr").Select(s => new
                 {
                     id = s.Id,
-                    code = s.Value,
+                    code = s.Code,
                     value = s.Value,
                     price = s.Price
                 }).ToList();
@@ -389,10 +389,10 @@ namespace ChezRheyyBot
                 using var doc = JsonDocument.Parse(bodyStr);
                 var root = doc.RootElement;
 
-                if (root.TryGetProperty("price_1m", out var p1)) config.SetSetting("iptv", "price_1m", p1.GetString() ?? "5");
-                if (root.TryGetProperty("price_3m", out var p3)) config.SetSetting("iptv", "price_3m", p3.GetString() ?? "10");
-                if (root.TryGetProperty("price_6m", out var p6)) config.SetSetting("iptv", "price_6m", p6.GetString() ?? "15");
-                if (root.TryGetProperty("price_12m", out var p12)) config.SetSetting("iptv", "price_12m", p12.GetString() ?? "30");
+                if (root.TryGetProperty("price_1m", out var p1)) config.SetSetting("iptv", "price_1m", p1.ValueKind == JsonValueKind.Number ? p1.GetRawText() : (p1.GetString() ?? "5"));
+                if (root.TryGetProperty("price_3m", out var p3)) config.SetSetting("iptv", "price_3m", p3.ValueKind == JsonValueKind.Number ? p3.GetRawText() : (p3.GetString() ?? "10"));
+                if (root.TryGetProperty("price_6m", out var p6)) config.SetSetting("iptv", "price_6m", p6.ValueKind == JsonValueKind.Number ? p6.GetRawText() : (p6.GetString() ?? "15"));
+                if (root.TryGetProperty("price_12m", out var p12)) config.SetSetting("iptv", "price_12m", p12.ValueKind == JsonValueKind.Number ? p12.GetRawText() : (p12.GetString() ?? "30"));
 
                 RepondreJson(response, 200, new { success = true });
             }
@@ -444,8 +444,14 @@ namespace ChezRheyyBot
             }
 
             string filePath = Path.Combine(baseDir, relativePath.TrimStart('/'));
+            string fullPath = Path.GetFullPath(filePath);
+            if (!fullPath.StartsWith(Path.GetFullPath(baseDir)))
+            {
+                RepondreJson(response, 403, new { error = "Accès interdit" });
+                return;
+            }
 
-            if (!File.Exists(filePath))
+            if (!File.Exists(fullPath))
             {
                 response.StatusCode = 404;
                 response.Close();
@@ -453,12 +459,17 @@ namespace ChezRheyyBot
             }
 
             string contentType = "text/html";
-            if (filePath.EndsWith(".css")) contentType = "text/css";
-            else if (filePath.EndsWith(".js")) contentType = "application/javascript";
-            else if (filePath.EndsWith(".png")) contentType = "image/png";
-            else if (filePath.EndsWith(".ico")) contentType = "image/x-icon";
+            if (fullPath.EndsWith(".css")) contentType = "text/css";
+            else if (fullPath.EndsWith(".js")) contentType = "application/javascript";
+            else if (fullPath.EndsWith(".png")) contentType = "image/png";
+            else if (fullPath.EndsWith(".ico")) contentType = "image/x-icon";
+            else if (fullPath.EndsWith(".svg")) contentType = "image/svg+xml";
+            else if (fullPath.EndsWith(".jpg") || fullPath.EndsWith(".jpeg")) contentType = "image/jpeg";
+            else if (fullPath.EndsWith(".json")) contentType = "application/json";
+            else if (fullPath.EndsWith(".woff2")) contentType = "font/woff2";
+            else if (fullPath.EndsWith(".woff")) contentType = "font/woff";
 
-            byte[] bytes = await File.ReadAllBytesAsync(filePath);
+            byte[] bytes = await File.ReadAllBytesAsync(fullPath);
             response.ContentType = contentType;
             response.ContentLength64 = bytes.Length;
             await response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
