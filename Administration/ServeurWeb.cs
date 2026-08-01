@@ -192,6 +192,24 @@ namespace ChezRheyyBot
                 bool maintenance = config.ModeMaintenance;
                 RepondreJson(response, 200, new { totalCa, totalRecharges, totalVentes, totalSales, totalUsers, totalStock, maintenance, recentSales, recentPayments, metrics });
             }
+            else if (path == "/api/admin/metrics/reset" && request.HttpMethod == "POST")
+            {
+                lock (config.SettingsLock)
+                {
+                    config.MetricTelegramReceived = 0;
+                    config.MetricTelegramSent = 0;
+                    config.MetricSumUpReceived = 0;
+                    config.MetricSumUpSent = 0;
+                    config.MetricOxaPayReceived = 0;
+                    config.MetricOxaPaySent = 0;
+                    config.MetricCommandsExecuted = 0;
+                    config.MetricErrorsCount = 0;
+                    config.MetricAdminLogins = 0;
+                    config.PersisterMetricsInSettings();
+                }
+                DataBase.SauvegarderSettings();
+                RepondreJson(response, 200, new { success = true, message = "Compteurs réinitialisés avec succès" });
+            }
             else if (path == "/api/admin/payments" && request.HttpMethod == "GET")
             {
                 var payments = DataBase.ObtenirTousLesPaiementsBDD().Select(p => new

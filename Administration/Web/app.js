@@ -344,6 +344,26 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCounter('metric-total-traffic', totalTraffic);
     }
 
+    const resetMetricsBtn = document.getElementById('reset-metrics-btn');
+    if (resetMetricsBtn) {
+        resetMetricsBtn.addEventListener('click', () => {
+            openModal(
+                '🧹 Réinitialiser les compteurs',
+                '<p>Êtes-vous sûr de vouloir réinitialiser l\'intégralité des compteurs de métriques et de statistiques à 0 ?</p><p style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">Cette action effacera l\'historique enregistré en BDD et remettra les valeurs à zéro.</p>',
+                async () => {
+                    closeModal();
+                    const res = await apiRequest('/metrics/reset', 'POST');
+                    if (res && res.success) {
+                        showToast('Compteurs réinitialisés à 0', 'success');
+                        await loadMetricsData();
+                    } else {
+                        showToast('Erreur lors de la réinitialisation', 'error');
+                    }
+                }
+            );
+        });
+    }
+
     let allUsers = [];
     let userSortField = 'userNumber';
     let userSortDir = 'asc';
