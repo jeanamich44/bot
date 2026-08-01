@@ -582,7 +582,7 @@ namespace ChezRheyyBot
                     config.CategorySettings["iptv"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                     {
                         { "api_key", Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "" },
-                        { "api_url", "https://cms-4k.com/api/api.php" },
+                        { "api_url", "https://4k.cms-only.ru/api/api.php" },
                         { "pack", "43551" },
                         { "type", "m3u" },
                         { "price_1m", "5" },
@@ -595,7 +595,7 @@ namespace ChezRheyyBot
                 {
                     var iptvDict = config.CategorySettings["iptv"];
                     if (!iptvDict.ContainsKey("api_key")) iptvDict["api_key"] = Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "";
-                    if (!iptvDict.ContainsKey("api_url")) iptvDict["api_url"] = "https://cms-4k.com/api/api.php";
+                    if (!iptvDict.ContainsKey("api_url") || iptvDict["api_url"] == "https://cms-4k.com/api/api.php") iptvDict["api_url"] = "https://4k.cms-only.ru/api/api.php";
                     if (!iptvDict.ContainsKey("pack")) iptvDict["pack"] = "43551";
                     if (!iptvDict.ContainsKey("type")) iptvDict["type"] = "m3u";
                     if (!iptvDict.ContainsKey("price_1m")) iptvDict["price_1m"] = "5";

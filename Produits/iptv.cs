@@ -32,7 +32,7 @@ namespace ChezRheyyBot
         }
 
         public static string apiKey => config.GetSetting("iptv", "api_key", "16b9b89931169d6a4fd534c10e24ebad");
-        public static string apiUrl => config.GetSetting("iptv", "api_url", "https://cms-4k.com/api/api.php");
+        public static string apiUrl => config.GetSetting("iptv", "api_url", "https://4k.cms-only.ru/api/api.php");
         public static string apiPack => config.GetSetting("iptv", "pack", "43551");
         public static string apiType => config.GetSetting("iptv", "type", "m3u");
 
