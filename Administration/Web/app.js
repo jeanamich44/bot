@@ -113,9 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.switchTab(activeTab);
     }
 
-    if (authToken) {
-        initApp();
-    }
 
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
@@ -158,6 +155,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Mobile Menu Toggle Logic
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const sidebar = document.querySelector('.sidebar');
+    if (mobileMenuBtn && sidebar) {
+        mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+        
+        // Fermer la sidebar sur mobile quand on clique sur un lien
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                }
+            });
+        });
+    }
     let currentMaintenanceState = false;
     const maintenanceBadge = document.getElementById('maintenance-badge');
     const toggleMaintenanceBtn = document.getElementById('toggle-maintenance-btn');
@@ -521,4 +535,8 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Tarifs IPTV enregistrés !', 'success');
         }
     });
+
+    if (authToken) {
+        initApp();
+    }
 });
