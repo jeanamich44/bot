@@ -71,10 +71,17 @@ namespace ChezRheyyBot
                     string bodyStr = await reader.ReadToEndAsync();
                     if (!string.IsNullOrWhiteSpace(bodyStr))
                     {
-                        var update = JsonSerializer.Deserialize<Telegram.Bot.Types.Update>(bodyStr);
-                        if (update != null)
+                        try
                         {
-                            _ = Task.Run(() => Program.TraiterUpdateWebhook(botClient, update, cancellationToken), cancellationToken);
+                            var update = Newtonsoft.Json.JsonConvert.DeserializeObject<Telegram.Bot.Types.Update>(bodyStr);
+                            if (update != null)
+                            {
+                                _ = Task.Run(() => Program.TraiterUpdateWebhook(botClient, update, cancellationToken), cancellationToken);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[Webhook Deserialize Error] {ex.Message}");
                         }
                     }
                     RepondreJson(response, 200, new { ok = true });
