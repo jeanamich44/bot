@@ -188,20 +188,25 @@
 
             <div id="tab-payments" class="tab-content" style="display: none;">
                 <div class="card-panel">
-                    <div class="card-panel-header">
+                    <div class="card-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <h2 class="card-panel-title">Historique des Rechargements (CB & Crypto)</h2>
+                        <select id="filter-payments-method" class="form-input" style="max-width: 200px; padding: 6px 12px; font-size: 13px;" onchange="filterPayments()">
+                            <option value="">Toutes les catégories</option>
+                            <option value="CB">Catégorie: CB</option>
+                            <option value="CRYPTO">Catégorie: Crypto</option>
+                        </select>
                     </div>
                     <div class="table-wrapper">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th onclick="sortTable('all-payments-table', 0)" style="cursor:pointer">ID ↕</th>
                                     <th>ID Telegram</th>
-                                    <th>Methode</th>
-                                    <th>Montant</th>
-                                    <th>Statut</th>
+                                    <th onclick="sortTable('all-payments-table', 2)" style="cursor:pointer">Methode ↕</th>
+                                    <th onclick="sortTable('all-payments-table', 3, true)" style="cursor:pointer">Montant ↕</th>
+                                    <th onclick="sortTable('all-payments-table', 4)" style="cursor:pointer">Statut ↕</th>
                                     <th>Track ID</th>
-                                    <th>Date</th>
+                                    <th onclick="sortTable('all-payments-table', 6)" style="cursor:pointer">Date ↕</th>
                                 </tr>
                             </thead>
                             <tbody id="all-payments-table">
@@ -220,13 +225,13 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th onclick="sortTable('all-transactions-table', 0)" style="cursor:pointer">ID ↕</th>
                                     <th>ID Telegram</th>
-                                    <th>Marque</th>
+                                    <th onclick="sortTable('all-transactions-table', 2)" style="cursor:pointer">Marque ↕</th>
                                     <th>Code / Info</th>
-                                    <th>Valeur</th>
-                                    <th>Prix</th>
-                                    <th>Date</th>
+                                    <th onclick="sortTable('all-transactions-table', 4, true)" style="cursor:pointer">Valeur ↕</th>
+                                    <th onclick="sortTable('all-transactions-table', 5, true)" style="cursor:pointer">Prix ↕</th>
+                                    <th onclick="sortTable('all-transactions-table', 6)" style="cursor:pointer">Date ↕</th>
                                 </tr>
                             </thead>
                             <tbody id="all-transactions-table">

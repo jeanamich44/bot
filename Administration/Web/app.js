@@ -52,6 +52,49 @@ document.addEventListener('DOMContentLoaded', () => {
         modalOnConfirmCallback = null;
     }
 
+    window.redirectToUser = (userId) => {
+        window.switchTab('users');
+        const searchInput = document.getElementById('user-search-input');
+        if (searchInput) {
+            searchInput.value = userId;
+            searchInput.dispatchEvent(new Event('input'));
+        }
+    };
+
+    window.filterPayments = () => {
+        const filterValue = document.getElementById('filter-payments-method').value.toUpperCase();
+        const trs = document.querySelectorAll('#all-payments-table tr');
+        trs.forEach(tr => {
+            const methodCell = tr.cells[2].innerText.toUpperCase();
+            if (filterValue === '' || methodCell.includes(filterValue)) {
+                tr.style.display = '';
+            } else {
+                tr.style.display = 'none';
+            }
+        });
+    };
+
+    window.sortTable = (tableId, colIndex, isNumber = false) => {
+        const table = document.getElementById(tableId);
+        let rows = Array.from(table.rows);
+        let ascending = table.getAttribute('data-sort-asc') === 'true';
+        table.setAttribute('data-sort-asc', !ascending);
+        
+        rows.sort((a, b) => {
+            let cellA = a.cells[colIndex].innerText.trim().replace(/€/g, '').replace(/#/g, '');
+            let cellB = b.cells[colIndex].innerText.trim().replace(/€/g, '').replace(/#/g, '');
+            
+            if (isNumber) {
+                return ascending ? parseFloat(cellA) - parseFloat(cellB) : parseFloat(cellB) - parseFloat(cellA);
+            } else {
+                return ascending ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+            }
+        });
+        
+        table.innerHTML = '';
+        rows.forEach(row => table.appendChild(row));
+    };
+
     modalCloseBtn.addEventListener('click', closeModal);
     modalCancelBtn.addEventListener('click', closeModal);
     modalConfirmBtn.addEventListener('click', async () => {
@@ -226,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>#${tx.id}</td>
-                <td><code>${tx.userId}</code></td>
+                <td style="cursor: pointer; color: var(--accent-primary);" onclick="window.redirectToUser('${tx.userId}')"><code>${tx.userId}</code></td>
                 <td>${tx.brand}</td>
                 <td><strong>${tx.price} €</strong></td>
                 <td>${formatParisDate(tx.createdAt)}</td>
@@ -444,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>#${tx.id}</td>
-                <td><code>${tx.userId}</code></td>
+                <td style="cursor: pointer; color: var(--accent-primary);" onclick="window.redirectToUser('${tx.userId}')"><code>${tx.userId}</code></td>
                 <td>${tx.brand}</td>
                 <td><code>${tx.code}</code></td>
                 <td>${tx.value} €</td>
@@ -492,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             tr.innerHTML = `
                 <td>#${p.id}</td>
-                <td><code>${p.chatId || 'N/A'}</code></td>
+                <td style="cursor: pointer; color: var(--accent-primary);" onclick="window.redirectToUser('${p.chatId}')"><code>${p.chatId || 'N/A'}</code></td>
                 <td><strong>${p.method || 'N/A'}</strong></td>
                 <td><strong>${amountSafe} €</strong></td>
                 <td>${statusBadge}</td>
