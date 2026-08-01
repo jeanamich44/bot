@@ -37,7 +37,7 @@ namespace ChezRheyyBot
 
         public static string ModeTelegram
         {
-            get => GetSetting("general", "telegram_mode", "polling");
+            get => GetSetting("general", "telegram_mode", "webhook");
             set => SetSetting("general", "telegram_mode", value);
         }
 

@@ -153,7 +153,7 @@ namespace ChezRheyyBot
                     userId = t.UserId,
                     brand = t.Brand,
                     price = t.Price,
-                    createdAt = t.CreatedAt
+                    createdAt = DataBase.ConvertirEnHeureParis(t.CreatedAt).ToString("yyyy-MM-ddTHH:mm:ss")
                 }).ToList();
 
                 var recentPayments = allPayments.Take(10).Select(p => new
@@ -164,7 +164,7 @@ namespace ChezRheyyBot
                     amount = p.Amount,
                     method = p.PaymentMethod,
                     status = p.Status,
-                    createdAt = p.CreatedAt
+                    createdAt = DataBase.ConvertirEnHeureParis(p.CreatedAt).ToString("yyyy-MM-ddTHH:mm:ss")
                 }).ToList();
 
                 bool maintenance = config.ModeMaintenance;
@@ -181,7 +181,7 @@ namespace ChezRheyyBot
                     method = p.PaymentMethod,
                     status = p.Status,
                     url = p.PaymentUrl,
-                    createdAt = p.CreatedAt
+                    createdAt = DataBase.ConvertirEnHeureParis(p.CreatedAt).ToString("yyyy-MM-ddTHH:mm:ss")
                 }).ToList();
 
                 RepondreJson(response, 200, new { payments });
@@ -353,7 +353,7 @@ namespace ChezRheyyBot
                     code = t.Code,
                     value = t.Value,
                     price = t.Price,
-                    createdAt = t.CreatedAt
+                    createdAt = DataBase.ConvertirEnHeureParis(t.CreatedAt).ToString("yyyy-MM-ddTHH:mm:ss")
                 }).ToList();
 
                 RepondreJson(response, 200, new { transactions });

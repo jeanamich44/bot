@@ -177,7 +177,12 @@ namespace ChezRheyyBot
 
         private static async Task SendIptvStock(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
-            var message = "*ChezRheyy IPTV* \n\n1 mois ➔ 5€\n3 mois ➔ 10€\n6 mois ➔ 15€\n12 mois ➔ 30€";
+            string p1 = config.GetSetting("iptv", "price_1m", "5");
+            string p3 = config.GetSetting("iptv", "price_3m", "10");
+            string p6 = config.GetSetting("iptv", "price_6m", "15");
+            string p12 = config.GetSetting("iptv", "price_12m", "30");
+
+            var message = $"*ChezRheyy IPTV* \n\n1 mois ➔ {p1}€\n3 mois ➔ {p3}€\n6 mois ➔ {p6}€\n12 mois ➔ {p12}€";
 
             try
             {

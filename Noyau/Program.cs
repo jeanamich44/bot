@@ -69,13 +69,13 @@ class Program
                 }
             }
 
-            string domainEnv = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN") ?? Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL") ?? "";
-            if (!string.IsNullOrEmpty(domainEnv))
-            {
-                string webhookUrl = $"https://{domainEnv}/webhook/telegram/";
-                await botClient.SetWebhookAsync(webhookUrl);
-                Console.WriteLine($"[Telegram Mode] Webhook configuré sur {webhookUrl}");
-            }
+            string domainEnv = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN")
+                ?? Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL")
+                ?? "serveur-production-db21.up.railway.app";
+
+            string webhookUrl = $"https://{domainEnv}/webhook/telegram/";
+            await botClient.SetWebhookAsync(webhookUrl);
+            Console.WriteLine($"[Telegram Mode] Webhook configuré sur {webhookUrl}");
         }
         else
         {

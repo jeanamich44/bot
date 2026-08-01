@@ -285,6 +285,22 @@ body {
     gap: 16px;
 }
 
+.stat-card-interactive {
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+    user-select: none;
+}
+
+.stat-card-interactive:hover {
+    transform: translateY(-4px) scale(1.02);
+    border-color: var(--accent);
+    box-shadow: 0 10px 28px rgba(99, 102, 241, 0.22);
+}
+
+.stat-card-interactive:active {
+    transform: translateY(-1px) scale(0.98);
+}
+
 .stat-icon {
     width: 48px;
     height: 48px;

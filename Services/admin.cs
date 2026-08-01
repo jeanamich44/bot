@@ -434,7 +434,8 @@ namespace ChezRheyyBot
 
                     if (userMatch || codeMatch || brandMatch)
                     {
-                        sb.AppendLine($"Brand = {tx.Brand} | Carte = {tx.Code} | Solde = {tx.Value} | Prix = {tx.Price}€ | Date = {tx.CreatedAt:dd/MM/yyyy HH:mm}");
+                        DateTime dateParis = DataBase.ConvertirEnHeureParis(tx.CreatedAt);
+                        sb.AppendLine($"Brand = {tx.Brand} | Carte = {tx.Code} | Solde = {tx.Value} | Prix = {tx.Price}€ | Date = {dateParis:dd/MM/yyyy HH:mm}");
                     }
                 }
 

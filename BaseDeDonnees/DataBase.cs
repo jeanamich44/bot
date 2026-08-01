@@ -808,5 +808,28 @@ namespace ChezRheyyBot
             catch { }
             return list;
         }
+
+        public static DateTime ConvertirEnHeureParis(DateTime dateUtc)
+        {
+            try
+            {
+                TimeZoneInfo tzParis = TimeZoneInfo.FindSystemTimeZoneById("Europe/Paris");
+                DateTime utc = dateUtc.Kind == DateTimeKind.Utc ? dateUtc : DateTime.SpecifyKind(dateUtc, DateTimeKind.Utc);
+                return TimeZoneInfo.ConvertTimeFromUtc(utc, tzParis);
+            }
+            catch
+            {
+                try
+                {
+                    TimeZoneInfo tzParisWin = TimeZoneInfo.FindSystemTimeZoneById("Romance Standard Time");
+                    DateTime utc = dateUtc.Kind == DateTimeKind.Utc ? dateUtc : DateTime.SpecifyKind(dateUtc, DateTimeKind.Utc);
+                    return TimeZoneInfo.ConvertTimeFromUtc(utc, tzParisWin);
+                }
+                catch
+                {
+                    return dateUtc.AddHours(2);
+                }
+            }
+        }
     }
 }

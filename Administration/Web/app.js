@@ -104,7 +104,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function initApp() {
         loginView.style.display = 'none';
         appView.style.display = 'flex';
-        loadDashboardData();
+
+        const hash = (window.location.hash || '').replace('#', '').trim();
+        const savedTab = localStorage.getItem('admin_active_tab') || 'dashboard';
+        const validTabs = ['dashboard', 'users', 'stock', 'payments', 'transactions', 'settings'];
+        const activeTab = validTabs.includes(hash) ? hash : (validTabs.includes(savedTab) ? savedTab : 'dashboard');
+
+        window.switchTab(activeTab);
     }
 
     if (authToken) {
@@ -115,6 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
             const tab = item.getAttribute('data-tab');
+
+            localStorage.setItem('admin_active_tab', tab);
+            window.location.hash = tab;
             
             navItems.forEach(i => i.classList.remove('active'));
             item.classList.add('active');
@@ -141,6 +150,13 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (tab === 'settings') loadSettingsData();
         });
     });
+
+    window.switchTab = function(tabName) {
+        const targetNav = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
+        if (targetNav) {
+            targetNav.click();
+        }
+    };
 
     let currentMaintenanceState = false;
     const maintenanceBadge = document.getElementById('maintenance-badge');
@@ -182,6 +198,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('stat-total-users').innerText = stats.totalUsers;
         document.getElementById('stat-total-stock').innerText = stats.totalStock;
 
+        function formatParisDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            const pad = n => n.toString().padStart(2, '0');
+            return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+
         const tbody = document.getElementById('recent-sales-table');
         tbody.innerHTML = '';
         (stats.recentSales || []).forEach(tx => {
@@ -191,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><code>${tx.userId}</code></td>
                 <td>${tx.brand}</td>
                 <td><strong>${tx.price} €</strong></td>
-                <td>${new Date(tx.createdAt).toLocaleString('fr-FR')}</td>
+                <td>${formatParisDate(tx.createdAt)}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -323,8 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('add-stock-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const defaultValue = parseInt(document.getElementById('stock-default-value-input').value) || 0;
-        const defaultPrice = parseFloat(document.getElementById('stock-default-price-input').value) || 0.0;
         const text = document.getElementById('stock-bulk-textarea').value.trim();
 
         if (!text) {
@@ -345,32 +367,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     brand: 'carr',
                     code: parts[0].trim(),
                     pin: parts[1].trim(),
-                    value: parseInt(parts[2].trim()) || defaultValue,
-                    price: parseFloat(parts[3].trim()) || defaultPrice
+                    value: parseInt(parts[2].trim()) || 0,
+                    price: parseFloat(parts[3].trim()) || 0.0
                 });
             } else if (parts.length === 3) {
                 items.push({
                     brand: 'carr',
                     code: parts[0].trim(),
                     pin: '',
-                    value: parseInt(parts[1].trim()) || defaultValue,
-                    price: parseFloat(parts[2].trim()) || defaultPrice
+                    value: parseInt(parts[1].trim()) || 0,
+                    price: parseFloat(parts[2].trim()) || 0.0
                 });
             } else if (parts.length === 2) {
                 items.push({
                     brand: 'carr',
                     code: parts[0].trim(),
                     pin: '',
-                    value: parseInt(parts[1].trim()) || defaultValue,
-                    price: defaultPrice
+                    value: parseInt(parts[1].trim()) || 0,
+                    price: 0.0
                 });
             } else {
                 items.push({
                     brand: 'carr',
                     code: l,
                     pin: '',
-                    value: defaultValue,
-                    price: defaultPrice
+                    value: 0,
+                    price: 0.0
                 });
             }
         });
@@ -413,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><code>${tx.code}</code></td>
                 <td>${tx.value} €</td>
                 <td><strong>${tx.price} €</strong></td>
-                <td>${new Date(tx.createdAt).toLocaleString('fr-FR')}</td>
+                <td>${formatParisDate(tx.createdAt)}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -454,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><strong>${p.amount.toFixed(2)} €</strong></td>
                 <td>${statusBadge}</td>
                 <td><code>${p.trackId}</code></td>
-                <td>${new Date(p.createdAt).toLocaleString('fr-FR')}</td>
+                <td>${formatParisDate(p.createdAt)}</td>
             `;
             tbody.appendChild(tr);
         });
