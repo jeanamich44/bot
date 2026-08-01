@@ -439,42 +439,16 @@ namespace ChezRheyyBot
                 string searchArg = message[1].Trim();
                 long.TryParse(searchArg, out long searchUserId);
                 var transactions = DataBase.ObtenirTransactions();
-                var sb = new StringBuilder();
 
-                int compteur = 0;
-                foreach (var tx in transactions)
+                var matchingTx = transactions.Where(tx =>
                 {
                     bool codeMatch = !string.IsNullOrEmpty(tx.Code) && tx.Code.Contains(searchArg, StringComparison.OrdinalIgnoreCase);
                     bool brandMatch = !string.IsNullOrEmpty(tx.Brand) && tx.Brand.Equals(searchArg, StringComparison.OrdinalIgnoreCase);
                     bool userMatch = tx.UserId == searchUserId && searchUserId > 0;
+                    return userMatch || codeMatch || brandMatch;
+                }).ToList();
 
-                    if (userMatch || codeMatch || brandMatch)
-                    {
-                        compteur++;
-                        if (compteur > 20)
-                        {
-                            sb.AppendLine("<i>... (Résultats tronqués, maximum 20 affichés)</i>");
-                            break;
-                        }
-
-                        DateTime dateParis = DataBase.ConvertirEnHeureParis(tx.CreatedAt);
-                        string pinLine = string.IsNullOrWhiteSpace(tx.Pin) ? "" : $"\n• <b>PIN :</b> <code>{HtmlEncode(tx.Pin)}</code>";
-                        string brandName = tx.Brand?.ToUpper() ?? "PRODUIT";
-
-                        if (sb.Length > 0)
-                        {
-                            sb.AppendLine("\n───────────────────\n");
-                        }
-
-                        sb.AppendLine($"🛒 <b>{brandName}</b>");
-                        sb.AppendLine($"• <b>Client ID :</b> <code>{tx.UserId}</code>");
-                        sb.AppendLine($"• <b>Carte :</b> <code>{HtmlEncode(tx.Code)}</code>{pinLine}");
-                        sb.AppendLine($"• <b>Solde :</b> {tx.Value} €  |  <b>Prix :</b> {tx.Price} €");
-                        sb.AppendLine($"• <b>Date :</b> {dateParis:dd/MM/yyyy à HH:mm}");
-                    }
-                }
-
-                if (sb.Length == 0)
+                if (matchingTx.Count == 0)
                 {
                     await botClient.SendTextMessageAsync(
                         config.CurrentChatId,
@@ -482,16 +456,37 @@ namespace ChezRheyyBot
                         parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
                         cancellationToken: cancellationToken
                     );
+                    return;
                 }
-                else
+
+                var sb = new StringBuilder();
+                var grouped = matchingTx.GroupBy(tx => string.IsNullOrWhiteSpace(tx.Brand) ? "PRODUIT" : tx.Brand.ToUpper());
+
+                foreach (var group in grouped)
                 {
-                    await botClient.SendTextMessageAsync(
-                        config.CurrentChatId,
-                        $"📋 <b>Historique d'Achats pour</b> <code>{HtmlEncode(searchArg)}</code> (<b>{compteur}</b>)\n\n{sb}",
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
-                        cancellationToken: cancellationToken
-                    );
+                    sb.AppendLine($"📦 <b>{group.Key}</b> (<b>{group.Count()}</b>)");
+
+                    foreach (var tx in group.Take(15))
+                    {
+                        DateTime dateParis = DataBase.ConvertirEnHeureParis(tx.CreatedAt);
+                        string pinPart = string.IsNullOrWhiteSpace(tx.Pin) ? "" : $" | <b>PIN :</b> <code>{HtmlEncode(tx.Pin)}</code>";
+                        sb.AppendLine($"• <code>{HtmlEncode(tx.Code)}</code>{pinPart} | <b>{tx.Value}€</b> ({tx.Price}€) | <i>{dateParis:dd/MM à HH:mm}</i>");
+                    }
+
+                    if (group.Count() > 15)
+                    {
+                        sb.AppendLine($"<i>... (+{group.Count() - 15} autres entrées)</i>");
+                    }
+
+                    sb.AppendLine();
                 }
+
+                await botClient.SendTextMessageAsync(
+                    config.CurrentChatId,
+                    $"📋 <b>Historique d'Achats pour</b> <code>{HtmlEncode(searchArg)}</code> (Total: <b>{matchingTx.Count}</b>)\n\n{sb}",
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                    cancellationToken: cancellationToken
+                );
             }
             catch (Exception ex)
             {
