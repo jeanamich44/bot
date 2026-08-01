@@ -470,7 +470,11 @@ namespace ChezRheyyBot
                     {
                         DateTime dateParis = DataBase.ConvertirEnHeureParis(tx.CreatedAt);
                         string pinPart = string.IsNullOrWhiteSpace(tx.Pin) ? "" : $" | <b>PIN :</b> <code>{HtmlEncode(tx.Pin)}</code>";
-                        sb.AppendLine($"• <code>{HtmlEncode(tx.Code)}</code>{pinPart} | <b>{tx.Value}€</b> ({tx.Price}€) | <i>{dateParis:dd/MM à HH:mm}</i>");
+                        string valuePart = tx.Value > 0 ? $"<b>Solde :</b> {tx.Value}€ | " : "";
+                        string userPart = searchUserId > 0 ? "" : $" | <b>ID :</b> <code>{tx.UserId}</code>";
+                        string codeLabel = tx.Brand?.Equals("iptv", StringComparison.OrdinalIgnoreCase) == true ? "Durée/Pass" : "Code";
+
+                        sb.AppendLine($"• <b>{codeLabel} :</b> <code>{HtmlEncode(tx.Code)}</code>{pinPart} | {valuePart}<b>Prix :</b> {tx.Price}€{userPart} | <i>{dateParis:dd/MM à HH:mm}</i>");
                     }
 
                     if (group.Count() > 15)
