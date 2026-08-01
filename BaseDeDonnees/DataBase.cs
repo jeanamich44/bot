@@ -514,7 +514,15 @@ namespace ChezRheyyBot
                 SauvegarderSettings();
             }
 
-            config.ChargerMetricsFromSettings();
+            if (!config.CategorySettings.ContainsKey("metrics"))
+            {
+                config.PersisterMetricsInSettings();
+                SauvegarderSettings();
+            }
+            else
+            {
+                config.ChargerMetricsFromSettings();
+            }
         }
 
         public static void SauvegarderSettings()
