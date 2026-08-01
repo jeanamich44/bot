@@ -6,6 +6,17 @@ using Telegram.Bot;
 using ChezRheyyBot;
 using Telegram.Bot.Types.ReplyMarkups;
 
+public class TelegramHttpMetricsHandler : DelegatingHandler
+{
+    public TelegramHttpMetricsHandler(HttpMessageHandler innerHandler) : base(innerHandler) { }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        config.IncTelegramSent();
+        return await base.SendAsync(request, cancellationToken);
+    }
+}
+
 class Program
 {
     private static CancellationTokenSource? _pollingCts;
@@ -15,7 +26,8 @@ class Program
 
     static async Task Main(string[] args)
     {
-        using var httpClient = new HttpClient
+        var handler = new TelegramHttpMetricsHandler(new HttpClientHandler());
+        using var httpClient = new HttpClient(handler)
         {
             Timeout = TimeSpan.FromSeconds(65)
         };

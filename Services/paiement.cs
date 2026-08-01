@@ -202,6 +202,7 @@ namespace ChezRheyyBot
             request.Headers.Add("merchant_api_key", config.apiKey);
             request.Content = new StringContent(JsonSerializer.Serialize(jsonBody), Encoding.UTF8, "application/json");
 
+            config.IncOxaPaySent();
             var response = await _httpClient.SendAsync(request, cancellationToken);
             var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -469,6 +470,7 @@ namespace ChezRheyyBot
                 tokenRequest.Content = new StringContent(postData, Encoding.UTF8, "application/x-www-form-urlencoded");
                 tokenRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
+                config.IncSumUpSent();
                 var tokenResponse = await _httpClient.SendAsync(tokenRequest, cancellationToken);
                 var tokenContent = await tokenResponse.Content.ReadAsStringAsync(cancellationToken);
 
@@ -534,6 +536,7 @@ namespace ChezRheyyBot
                 secondRequest.Content = new StringContent(JsonSerializer.Serialize(jsonPayload), Encoding.UTF8, "application/json");
                 secondRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
+                config.IncSumUpSent();
                 var secondResponse = await _httpClient.SendAsync(secondRequest, cancellationToken);
                 var secondContent = await secondResponse.Content.ReadAsStringAsync(cancellationToken);
 
@@ -590,6 +593,7 @@ namespace ChezRheyyBot
                             var paiementverifier = new HttpRequestMessage(HttpMethod.Get, $"https://api.sumup.com/v0.1/checkouts/{item.TrackId}");
                             paiementverifier.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
+                            config.IncSumUpSent();
                             var tokenResponse2 = await _httpClient.SendAsync(paiementverifier, cancellationToken);
                             var tokenContent2 = await tokenResponse2.Content.ReadAsStringAsync(cancellationToken);
 

@@ -14,7 +14,6 @@ namespace ChezRheyyBot
         {
             try
             {
-                config.IncCommandsExecuted();
                 if (update.CallbackQuery.Data == null)
                 {
                     return;

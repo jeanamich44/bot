@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCounter('metric-errors-count', m.errorsCount);
         updateCounter('metric-admin-logins', m.adminLogins);
 
-        const totalTraffic = (m.telegramReceived || 0) + (m.telegramSent || 0) + (m.sumupSent || 0) + (m.oxapaySent || 0);
+        const totalTraffic = (m.telegramReceived || 0) + (m.telegramSent || 0) + (m.sumupReceived || 0) + (m.sumupSent || 0) + (m.oxapayReceived || 0) + (m.oxapaySent || 0);
         updateCounter('metric-total-traffic', totalTraffic);
     }
 

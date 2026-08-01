@@ -534,6 +534,7 @@ namespace ChezRheyyBot
                 using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.oxapay.com/v1/payment/{id[1]}");
                 request.Headers.Add("merchant_api_key", config.apiKey);
 
+                config.IncOxaPaySent();
                 var response = await httpClient.SendAsync(request, cancellationToken);
                 var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 

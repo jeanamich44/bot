@@ -39,7 +39,6 @@ namespace ChezRheyyBot
                                  $"@RheyyFondaa\n" +
                                  $"@NtRheyyTech";
 
-                config.IncTelegramSent();
                 await botClient.SendPhotoAsync(config.CurrentChatId, photoUrl, caption: caption, parseMode: ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: cancellationToken);
                 return;
             }
@@ -71,7 +70,6 @@ namespace ChezRheyyBot
                                  $"@RheyyFondaa\n" +
                                  $"@NtRheyyTech";
 
-                config.IncTelegramSent();
                 await botClient.SendPhotoAsync(config.CurrentChatId, photoUrl, caption: caption, parseMode: ParseMode.Html, replyMarkup: inlineKeyboard, cancellationToken: cancellationToken);
                 return;
             }
