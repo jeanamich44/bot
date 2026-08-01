@@ -77,7 +77,7 @@ class Program
 
             string webhookUrl = $"https://{domainEnv}/webhook/telegram/";
             await botClient.SetWebhookAsync(webhookUrl);
-            Console.WriteLine($"[Telegram Mode] Webhook configuré sur {webhookUrl}");
+            Console.WriteLine($"[Telegram Mode] Mode Webhook: {webhookUrl}");
         }
         else
         {
@@ -94,7 +94,7 @@ class Program
                     _pollingCts = new CancellationTokenSource();
                     var receiverOptions = new ReceiverOptions { AllowedUpdates = Array.Empty<UpdateType>() };
                     botClient.StartReceiving(HandleUpdateAsync, HandleErrorAsync, receiverOptions, _pollingCts.Token);
-                    Console.WriteLine("[Telegram Mode] Long Polling réactivé.");
+                    Console.WriteLine("[Telegram Mode] Mode Polling: Activé");
                 }
             }
         }
@@ -115,7 +115,11 @@ class Program
                     _sumupPollingCts.Dispose();
                     _sumupPollingCts = null;
                 }
-                Console.WriteLine("[SumUp Mode] Basculé en mode Webhook.");
+                string domainEnv = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN")
+                    ?? Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL")
+                    ?? "serveur-production-db21.up.railway.app";
+                string sumupWebhookUrl = $"https://{domainEnv}/webhook/sumup/";
+                Console.WriteLine($"[SumUp Mode] Mode Webhook: {sumupWebhookUrl}");
             }
             else
             {
@@ -123,7 +127,7 @@ class Program
                 {
                     _sumupPollingCts = new CancellationTokenSource();
                     _ = paiement.VerifierPaiementSumAPI(botClient, _sumupPollingCts.Token);
-                    Console.WriteLine("[SumUp Mode] Basculé en mode Long Polling (Vérification périodique).");
+                    Console.WriteLine("[SumUp Mode] Mode Polling: Activé");
                 }
             }
         }

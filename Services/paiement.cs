@@ -263,7 +263,7 @@ namespace ChezRheyyBot
 
         public static async Task VerifierPaiement(ITelegramBotClient botClient, CancellationToken cancellationToken)
         {
-            Console.WriteLine("[Paiement Crypto Worker] Démarrage de la boucle de vérification OxaPay.");
+            Console.WriteLine("[Paiement Crypto Worker] Mode Polling: Vérification périodique OxaPay.");
 
             while (!cancellationToken.IsCancellationRequested)
             {
