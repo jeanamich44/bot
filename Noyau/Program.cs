@@ -48,6 +48,19 @@ class Program
         AppliquerModeSumUp(botClient, config.ModeSumUp);
         Task verifierTask = paiement.VerifierPaiement(botClient, cts.Token);
 
+        _ = Task.Run(async () =>
+        {
+            while (!cts.Token.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(15000, cts.Token);
+                    DataBase.SauvegarderSettings();
+                }
+                catch { }
+            }
+        }, cts.Token);
+
         try { await Task.Delay(Timeout.Infinite, cancellationToken); } catch (OperationCanceledException) { }
 
         config.JsonWrite();

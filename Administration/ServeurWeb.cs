@@ -145,6 +145,7 @@ namespace ChezRheyyBot
 
             if (path == "/api/admin/stats" && request.HttpMethod == "GET")
             {
+                DataBase.SauvegarderSettings();
                 var transactions = DataBase.ObtenirTransactions();
                 var allPayments = DataBase.ObtenirTousLesPaiementsBDD();
                 double totalRecharges = allPayments.Where(p => string.Equals(p.Status, "PAID", StringComparison.OrdinalIgnoreCase)).Sum(p => p.Amount);
