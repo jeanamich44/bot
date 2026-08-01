@@ -640,12 +640,9 @@ namespace ChezRheyyBot
                         config.CurrentChatId,
                         "❌ <b>Erreur : Aucun fichier attaché !</b>\n\n" +
                         "Veuillez joindre un fichier <b>.txt</b> avec la légende <code>/addstock carr</code> (ou répondre à un fichier .txt avec cette commande).\n\n" +
-                        "<b>Formats de ligne acceptés :</b>\n" +
-                        "• <code>CODE:PIN:VALEUR:PRIX</code>\n" +
-                        "• <code>CODE:PIN:VALEUR</code>\n" +
-                        "• <code>CODE:PIN</code>\n" +
-                        "• <code>CODE</code>\n\n" +
-                        "<i>Séparateurs acceptés :</i> <code>:</code> <code>;</code> <code>|</code> <code>,</code>",
+                        "<b>Format obligatoire (4 champs séparés par <code>:</code>) :</b>\n" +
+                        "<code>CODE:PIN:VALEUR:PRIX</code>\n\n" +
+                        "<i>Exemple :</i> <code>2012345678901:1234:50:25</code>",
                         parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
                         cancellationToken: cancellationToken
                     );
@@ -657,7 +654,7 @@ namespace ChezRheyyBot
                 {
                     await botClient.SendTextMessageAsync(
                         config.CurrentChatId,
-                        "❌ <b>Format invalide !</b> Le fichier attaché doit obligatoirement être au format <b>.txt</b>.",
+                        "❌ <b>Format invalide !</b> Le fichier attaché doit obligatoirement être un fichier texte au format <b>.txt</b>.",
                         parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
                         cancellationToken: cancellationToken
                     );
@@ -671,32 +668,56 @@ namespace ChezRheyyBot
 
                 using var reader = new StreamReader(memoryStream, Encoding.UTF8);
                 string? line;
+                int lineNumber = 0;
                 var stockItems = new List<DataBase.StockItem>();
 
                 while ((line = await reader.ReadLineAsync()) != null)
                 {
+                    lineNumber++;
                     string trimmed = line.Trim();
                     if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#") || trimmed.StartsWith("//")) continue;
 
-                    string[] lineParts = trimmed.Split(new[] { ':', ';', '|', ',' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (lineParts.Length == 0) continue;
+                    string[] lineParts = trimmed.Split(':');
+                    if (lineParts.Length != 4)
+                    {
+                        await botClient.SendTextMessageAsync(
+                            config.CurrentChatId,
+                            $"❌ <b>Erreur de format de ligne !</b>\n\n" +
+                            $"📍 <b>Ligne {lineNumber} :</b> <code>{HtmlEncode(trimmed)}</code>\n\n" +
+                            $"⚠️ <b>Constat :</b> La ligne contient <b>{lineParts.Length} champ(s)</b> au lieu des <b>4 champs obligatoires</b> séparés par des deux-points <code>:</code>.\n\n" +
+                            $"💡 <b>Format obligatoire :</b> <code>CODE:PIN:VALEUR:PRIX</code>",
+                            parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                            cancellationToken: cancellationToken
+                        );
+                        return;
+                    }
 
                     string code = lineParts[0].Trim();
-                    string pin = lineParts.Length > 1 ? lineParts[1].Trim() : "";
-                    string val = lineParts.Length > 2 ? lineParts[2].Trim() : "0";
-                    string price = lineParts.Length > 3 ? lineParts[3].Trim() : "0";
+                    string pin = lineParts[1].Trim();
+                    string val = lineParts[2].Trim();
+                    string price = lineParts[3].Trim();
 
-                    if (!string.IsNullOrEmpty(code))
+                    if (string.IsNullOrEmpty(code))
                     {
-                        stockItems.Add(new DataBase.StockItem
-                        {
-                            Brand = brand,
-                            Code = code,
-                            Pin = pin,
-                            Value = val,
-                            Price = price
-                        });
+                        await botClient.SendTextMessageAsync(
+                            config.CurrentChatId,
+                            $"❌ <b>Erreur de format de ligne !</b>\n\n" +
+                            $"📍 <b>Ligne {lineNumber} :</b> <code>{HtmlEncode(trimmed)}</code>\n\n" +
+                            $"⚠️ <b>Constat :</b> Le champ <b>CODE</b> est vide !",
+                            parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                            cancellationToken: cancellationToken
+                        );
+                        return;
                     }
+
+                    stockItems.Add(new DataBase.StockItem
+                    {
+                        Brand = brand,
+                        Code = code,
+                        Pin = pin,
+                        Value = val,
+                        Price = price
+                    });
                 }
 
                 if (stockItems.Count == 0)
@@ -730,6 +751,12 @@ namespace ChezRheyyBot
                     cancellationToken: cancellationToken
                 );
             }
+        }
+
+        private static string HtmlEncode(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            return text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
         }
     }
 }
