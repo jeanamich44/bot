@@ -41,6 +41,12 @@ namespace ChezRheyyBot
             set => SetSetting("general", "telegram_mode", value);
         }
 
+        public static string ModeSumUp
+        {
+            get => GetSetting("general", "sumup_mode", "webhook");
+            set => SetSetting("general", "sumup_mode", value);
+        }
+
         public static string AdminSlug
         {
             get => GetSetting("admin", "slug", "espace-sec-x9k2m7");

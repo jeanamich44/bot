@@ -235,21 +235,37 @@
             </div>
 
             <div id="tab-settings" class="tab-content" style="display: none;">
-                <div class="card-panel" style="margin-bottom: 24px;">
+                <div class="card-panel">
                     <div class="card-panel-header">
                         <h2 class="card-panel-title">Mode de Réception Telegram</h2>
                     </div>
                     <form id="settings-telegram-mode-form" style="display: flex; flex-direction: column; gap: 16px;">
-                        <div class="form-group" style="margin: 0;">
-                            <label class="form-label">Sélectionner le mode d'écoute des messages</label>
+                        <div class="form-group">
+                            <label class="form-label">Mode Actuel</label>
                             <select id="setting-telegram-mode" class="form-input" style="max-width: 400px; cursor: pointer;">
-                                <option value="polling">🔄 Long Polling (Écoute continue 50s)</option>
+                                <option value="polling">🔄 Long Polling (Vérification continue en boucle)</option>
                                 <option value="webhook">⚡ Webhook HTTP (Notification push instantanée)</option>
                             </select>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 8px;">*Le mode Webhook est recommandé pour une meilleure performance.</span>
                         </div>
-                        <div>
-                            <button type="submit" class="btn-primary" style="width: auto; padding: 10px 24px;">Appliquer le Mode</button>
+                        <button type="submit" class="btn btn-primary" style="max-width: 200px;">Appliquer le Mode Telegram</button>
+                    </form>
+                </div>
+
+                <div class="card-panel">
+                    <div class="card-panel-header">
+                        <h2 class="card-panel-title">Mode de Vérification SumUp</h2>
+                    </div>
+                    <form id="settings-sumup-mode-form" style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Mode Actuel</label>
+                            <select id="setting-sumup-mode" class="form-input" style="max-width: 400px; cursor: pointer;">
+                                <option value="polling">🔄 Long Polling (Vérification périodique)</option>
+                                <option value="webhook">⚡ Webhook HTTP (Notification push instantanée)</option>
+                            </select>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 8px;">*Le mode Webhook est recommandé en production.</span>
                         </div>
+                        <button type="submit" class="btn btn-primary" style="max-width: 200px;">Appliquer le Mode SumUp</button>
                     </form>
                 </div>
 

@@ -369,7 +369,8 @@ namespace ChezRheyyBot
             {
                 var iptv = config.CategorySettings.TryGetValue("iptv", out var dict) ? dict : new Dictionary<string, string>();
                 string telegramMode = config.ModeTelegram;
-                RepondreJson(response, 200, new { iptv, telegramMode });
+                string sumupMode = config.ModeSumUp;
+                RepondreJson(response, 200, new { iptv, telegramMode, sumupMode });
             }
             else if (path == "/api/admin/settings/telegram" && request.HttpMethod == "POST")
             {

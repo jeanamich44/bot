@@ -454,6 +454,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.telegramMode) {
             document.getElementById('setting-telegram-mode').value = data.telegramMode;
         }
+        if (data.sumupMode) {
+            document.getElementById('setting-sumup-mode').value = data.sumupMode;
+        }
     }
 
     async function loadPaymentsData() {
@@ -490,6 +493,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await apiRequest('/settings/telegram', 'POST', { mode });
             if (res && res.success) {
                 showToast(`Mode Telegram basculé sur ${res.mode === 'webhook' ? 'Webhook ⚡' : 'Long Polling 🔄'} avec succès !`, 'success');
+            }
+        });
+    }
+
+    const sumupModeForm = document.getElementById('settings-sumup-mode-form');
+    if (sumupModeForm) {
+        sumupModeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const mode = document.getElementById('setting-sumup-mode').value;
+            const res = await apiRequest('/settings/sumup/mode', 'POST', { mode });
+            if (res && res.success) {
+                showToast(`Mode SumUp basculé sur ${res.mode === 'webhook' ? 'Webhook ⚡' : 'Long Polling 🔄'} avec succès !`, 'success');
             }
         });
     }

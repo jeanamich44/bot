@@ -9,6 +9,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 class Program
 {
     private static CancellationTokenSource? _pollingCts;
+    private static CancellationTokenSource? _sumupPollingCts;
     private static readonly object _modeLock = new object();
 
     static async Task Main(string[] args)
@@ -28,6 +29,7 @@ class Program
         config.GetProfileSettings();
 
         await AppliquerModeTelegram(botClient, config.ModeTelegram);
+        AppliquerModeSumUp(botClient, config.ModeSumUp);
 
         var me = await botClient.GetMeAsync();
 
@@ -42,7 +44,6 @@ class Program
 
         Console.WriteLine($"Bot {me.Username} est démarré (Mode: {config.ModeTelegram})...");
         Task verifierTask = paiement.VerifierPaiement(botClient, cts.Token);
-        Task verifierSumUpTask = paiement.VerifierPaiementSumAPI(botClient, cts.Token);
         Task serveurWebTask = ServeurWeb.LancerServeurWebAdmin(botClient, cts.Token);
 
         await Task.Delay(Timeout.Infinite, cancellationToken);
@@ -93,6 +94,35 @@ class Program
                     var receiverOptions = new ReceiverOptions { AllowedUpdates = Array.Empty<UpdateType>() };
                     botClient.StartReceiving(HandleUpdateAsync, HandleErrorAsync, receiverOptions, _pollingCts.Token);
                     Console.WriteLine("[Telegram Mode] Long Polling réactivé.");
+                }
+            }
+        }
+    }
+
+    public static void AppliquerModeSumUp(ITelegramBotClient botClient, string targetMode)
+    {
+        string mode = targetMode.ToLower() == "webhook" ? "webhook" : "polling";
+        config.ModeSumUp = mode;
+
+        lock (_modeLock)
+        {
+            if (mode == "webhook")
+            {
+                if (_sumupPollingCts != null)
+                {
+                    _sumupPollingCts.Cancel();
+                    _sumupPollingCts.Dispose();
+                    _sumupPollingCts = null;
+                }
+                Console.WriteLine("[SumUp Mode] Basculé en mode Webhook (Notification Push instantanée).");
+            }
+            else
+            {
+                if (_sumupPollingCts == null)
+                {
+                    _sumupPollingCts = new CancellationTokenSource();
+                    _ = paiement.VerifierPaiementSumAPI(botClient, _sumupPollingCts.Token);
+                    Console.WriteLine("[SumUp Mode] Basculé en mode Long Polling (Vérification périodique).");
                 }
             }
         }
