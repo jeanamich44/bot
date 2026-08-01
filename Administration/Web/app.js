@@ -32,6 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3500);
     }
 
+    function formatParisDate(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        const pad = n => n.toString().padStart(2, '0');
+        return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
     function openModal(title, htmlContent, onConfirm) {
         modalTitle.innerText = title;
         modalBodyContent.innerHTML = htmlContent;
@@ -211,14 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('stat-total-sales').innerText = stats.totalSales;
         document.getElementById('stat-total-users').innerText = stats.totalUsers;
         document.getElementById('stat-total-stock').innerText = stats.totalStock;
-
-        function formatParisDate(dateStr) {
-            if (!dateStr) return '';
-            const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return dateStr;
-            const pad = n => n.toString().padStart(2, '0');
-            return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-        }
 
         const tbody = document.getElementById('recent-sales-table');
         tbody.innerHTML = '';
@@ -481,19 +481,23 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = '';
         (data.payments || []).forEach(p => {
             const tr = document.createElement('tr');
-            let statusBadge = `<span class="badge badge-warning">${p.status}</span>`;
-            if (p.status.toUpperCase() === 'PAID') statusBadge = `<span class="badge badge-success">PAYÉ</span>`;
-            else if (p.status.toUpperCase() === 'FAILED' || p.status.toUpperCase() === 'CANCELED') statusBadge = `<span class="badge badge-danger">ÉCHOUÉ</span>`;
-            else if (p.status.toUpperCase() === 'EXPIRED') statusBadge = `<span class="badge badge-muted">EXPIRÉ</span>`;
+            
+            const statusStr = p.status ? p.status.toUpperCase() : 'INCONNU';
+            let statusBadge = `<span class="badge badge-warning">${p.status || 'INCONNU'}</span>`;
+            if (statusStr === 'PAID') statusBadge = `<span class="badge badge-success">PAYÉ</span>`;
+            else if (statusStr === 'FAILED' || statusStr === 'CANCELED') statusBadge = `<span class="badge badge-danger">ÉCHOUÉ</span>`;
+            else if (statusStr === 'EXPIRED') statusBadge = `<span class="badge badge-muted">EXPIRÉ</span>`;
 
+            const amountSafe = Number(p.amount || 0).toFixed(2);
+            
             tr.innerHTML = `
                 <td>#${p.id}</td>
-                <td><code>${p.chatId}</code></td>
-                <td><strong>${p.method}</strong></td>
-                <td><strong>${p.amount.toFixed(2)} €</strong></td>
+                <td><code>${p.chatId || 'N/A'}</code></td>
+                <td><strong>${p.method || 'N/A'}</strong></td>
+                <td><strong>${amountSafe} €</strong></td>
                 <td>${statusBadge}</td>
-                <td><code>${p.trackId}</code></td>
-                <td>${formatParisDate(p.createdAt)}</td>
+                <td><code>${p.trackId || 'N/A'}</code></td>
+                <td>${p.createdAt ? formatParisDate(p.createdAt) : 'N/A'}</td>
             `;
             tbody.appendChild(tr);
         });
