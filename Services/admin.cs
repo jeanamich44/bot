@@ -424,35 +424,68 @@ namespace ChezRheyyBot
         {
             try
             {
-                var message = update.Message.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                if (message.Length != 2)
+                var parts = update.Message.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                int days = 7; // Par défaut 7 jours (1 semaine)
+                string searchArg = null;
+                bool showAll = false;
+
+                if (parts.Length == 1)
                 {
-                    await botClient.SendTextMessageAsync(
-                        config.CurrentChatId,
-                        "❌ <b>Usage :</b> <code>/commandes &lt;id | marque | code&gt;</code>",
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
-                        cancellationToken: cancellationToken
-                    );
-                    return;
+                    // Ex: /commandes -> Tous les achats des 7 derniers jours
+                    showAll = true;
+                }
+                else if (parts.Length == 2)
+                {
+                    // Ex: /commandes 5883885733 OU /commandes 14
+                    if (int.TryParse(parts[1], out int d) && d > 0 && d <= 3650)
+                    {
+                        // Ex: /commandes 14 -> Tous les achats des 14 derniers jours (tous clients)
+                        days = d;
+                        showAll = true;
+                    }
+                    else
+                    {
+                        // Ex: /commandes 5883885733 -> Achats de ce client sur 7 jours par défaut
+                        searchArg = parts[1].Trim();
+                    }
+                }
+                else if (parts.Length >= 3)
+                {
+                    // Ex: /commandes 5883885733 14 OU /commandes carr 30
+                    searchArg = parts[1].Trim();
+                    if (int.TryParse(parts[2], out int d) && d > 0 && d <= 3650)
+                    {
+                        days = d;
+                    }
                 }
 
-                string searchArg = message[1].Trim();
-                long.TryParse(searchArg, out long searchUserId);
+                long.TryParse(searchArg ?? "", out long searchUserId);
+                DateTime cutoffDate = DateTime.UtcNow.AddDays(-days);
+
                 var transactions = DataBase.ObtenirTransactions();
 
                 var matchingTx = transactions.Where(tx =>
                 {
+                    // Filtre temporel (en jours)
+                    bool timeMatch = tx.CreatedAt >= cutoffDate;
+                    if (!timeMatch) return false;
+
+                    if (showAll) return true;
+
                     bool codeMatch = !string.IsNullOrEmpty(tx.Code) && tx.Code.Contains(searchArg, StringComparison.OrdinalIgnoreCase);
                     bool brandMatch = !string.IsNullOrEmpty(tx.Brand) && tx.Brand.Equals(searchArg, StringComparison.OrdinalIgnoreCase);
                     bool userMatch = tx.UserId == searchUserId && searchUserId > 0;
                     return userMatch || codeMatch || brandMatch;
                 }).ToList();
 
+                string searchTitle = showAll ? "Global (Tous clients)" : searchArg;
+
                 if (matchingTx.Count == 0)
                 {
                     await botClient.SendTextMessageAsync(
                         config.CurrentChatId,
-                        $"⚠️ <b>Aucune commande trouvée pour :</b> <code>{HtmlEncode(searchArg)}</code>",
+                        $"⚠️ <b>Aucune commande trouvée pour :</b> <code>{HtmlEncode(searchTitle)}</code> <i>(sur les {days} dernier{(days > 1 ? "s" : "")} jour{(days > 1 ? "s" : "")})</i>",
                         parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
                         cancellationToken: cancellationToken
                     );
@@ -496,9 +529,10 @@ namespace ChezRheyyBot
                     sb.AppendLine();
                 }
 
+                string headerDays = days == 7 ? "7 jours (1 semaine)" : $"{days} jour{(days > 1 ? "s" : "")}";
                 await botClient.SendTextMessageAsync(
                     config.CurrentChatId,
-                    $"📋 <b>Historique d'Achats pour</b> <code>{HtmlEncode(searchArg)}</code> (Total: <b>{matchingTx.Count}</b>)\n\n{sb}",
+                    $"📋 <b>Historique d'Achats :</b> <code>{HtmlEncode(searchTitle)}</code> (Total: <b>{matchingTx.Count}</b> | <b>{headerDays}</b>)\n\n{sb}",
                     parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
                     cancellationToken: cancellationToken
                 );
