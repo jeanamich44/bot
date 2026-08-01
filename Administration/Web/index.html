@@ -35,6 +35,9 @@
                 <a class="nav-item active" data-tab="dashboard">
                     <span>📊</span> Vue d'Ensemble
                 </a>
+                <a class="nav-item" data-tab="metrics">
+                    <span>⚡</span> Métriques & Trafic
+                </a>
                 <a class="nav-item" data-tab="users">
                     <span>👥</span> Utilisateurs
                 </a>
@@ -107,56 +110,6 @@
 
                 <div class="card-panel">
                     <div class="card-panel-header">
-                        <h2 class="card-panel-title">⚡ Suivi & Compteurs Système (Traffic & API)</h2>
-                    </div>
-                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 0;">
-                        <div class="stat-card" style="padding: 14px;">
-                            <div class="stat-icon" style="background: rgba(0, 136, 204, 0.15); color: #0088cc; width: 38px; height: 38px; font-size: 16px;">📲</div>
-                            <div>
-                                <div class="stat-val" id="metric-tg-rec" style="font-size: 18px;">0</div>
-                                <div class="stat-lbl" style="font-size: 11px;">Telegram Reçus</div>
-                            </div>
-                        </div>
-                        <div class="stat-card" style="padding: 14px;">
-                            <div class="stat-icon" style="background: rgba(0, 136, 204, 0.15); color: #0088cc; width: 38px; height: 38px; font-size: 16px;">📤</div>
-                            <div>
-                                <div class="stat-val" id="metric-tg-sent" style="font-size: 18px;">0</div>
-                                <div class="stat-lbl" style="font-size: 11px;">Telegram Envoyés</div>
-                            </div>
-                        </div>
-                        <div class="stat-card" style="padding: 14px;">
-                            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; width: 38px; height: 38px; font-size: 16px;">💳</div>
-                            <div>
-                                <div class="stat-val" id="metric-sumup-rec" style="font-size: 18px;">0</div>
-                                <div class="stat-lbl" style="font-size: 11px;">SumUp Webhooks</div>
-                            </div>
-                        </div>
-                        <div class="stat-card" style="padding: 14px;">
-                            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; width: 38px; height: 38px; font-size: 16px;">⚡</div>
-                            <div>
-                                <div class="stat-val" id="metric-sumup-sent" style="font-size: 18px;">0</div>
-                                <div class="stat-lbl" style="font-size: 11px;">SumUp API Req</div>
-                            </div>
-                        </div>
-                        <div class="stat-card" style="padding: 14px;">
-                            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; width: 38px; height: 38px; font-size: 16px;">🪙</div>
-                            <div>
-                                <div class="stat-val" id="metric-oxapay-sent" style="font-size: 18px;">0</div>
-                                <div class="stat-lbl" style="font-size: 11px;">OxaPay API Req</div>
-                            </div>
-                        </div>
-                        <div class="stat-card" style="padding: 14px;">
-                            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981; width: 38px; height: 38px; font-size: 16px;">🔑</div>
-                            <div>
-                                <div class="stat-val" id="metric-admin-logins" style="font-size: 18px;">0</div>
-                                <div class="stat-lbl" style="font-size: 11px;">Connexions Admin</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card-panel">
-                    <div class="card-panel-header">
                         <h2 class="card-panel-title">Dernières Ventes Enregistrées</h2>
                     </div>
                     <div class="table-wrapper">
@@ -173,6 +126,90 @@
                             <tbody id="recent-sales-table">
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-metrics" class="tab-content" style="display: none;">
+                <div class="card-panel" style="margin-bottom: 24px;">
+                    <div class="card-panel-header" style="flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h2 class="card-panel-title" style="display: flex; align-items: center; gap: 10px;">
+                                <span>⚡</span> Métriques & Trafic Système
+                                <span class="badge badge-success" style="font-size: 11px; padding: 3px 8px; font-weight: 500;">
+                                    <span class="pulse-dot"></span> EN DIRECT
+                                </span>
+                            </h2>
+                            <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+                                Suivi en temps réel sans coupure des échanges API, requêtes Telegram, SumUp, OxaPay et métriques système.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 24px;">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;">🚀</div>
+                        <div>
+                            <div class="stat-val" id="metric-total-traffic">0</div>
+                            <div class="stat-lbl">Trafic Total (Requêtes)</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(0, 136, 204, 0.15); color: #0088cc;">📲</div>
+                        <div>
+                            <div class="stat-val" id="metric-tg-rec">0</div>
+                            <div class="stat-lbl">Telegram Reçus (Updates)</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(0, 136, 204, 0.15); color: #0088cc;">📤</div>
+                        <div>
+                            <div class="stat-val" id="metric-tg-sent">0</div>
+                            <div class="stat-lbl">Telegram Envoyés (Messages)</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">💳</div>
+                        <div>
+                            <div class="stat-val" id="metric-sumup-rec">0</div>
+                            <div class="stat-lbl">SumUp Webhooks (Reçus)</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">⚡</div>
+                        <div>
+                            <div class="stat-val" id="metric-sumup-sent">0</div>
+                            <div class="stat-lbl">SumUp API (Requêtes)</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">🪙</div>
+                        <div>
+                            <div class="stat-val" id="metric-oxapay-sent">0</div>
+                            <div class="stat-lbl">OxaPay API (Crypto)</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">⚙️</div>
+                        <div>
+                            <div class="stat-val" id="metric-commands-exec">0</div>
+                            <div class="stat-lbl">Commandes Traitées</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">⚠️</div>
+                        <div>
+                            <div class="stat-val" id="metric-errors-count">0</div>
+                            <div class="stat-lbl">Erreurs Interceptées</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: #a855f7;">🔑</div>
+                        <div>
+                            <div class="stat-val" id="metric-admin-logins">0</div>
+                            <div class="stat-lbl">Connexions Admin Panel</div>
+                        </div>
                     </div>
                 </div>
             </div>

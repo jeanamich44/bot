@@ -523,6 +523,33 @@ tr:hover td {
     to { opacity: 1; transform: translateX(0); }
 }
 
+.pulse-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+    animation: pulseDot 1.5s infinite;
+    margin-right: 4px;
+}
+
+@keyframes pulseDot {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes counterPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.12); color: var(--accent-primary); }
+    100% { transform: scale(1); }
+}
+
+.counter-pulse {
+    animation: counterPulse 0.4s ease-out;
+}
+
 /* ==========================================================================
    Responsive Design & Mobile Support
    ========================================================================== */

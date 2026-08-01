@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const hash = (window.location.hash || '').replace('#', '').trim();
         const savedTab = localStorage.getItem('admin_active_tab') || 'dashboard';
-        const validTabs = ['dashboard', 'users', 'stock', 'payments', 'transactions', 'settings'];
+        const validTabs = ['dashboard', 'metrics', 'users', 'stock', 'payments', 'transactions', 'settings'];
         const activeTab = validTabs.includes(hash) ? hash : (validTabs.includes(savedTab) ? savedTab : 'dashboard');
 
         window.switchTab(activeTab);
@@ -187,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const titleMap = {
                 'dashboard': 'Vue d\'Ensemble',
+                'metrics': '⚡ Métriques & Trafic Système',
                 'users': 'Gestion des Utilisateurs',
                 'stock': 'Gestion du Stock Carrefour',
                 'payments': 'Rechargements (CB & Crypto)',
@@ -196,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pageTitleHeading.innerText = titleMap[tab] || 'Administration';
 
             if (tab === 'dashboard') loadDashboardData();
+            else if (tab === 'metrics') startMetricsLivePolling();
             else if (tab === 'users') loadUsersData();
             else if (tab === 'stock') loadStockData();
             else if (tab === 'payments') loadPaymentsData();
@@ -282,15 +284,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('stat-total-users').innerText = stats.totalUsers;
         document.getElementById('stat-total-stock').innerText = stats.totalStock;
 
-        if (stats.metrics) {
-            document.getElementById('metric-tg-rec').innerText = stats.metrics.telegramReceived || 0;
-            document.getElementById('metric-tg-sent').innerText = stats.metrics.telegramSent || 0;
-            document.getElementById('metric-sumup-rec').innerText = stats.metrics.sumupReceived || 0;
-            document.getElementById('metric-sumup-sent').innerText = stats.metrics.sumupSent || 0;
-            document.getElementById('metric-oxapay-sent').innerText = stats.metrics.oxapaySent || 0;
-            document.getElementById('metric-admin-logins').innerText = stats.metrics.adminLogins || 0;
-        }
-
         const tbody = document.getElementById('recent-sales-table');
         tbody.innerHTML = '';
         (stats.recentSales || []).forEach(tx => {
@@ -304,6 +297,51 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             tbody.appendChild(tr);
         });
+    }
+
+    let metricsLiveInterval = null;
+
+    function startMetricsLivePolling() {
+        if (metricsLiveInterval) clearInterval(metricsLiveInterval);
+        loadMetricsData();
+        metricsLiveInterval = setInterval(() => {
+            const activeTab = localStorage.getItem('admin_active_tab');
+            if (activeTab === 'metrics') {
+                loadMetricsData();
+            } else {
+                clearInterval(metricsLiveInterval);
+                metricsLiveInterval = null;
+            }
+        }, 2000);
+    }
+
+    function updateCounter(elementId, value) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        const newVal = String(value || 0);
+        if (el.innerText !== newVal) {
+            el.innerText = newVal;
+            el.classList.add('counter-pulse');
+            setTimeout(() => el.classList.remove('counter-pulse'), 400);
+        }
+    }
+
+    async function loadMetricsData() {
+        const stats = await apiRequest('/stats');
+        if (!stats || !stats.metrics) return;
+
+        const m = stats.metrics;
+        updateCounter('metric-tg-rec', m.telegramReceived);
+        updateCounter('metric-tg-sent', m.telegramSent);
+        updateCounter('metric-sumup-rec', m.sumupReceived);
+        updateCounter('metric-sumup-sent', m.sumupSent);
+        updateCounter('metric-oxapay-sent', m.oxapaySent);
+        updateCounter('metric-commands-exec', m.commandsExecuted);
+        updateCounter('metric-errors-count', m.errorsCount);
+        updateCounter('metric-admin-logins', m.adminLogins);
+
+        const totalTraffic = (m.telegramReceived || 0) + (m.telegramSent || 0) + (m.sumupSent || 0) + (m.oxapaySent || 0);
+        updateCounter('metric-total-traffic', totalTraffic);
     }
 
     let allUsers = [];
