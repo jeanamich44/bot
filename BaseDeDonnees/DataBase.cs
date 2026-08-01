@@ -259,12 +259,12 @@ namespace ChezRheyyBot
 
                     try
                     {
-                        using var alterCmd = new NpgsqlCommand("ALTER TABLE users ADD COLUMN IF NOT EXISTS UserNumber INTEGER;", connexion);
+                        using var alterCmd = new NpgsqlCommand("ALTER TABLE users ADD COLUMN IF NOT EXISTS UserNumber INTEGER; ALTER TABLE users ADD COLUMN IF NOT EXISTS Username TEXT;", connexion);
                         alterCmd.ExecuteNonQuery();
                     }
                     catch { }
 
-                    string requete = "SELECT Id, Achat, Solde, IsBanned, IsAdmin, BanReason, UserNumber FROM users";
+                    string requete = "SELECT Id, Achat, Solde, IsBanned, IsAdmin, BanReason, UserNumber, Username FROM users";
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     using (var reader = cmd.ExecuteReader())
                     {
@@ -272,6 +272,7 @@ namespace ChezRheyyBot
                         config.BanniUser.Clear();
                         config.BanReasons.Clear();
                         config.idAdmins.Clear();
+                        config.Usernames.Clear();
                         while (reader.Read())
                         {
                             long id = reader.GetInt64(0);
@@ -281,6 +282,12 @@ namespace ChezRheyyBot
                             bool isAdmin = !reader.IsDBNull(4) && reader.GetBoolean(4);
                             string banReason = reader.FieldCount > 5 && !reader.IsDBNull(5) ? reader.GetString(5) : "";
                             int userNum = reader.FieldCount > 6 && !reader.IsDBNull(6) ? reader.GetInt32(6) : 0;
+                            string uname = reader.FieldCount > 7 && !reader.IsDBNull(7) ? reader.GetString(7) : "";
+
+                            if (!string.IsNullOrWhiteSpace(uname))
+                            {
+                                config.Usernames[id] = uname;
+                            }
 
                             if (userNum > 0)
                             {
@@ -324,9 +331,9 @@ namespace ChezRheyyBot
                     foreach (var item in config.UserSave)
                     {
                         string requete = @"
-                        INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason, UserNumber)
-                        VALUES (@id, @achat, @solde, @banned, @reason, @usernum)
-                        ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason, UserNumber = EXCLUDED.UserNumber;";
+                        INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason, UserNumber, Username)
+                        VALUES (@id, @achat, @solde, @banned, @reason, @usernum, @username)
+                        ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason, UserNumber = EXCLUDED.UserNumber, Username = EXCLUDED.Username;";
 
                         using (var cmd = new NpgsqlCommand(requete, connexion))
                         {
@@ -336,6 +343,7 @@ namespace ChezRheyyBot
                             cmd.Parameters.AddWithValue("@banned", item.Item4);
                             cmd.Parameters.AddWithValue("@reason", config.BanReasons.TryGetValue(item.Item1, out string? r) ? (object)r : DBNull.Value);
                             cmd.Parameters.AddWithValue("@usernum", config.ObtenirOuCreerNumeroUtilisateur(item.Item1));
+                            cmd.Parameters.AddWithValue("@username", config.Usernames.TryGetValue(item.Item1, out string? u) && !string.IsNullOrWhiteSpace(u) ? (object)u : DBNull.Value);
                             cmd.ExecuteNonQuery();
                         }
                     }
@@ -359,9 +367,9 @@ namespace ChezRheyyBot
                 {
                     connexion.Open();
                     string requete = @"
-                    INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason, UserNumber)
-                    VALUES (@id, @achat, @solde, @banned, @reason, @usernum)
-                    ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason, UserNumber = EXCLUDED.UserNumber;";
+                    INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason, UserNumber, Username)
+                    VALUES (@id, @achat, @solde, @banned, @reason, @usernum, @username)
+                    ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason, UserNumber = EXCLUDED.UserNumber, Username = EXCLUDED.Username;";
 
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     {
@@ -371,6 +379,7 @@ namespace ChezRheyyBot
                         cmd.Parameters.AddWithValue("@banned", item.Item4);
                         cmd.Parameters.AddWithValue("@reason", config.BanReasons.TryGetValue(item.Item1, out string? r) ? (object)r : DBNull.Value);
                         cmd.Parameters.AddWithValue("@usernum", config.ObtenirOuCreerNumeroUtilisateur(item.Item1));
+                        cmd.Parameters.AddWithValue("@username", config.Usernames.TryGetValue(item.Item1, out string? u) && !string.IsNullOrWhiteSpace(u) ? (object)u : DBNull.Value);
                         cmd.ExecuteNonQuery();
                     }
                 }

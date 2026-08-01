@@ -232,6 +232,7 @@ namespace ChezRheyyBot
                 {
                     userNumber = config.ObtenirOuCreerNumeroUtilisateur(u.Item1),
                     id = u.Item1,
+                    username = config.ObtenirUsername(u.Item1),
                     achats = u.Item2,
                     solde = u.Item3,
                     isBanned = u.Item4,

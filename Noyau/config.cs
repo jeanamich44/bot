@@ -18,6 +18,17 @@ namespace ChezRheyyBot
         public static List<string> BanniUser = new List<string>();
         public static Dictionary<long, string> BanReasons = new Dictionary<long, string>();
         public static Dictionary<long, int> UserNumbers = new Dictionary<long, int>();
+        public static Dictionary<long, string> Usernames = new Dictionary<long, string>();
+
+        public static string ObtenirUsername(long userId)
+        {
+            if (Usernames.TryGetValue(userId, out string? username) && !string.IsNullOrWhiteSpace(username))
+            {
+                string clean = username.Trim();
+                return clean.StartsWith("@") ? clean : "@" + clean;
+            }
+            return "";
+        }
 
         public static int ObtenirOuCreerNumeroUtilisateur(long userId)
         {

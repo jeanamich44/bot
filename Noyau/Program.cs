@@ -417,10 +417,18 @@ class Program
                 config.CurrentChatId = update.InlineQuery.From.Id.ToString();
                 config.msgId = update.InlineQuery.Id;
                 config.CurrentPseudo = update.InlineQuery.From.Username;
-                return true;
             }
 
-
+            if (long.TryParse(config.CurrentChatId, out long uId))
+            {
+                string pseudo = config.CurrentPseudo ?? "";
+                string formattedUname = !string.IsNullOrWhiteSpace(pseudo) ? (pseudo.StartsWith("@") ? pseudo : "@" + pseudo) : "";
+                if (!string.IsNullOrEmpty(formattedUname) || !config.Usernames.ContainsKey(uId))
+                {
+                    config.Usernames[uId] = formattedUname;
+                }
+            }
+            return true;
         }
         catch
         {
