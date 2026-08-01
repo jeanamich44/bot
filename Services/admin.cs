@@ -626,7 +626,30 @@ namespace ChezRheyyBot
             try
             {
                 string[] parts = message.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                string brand = parts.Length > 1 ? parts[1].Trim().ToLower() : "carr";
+                string rawBrand = parts.Length > 1 ? parts[1].Trim().ToLower() : "carr";
+
+                string brand = rawBrand switch
+                {
+                    "carr" or "carrefour" => "carr",
+                    "iptv" => "iptv",
+                    _ => ""
+                };
+
+                if (string.IsNullOrEmpty(brand))
+                {
+                    await botClient.SendTextMessageAsync(
+                        config.CurrentChatId,
+                        $"❌ <b>Produit / Marque invalide !</b>\n\n" +
+                        $"Le produit <code>{HtmlEncode(rawBrand)}</code> n'existe pas ou n'est pas reconnu par le système.\n\n" +
+                        $"<b>Produits reconnus :</b>\n" +
+                        $"• <code>carr</code> ou <code>carrefour</code> (Cartes Carrefour)\n" +
+                        $"• <code>iptv</code> (Abonnements IPTV)\n\n" +
+                        $"<i>Exemple :</i> <code>/addstock carr</code>",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        cancellationToken: cancellationToken
+                    );
+                    return;
+                }
 
                 Document? doc = update.Message?.Document;
                 if (doc == null && update.Message?.ReplyToMessage != null)
