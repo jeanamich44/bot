@@ -103,7 +103,7 @@ namespace ChezRheyyBot
             {
                 config.CustomPaiement.Add(chatId);
             }
-            await botClient.SendTextMessageAsync(chatId, "✏️ <b>Veuillez inscrire le montant souhaité en € :</b>\n<i>(Exemple: 15, 25, 35)</i>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, "✏️ <b>Veuillez inscrire le montant souhaité en € :</b>\n<i>(Minimum: 3 €, Maximum: 70 €)</i>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
         }
 
         public static async Task AnnulerPaiement(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -172,10 +172,10 @@ namespace ChezRheyyBot
                 double.TryParse(montant, out priceValue);
             }
 
-            if (priceValue <= 0)
+            if (priceValue < 3 || priceValue > 70)
             {
-                Console.WriteLine($"[Paiement Crypto Erreur] Montant invalide parsing: {priceValue} (brut: '{montant}')");
-                await botClient.SendTextMessageAsync(chatId, "❌ Montant invalide. Veuillez réessayer.");
+                Console.WriteLine($"[Paiement Crypto Erreur] Montant hors limites (3€ - 70€): {priceValue}");
+                await botClient.SendTextMessageAsync(chatId, "⚠️ <b>Montant invalide.</b> Le montant d'une recharge Crypto doit être compris entre <b>3 €</b> et <b>70 €</b>.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                 return "";
             }
 

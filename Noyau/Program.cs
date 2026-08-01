@@ -149,12 +149,12 @@ class Program
                             return;
                         }
 
-                        if (mtn <= 0)
+                        if (mtn < 3 || mtn > 70)
                         {
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, $"Impossible de recharger {update.Message.Text}\n");
+                            await botClient.SendTextMessageAsync(config.CurrentChatId, "⚠️ <b>Montant invalide.</b> Le montant d'une recharge Crypto doit être compris entre <b>3 €</b> et <b>70 €</b>.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                             return;
                         }
-                        
+
                         Console.WriteLine($"[Paiement] Demande rechargement Crypto manuel: {mtn}€ par {config.CurrentChatId}");
                         config.CustomPaiement.Remove(config.CurrentChatId);
                         await paiement.GenerateLink(botClient, update, cancellationToken, update.Message.Text);
@@ -204,9 +204,9 @@ class Program
                             return;
                         }
 
-                        if (mtn <= 0)
+                        if (mtn < 3 || mtn > 70)
                         {
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, $"Impossible de recharger {update.Message.Text}\n");
+                            await botClient.SendTextMessageAsync(config.CurrentChatId, "⚠️ <b>Montant invalide.</b> Le montant d'une recharge Crypto doit être compris entre <b>3 €</b> et <b>70 €</b>.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                             return;
                         }
 
