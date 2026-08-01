@@ -162,7 +162,7 @@ class Program
 
             if (config.ModeMaintenance && !config.idAdmins.Contains(config.CurrentChatId))
             {
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "🛠️ <b>Maintenance en cours</b>\n\nLe bot est actuellement en maintenance. Veuillez réessayer ultérieurement.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "🛠️ <b>Maintenance en cours</b>\n\nLe bot est actuellement en maintenance. Veuillez réessayer ultérieurement.\n\n💬 <b>Besoin d'Aide ? Contactez un Admin :</b>\n@RheyyFondaa\n@NtRheyyTech", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                 return;
             }
 
