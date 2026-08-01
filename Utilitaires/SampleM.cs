@@ -31,7 +31,9 @@ namespace ChezRheyyBot
                 };
 
                 var inlineKeyboard = new InlineKeyboardMarkup(keyboardButtons);
+                int userNum = config.ObtenirOuCreerNumeroUtilisateur(long.Parse(config.CurrentChatId));
                 string caption = $"<b>Bienvenue sur @ChezRheyy Bot</b>\n\n" +
+                                 $"👤 Membre n° <b>#{userNum}</b>\n" +
                                  $"🆔 <code>{config.CurrentChatId}</code>\n" +
                                  $"💰 {solde}€\n" +
                                  $"🛒 {achats} commande(s)\n\n" +
@@ -62,8 +64,10 @@ namespace ChezRheyyBot
                     }
                 };
 
+                int userNum = config.ObtenirOuCreerNumeroUtilisateur(long.Parse(config.CurrentChatId));
                 var inlineKeyboard = new InlineKeyboardMarkup(keyboardButtons);
                 string caption = $"<b>Bienvenue sur @ChezRheyy Bot</b>\n\n" +
+                                 $"👤 Membre n° <b>#{userNum}</b>\n" +
                                  $"🆔 <code>{config.CurrentChatId}</code>\n" +
                                  $"💰 {solde}€\n" +
                                  $"🛒 {achats} commande(s)\n\n" +

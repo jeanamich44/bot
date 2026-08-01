@@ -256,7 +256,15 @@ namespace ChezRheyyBot
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
-                    string requete = "SELECT Id, Achat, Solde, IsBanned, IsAdmin, BanReason FROM users";
+
+                    try
+                    {
+                        using var alterCmd = new NpgsqlCommand("ALTER TABLE users ADD COLUMN IF NOT EXISTS UserNumber INTEGER;", connexion);
+                        alterCmd.ExecuteNonQuery();
+                    }
+                    catch { }
+
+                    string requete = "SELECT Id, Achat, Solde, IsBanned, IsAdmin, BanReason, UserNumber FROM users";
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     using (var reader = cmd.ExecuteReader())
                     {
@@ -272,6 +280,16 @@ namespace ChezRheyyBot
                             bool isBanned = !reader.IsDBNull(3) && reader.GetBoolean(3);
                             bool isAdmin = !reader.IsDBNull(4) && reader.GetBoolean(4);
                             string banReason = reader.FieldCount > 5 && !reader.IsDBNull(5) ? reader.GetString(5) : "";
+                            int userNum = reader.FieldCount > 6 && !reader.IsDBNull(6) ? reader.GetInt32(6) : 0;
+
+                            if (userNum > 0)
+                            {
+                                config.UserNumbers[id] = userNum;
+                            }
+                            else
+                            {
+                                userNum = config.ObtenirOuCreerNumeroUtilisateur(id);
+                            }
 
                             config.UserSave.Add(new Tuple<long, int, double, bool>(id, achat, solde, isBanned));
                             if (isBanned)
@@ -306,9 +324,9 @@ namespace ChezRheyyBot
                     foreach (var item in config.UserSave)
                     {
                         string requete = @"
-                        INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason)
-                        VALUES (@id, @achat, @solde, @banned, @reason)
-                        ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason;";
+                        INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason, UserNumber)
+                        VALUES (@id, @achat, @solde, @banned, @reason, @usernum)
+                        ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason, UserNumber = EXCLUDED.UserNumber;";
 
                         using (var cmd = new NpgsqlCommand(requete, connexion))
                         {
@@ -317,6 +335,7 @@ namespace ChezRheyyBot
                             cmd.Parameters.AddWithValue("@solde", item.Item3);
                             cmd.Parameters.AddWithValue("@banned", item.Item4);
                             cmd.Parameters.AddWithValue("@reason", config.BanReasons.TryGetValue(item.Item1, out string? r) ? (object)r : DBNull.Value);
+                            cmd.Parameters.AddWithValue("@usernum", config.ObtenirOuCreerNumeroUtilisateur(item.Item1));
                             cmd.ExecuteNonQuery();
                         }
                     }
@@ -340,9 +359,9 @@ namespace ChezRheyyBot
                 {
                     connexion.Open();
                     string requete = @"
-                    INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason)
-                    VALUES (@id, @achat, @solde, @banned, @reason)
-                    ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason;";
+                    INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason, UserNumber)
+                    VALUES (@id, @achat, @solde, @banned, @reason, @usernum)
+                    ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason, UserNumber = EXCLUDED.UserNumber;";
 
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     {
@@ -351,6 +370,7 @@ namespace ChezRheyyBot
                         cmd.Parameters.AddWithValue("@solde", item.Item3);
                         cmd.Parameters.AddWithValue("@banned", item.Item4);
                         cmd.Parameters.AddWithValue("@reason", config.BanReasons.TryGetValue(item.Item1, out string? r) ? (object)r : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@usernum", config.ObtenirOuCreerNumeroUtilisateur(item.Item1));
                         cmd.ExecuteNonQuery();
                     }
                 }

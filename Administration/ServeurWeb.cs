@@ -230,12 +230,13 @@ namespace ChezRheyyBot
                 DataBase.ChargerUtilisateurs();
                 var users = config.UserSave.Select(u => new
                 {
+                    userNumber = config.ObtenirOuCreerNumeroUtilisateur(u.Item1),
                     id = u.Item1,
                     achats = u.Item2,
                     solde = u.Item3,
                     isBanned = u.Item4,
                     banReason = config.BanReasons.TryGetValue(u.Item1, out var r) ? r : ""
-                }).ToList();
+                }).OrderBy(u => u.userNumber).ToList();
 
                 RepondreJson(response, 200, new { users });
             }

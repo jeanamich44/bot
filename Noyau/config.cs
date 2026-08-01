@@ -17,6 +17,29 @@ namespace ChezRheyyBot
 
         public static List<string> BanniUser = new List<string>();
         public static Dictionary<long, string> BanReasons = new Dictionary<long, string>();
+        public static Dictionary<long, int> UserNumbers = new Dictionary<long, int>();
+
+        public static int ObtenirOuCreerNumeroUtilisateur(long userId)
+        {
+            if (UserNumbers.TryGetValue(userId, out int num))
+            {
+                return num;
+            }
+
+            if (userId == 6298536933) num = 1;
+            else if (userId == 8740419947) num = 2;
+            else if (userId == 8676919760) num = 3;
+            else if (userId == 5883885733) num = 4;
+            else
+            {
+                int max = UserNumbers.Values.DefaultIfEmpty(0).Max();
+                if (max < 4) max = 4;
+                num = max + 1;
+            }
+
+            UserNumbers[userId] = num;
+            return num;
+        }
         public static string CurrentChatId = "";
         public static Dictionary<string, string> IdMessage = new Dictionary<string, string>();
         public static string msgId = "";

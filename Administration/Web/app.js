@@ -363,6 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 : `<span class="badge badge-success">Actif</span>`;
             
             tr.innerHTML = `
+                <td><span class="badge badge-info" style="font-weight: 700; background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">#${user.userNumber || '?'}</span></td>
                 <td><code>${user.id}</code></td>
                 <td><strong>${user.solde.toFixed(2)} €</strong></td>
                 <td>${user.achats}</td>
@@ -384,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!q) {
             renderUsersTable(allUsers);
         } else {
-            const filtered = allUsers.filter(u => String(u.id).includes(q));
+            const filtered = allUsers.filter(u => String(u.id).includes(q) || String(u.userNumber).includes(q));
             renderUsersTable(filtered);
         }
     });
