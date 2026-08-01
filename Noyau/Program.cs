@@ -28,10 +28,8 @@ class Program
         config.InitialiseCategorie();
         config.GetProfileSettings();
 
-        await AppliquerModeTelegram(botClient, config.ModeTelegram);
-        AppliquerModeSumUp(botClient, config.ModeSumUp);
-
         var me = await botClient.GetMeAsync();
+        Console.WriteLine($"Bot {me.Username} est démarré...");
 
         try
         {
@@ -42,9 +40,12 @@ class Program
         }
         catch { }
 
-        Console.WriteLine($"Bot {me.Username} est démarré (Mode: {config.ModeTelegram})...");
-        Task verifierTask = paiement.VerifierPaiement(botClient, cts.Token);
         Task serveurWebTask = ServeurWeb.LancerServeurWebAdmin(botClient, cts.Token);
+        await Task.Delay(200, cancellationToken); // Laisser le temps au serveur web de s'initialiser
+
+        await AppliquerModeTelegram(botClient, config.ModeTelegram);
+        AppliquerModeSumUp(botClient, config.ModeSumUp);
+        Task verifierTask = paiement.VerifierPaiement(botClient, cts.Token);
 
         await Task.Delay(Timeout.Infinite, cancellationToken);
 
@@ -114,7 +115,7 @@ class Program
                     _sumupPollingCts.Dispose();
                     _sumupPollingCts = null;
                 }
-                Console.WriteLine("[SumUp Mode] Basculé en mode Webhook (Notification Push instantanée).");
+                Console.WriteLine("[SumUp Mode] Basculé en mode Webhook.");
             }
             else
             {
