@@ -499,7 +499,7 @@ namespace ChezRheyyBot
                             string iptvUsername = !string.IsNullOrWhiteSpace(tx.Pin) ? tx.Pin : "N/A";
                             sb.AppendLine($"• {HtmlEncode(duree)} | <code>{HtmlEncode(iptvUsername)}</code> | {tx.Price}€ | <i>{dateParis:dd/MM à HH:mm}</i>");
                         }
-                        else if (tx.Value <= 0)
+                        else if (!tx.Value.HasValue || tx.Value.Value <= 0)
                         {
                             string pinPart = string.IsNullOrWhiteSpace(tx.Pin) ? "" : $" | <b>PIN :</b> <code>{HtmlEncode(tx.Pin)}</code>";
                             sb.AppendLine($"• <code>{HtmlEncode(tx.Code)}</code>{pinPart} | {tx.Price}€ | <i>{dateParis:dd/MM à HH:mm}</i>");
@@ -507,7 +507,7 @@ namespace ChezRheyyBot
                         else
                         {
                             string pinPart = string.IsNullOrWhiteSpace(tx.Pin) ? "" : $" | <b>PIN :</b> <code>{HtmlEncode(tx.Pin)}</code>";
-                            sb.AppendLine($"• <code>{HtmlEncode(tx.Code)}</code>{pinPart} | {tx.Value}€ ({tx.Price}€) | <i>{dateParis:dd/MM à HH:mm}</i>");
+                            sb.AppendLine($"• <code>{HtmlEncode(tx.Code)}</code>{pinPart} | {tx.Value.Value}€ ({tx.Price}€) | <i>{dateParis:dd/MM à HH:mm}</i>");
                         }
                     }
 

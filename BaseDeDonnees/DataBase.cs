@@ -445,7 +445,7 @@ namespace ChezRheyyBot
 
 
 
-        public static void EnregistrerTransaction(long userId, string brand, string code, string pin, int value, double price)
+        public static void EnregistrerTransaction(long userId, string brand, string code, string pin, int? value, double price)
         {
             try
             {
@@ -462,15 +462,18 @@ namespace ChezRheyyBot
                         cmd.Parameters.AddWithValue("@brand", brand ?? "");
                         cmd.Parameters.AddWithValue("@code", code ?? "");
                         cmd.Parameters.AddWithValue("@pin", pin ?? "");
-                        cmd.Parameters.AddWithValue("@value", value);
+                        if (value.HasValue && value.Value > 0)
+                            cmd.Parameters.AddWithValue("@value", value.Value);
+                        else
+                            cmd.Parameters.AddWithValue("@value", DBNull.Value);
                         cmd.Parameters.AddWithValue("@price", price);
                         cmd.ExecuteNonQuery();
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-
+                Console.WriteLine($"[EnregistrerTransaction Erreur] {ex.Message}");
             }
         }
 
@@ -481,7 +484,7 @@ namespace ChezRheyyBot
             public string Brand { get; set; } = "";
             public string Code { get; set; } = "";
             public string Pin { get; set; } = "";
-            public int Value { get; set; }
+            public int? Value { get; set; }
             public double Price { get; set; }
             public DateTime CreatedAt { get; set; }
         }
@@ -507,7 +510,7 @@ namespace ChezRheyyBot
                                 Brand = reader.IsDBNull(2) ? "" : reader.GetString(2),
                                 Code = reader.IsDBNull(3) ? "" : reader.GetString(3),
                                 Pin = reader.IsDBNull(4) ? "" : reader.GetString(4),
-                                Value = reader.IsDBNull(5) ? 0 : reader.GetInt32(5),
+                                Value = reader.IsDBNull(5) ? (int?)null : reader.GetInt32(5),
                                 Price = reader.IsDBNull(6) ? 0.0 : reader.GetDouble(6),
                                 CreatedAt = reader.IsDBNull(7) ? DateTime.MinValue : reader.GetDateTime(7)
                             });
