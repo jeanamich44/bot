@@ -80,7 +80,7 @@ namespace ChezRheyyBot
                         await GetInFoUser(botClient, update, cancellationToken);
                         break;
                     case "/stock":
-                        await ConnaitreNombreDeStock(botClient, update, cancellationToken);
+                        await ConnaitreNombreDeStock(message, botClient, update, cancellationToken);
                         break;
                     case "/commandes":
                         await RecupererAchatId(botClient, update, cancellationToken);
@@ -395,18 +395,21 @@ namespace ChezRheyyBot
             catch { }
         }
 
-        private static async Task ConnaitreNombreDeStock(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        private static async Task ConnaitreNombreDeStock(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
-                var connaitre = DataBase.ObtenirStocksParBrand("carr");
+                string[] parts = message.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                string brand = parts.Length > 1 ? parts[1].Trim().ToLower() : "carr";
+
+                var connaitre = DataBase.ObtenirStocksParBrand(brand);
                 if (connaitre.Count == 0)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Aucun STOCK !", cancellationToken: cancellationToken);
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"❌ Aucun stock disponible pour <b>{brand.ToUpper()}</b> !", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
                     return;
                 }
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, $"Le stock Carrefour est de {connaitre.Count}\n", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                await botClient.SendTextMessageAsync(config.CurrentChatId, $"📦 Le stock pour <b>{brand.ToUpper()}</b> est de <b>{connaitre.Count}</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
             }
             catch { }
         }
