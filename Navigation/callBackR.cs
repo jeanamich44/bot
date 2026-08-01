@@ -85,6 +85,7 @@ namespace ChezRheyyBot
                         nouveauSolde,
                         user.Item4
                     );
+                    DataBase.SauvegarderUtilisateurIndividuel(user.Item1);
 
                     try
                     {
