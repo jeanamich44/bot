@@ -32,10 +32,16 @@ namespace ChezRheyyBot
 
                 if (item != null)
                 {
-                    var prix = item.Price;
+                    double prixDouble = 0.0;
+                    string rawPrice = (item.Price ?? "0").Replace(',', '.');
+                    if (!double.TryParse(rawPrice, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out prixDouble))
+                    {
+                        double.TryParse(item.Price, out prixDouble);
+                    }
+
                     var solde = ancienTuple.Item3;
 
-                    if (solde - double.Parse(prix) < 0)
+                    if (solde - prixDouble < 0)
                     {
                         await botClient.SendTextMessageAsync(config.CurrentChatId, $"Votre solde de {solde}€ ne suffit pas.", cancellationToken: cancellationToken);
                         return;
@@ -45,7 +51,7 @@ namespace ChezRheyyBot
 
                     if (DataBase.SupprimerStockParId(int.Parse(msg[1])))
                     {
-                        double nouveauSolde = ancienTuple.Item3 - double.Parse(prix);
+                        double nouveauSolde = ancienTuple.Item3 - prixDouble;
                         config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2 + 1, nouveauSolde, ancienTuple.Item4);
                         DataBase.SauvegarderUtilisateurIndividuel(ancienTuple.Item1);
 
@@ -53,11 +59,39 @@ namespace ChezRheyyBot
                         int nombre = rnd.Next(100, 999);
                         string fileName = $"carr{chatid}_{nombre}.png";
 
-                        codebarre.GenerateBarcode(item.Code, fileName);
+                        try
+                        {
+                            codebarre.GenerateBarcode(item.Code, fileName);
+                        }
+                        catch (Exception bEx)
+                        {
+                            Console.WriteLine($"[Barcode Error] {bEx.Message}");
+                        }
 
-                        await EnregistrerLogsVendu(item.Code, item.Pin, item.Value, prix, config.CurrentChatId, item.Brand);
-                        await AvertirAchat(botClient, update, cancellationToken, prix, item.Brand);
-                        await EnvoyerBarcodeDirect(fileName, chatid, botClient, update, cancellationToken, item.Code, item.Pin);
+                        string formattedPrice = prixDouble.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                        await EnregistrerLogsVendu(item.Code, item.Pin, item.Value, formattedPrice, config.CurrentChatId, item.Brand);
+                        await AvertirAchat(botClient, update, cancellationToken, formattedPrice, item.Brand);
+
+                        bool okPhoto = await EnvoyerBarcodeDirect(fileName, chatid, botClient, update, cancellationToken, item.Code, item.Pin);
+                        if (!okPhoto)
+                        {
+                            var inlineKeyboard = new InlineKeyboardMarkup(new[]
+                            {
+                                new[]
+                                {
+                                    InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome")
+                                }
+                            });
+                            string pinText = string.IsNullOrWhiteSpace(item.Pin) ? "" : $"\n🔑 PIN : <code>{item.Pin}</code>";
+                            string caption = $"✅ <b>Merci pour votre achat !</b>\n\n💳 Carte Carrefour : <code>{item.Code}</code>{pinText}";
+
+                            await botClient.SendTextMessageAsync(
+                                chatId: chatid,
+                                text: caption,
+                                parseMode: ParseMode.Html,
+                                replyMarkup: inlineKeyboard,
+                                cancellationToken: cancellationToken);
+                        }
                         return;
                     }
                 }
@@ -67,7 +101,15 @@ namespace ChezRheyyBot
                     return;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DemandeAchat Erreur] {ex.Message}\n{ex.StackTrace}");
+                try
+                {
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, "❌ Une erreur est survenue lors du traitement de l'achat. Veuillez réessayer.", cancellationToken: cancellationToken);
+                }
+                catch { }
+            }
         }
 
         private static async Task<bool> EnvoyerBarcodeDirect(string fileName, string clientId, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken, string carte = "", string pin = "")
@@ -108,7 +150,10 @@ namespace ChezRheyyBot
                     return true;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EnvoyerBarcodeDirect Erreur] {ex.Message}");
+            }
 
             return false;
         }
