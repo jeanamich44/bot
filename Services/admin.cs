@@ -426,29 +426,20 @@ namespace ChezRheyyBot
             {
                 var parts = update.Message.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-                int days = 7; // Par défaut 7 jours (1 semaine)
+                int days = 7; // Par défaut 7 jours pour un client/produit spécifique
                 string searchArg = null;
                 bool showAll = false;
 
                 if (parts.Length == 1)
                 {
-                    // Ex: /commandes -> Tous les achats des 7 derniers jours
+                    // Ex: /commandes -> Global tous clients STRICTEMENT sur 1 JOUR (24h) MAX
                     showAll = true;
+                    days = 1;
                 }
                 else if (parts.Length == 2)
                 {
-                    // Ex: /commandes 5883885733 OU /commandes 14
-                    if (int.TryParse(parts[1], out int d) && d > 0 && d <= 3650)
-                    {
-                        // Ex: /commandes 14 -> Tous les achats des 14 derniers jours (tous clients)
-                        days = d;
-                        showAll = true;
-                    }
-                    else
-                    {
-                        // Ex: /commandes 5883885733 -> Achats de ce client sur 7 jours par défaut
-                        searchArg = parts[1].Trim();
-                    }
+                    // Ex: /commandes 5883885733 OU /commandes carr
+                    searchArg = parts[1].Trim();
                 }
                 else if (parts.Length >= 3)
                 {
@@ -467,7 +458,6 @@ namespace ChezRheyyBot
 
                 var matchingTx = transactions.Where(tx =>
                 {
-                    // Filtre temporel (en jours)
                     bool timeMatch = tx.CreatedAt >= cutoffDate;
                     if (!timeMatch) return false;
 
@@ -479,7 +469,7 @@ namespace ChezRheyyBot
                     return userMatch || codeMatch || brandMatch;
                 }).ToList();
 
-                string searchTitle = showAll ? "Global (Tous clients)" : searchArg;
+                string searchTitle = showAll ? "Global (Tous clients - 24h Max)" : searchArg;
 
                 if (matchingTx.Count == 0)
                 {
@@ -529,7 +519,7 @@ namespace ChezRheyyBot
                     sb.AppendLine();
                 }
 
-                string headerDays = days == 7 ? "7 jours (1 semaine)" : $"{days} jour{(days > 1 ? "s" : "")}";
+                string headerDays = days == 1 ? "Aujourd'hui (1 jour)" : $"{days} jour{(days > 1 ? "s" : "")}";
                 await botClient.SendTextMessageAsync(
                     config.CurrentChatId,
                     $"📋 <b>Historique d'Achats :</b> <code>{HtmlEncode(searchTitle)}</code> (Total: <b>{matchingTx.Count}</b> | <b>{headerDays}</b>)\n\n{sb}",
