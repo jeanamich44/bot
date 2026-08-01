@@ -513,12 +513,15 @@ namespace ChezRheyyBot
                 if (!config.CategorySettings["iptv"].ContainsKey("price_12m")) config.CategorySettings["iptv"]["price_12m"] = "30";
                 SauvegarderSettings();
             }
+
+            config.ChargerMetricsFromSettings();
         }
 
         public static void SauvegarderSettings()
         {
             try
             {
+                config.PersisterMetricsInSettings();
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();

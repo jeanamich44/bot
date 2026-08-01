@@ -56,6 +56,58 @@ namespace ChezRheyyBot
         public static bool blockstart = false;
         public static bool promotion = false;
 
+        // Métriques et Statistiques Système (RAM + stockage Settings)
+        public static long MetricTelegramReceived = 0;
+        public static long MetricTelegramSent = 0;
+        public static long MetricSumUpReceived = 0;
+        public static long MetricSumUpSent = 0;
+        public static long MetricOxaPayReceived = 0;
+        public static long MetricOxaPaySent = 0;
+        public static long MetricCommandsExecuted = 0;
+        public static long MetricErrorsCount = 0;
+        public static long MetricAdminLogins = 0;
+
+        public static void IncTelegramReceived() => System.Threading.Interlocked.Increment(ref MetricTelegramReceived);
+        public static void IncTelegramSent() => System.Threading.Interlocked.Increment(ref MetricTelegramSent);
+        public static void IncSumUpReceived() => System.Threading.Interlocked.Increment(ref MetricSumUpReceived);
+        public static void IncSumUpSent() => System.Threading.Interlocked.Increment(ref MetricSumUpSent);
+        public static void IncOxaPayReceived() => System.Threading.Interlocked.Increment(ref MetricOxaPayReceived);
+        public static void IncOxaPaySent() => System.Threading.Interlocked.Increment(ref MetricOxaPaySent);
+        public static void IncCommandsExecuted() => System.Threading.Interlocked.Increment(ref MetricCommandsExecuted);
+        public static void IncErrorsCount() => System.Threading.Interlocked.Increment(ref MetricErrorsCount);
+        public static void IncAdminLogins() => System.Threading.Interlocked.Increment(ref MetricAdminLogins);
+
+        public static void ChargerMetricsFromSettings()
+        {
+            MetricTelegramReceived = long.TryParse(GetSetting("metrics", "telegram_received", "0"), out long tr) ? tr : 0;
+            MetricTelegramSent = long.TryParse(GetSetting("metrics", "telegram_sent", "0"), out long ts) ? ts : 0;
+            MetricSumUpReceived = long.TryParse(GetSetting("metrics", "sumup_received", "0"), out long sr) ? sr : 0;
+            MetricSumUpSent = long.TryParse(GetSetting("metrics", "sumup_sent", "0"), out long ss) ? ss : 0;
+            MetricOxaPayReceived = long.TryParse(GetSetting("metrics", "oxapay_received", "0"), out long or) ? or : 0;
+            MetricOxaPaySent = long.TryParse(GetSetting("metrics", "oxapay_sent", "0"), out long os) ? os : 0;
+            MetricCommandsExecuted = long.TryParse(GetSetting("metrics", "commands_executed", "0"), out long ce) ? ce : 0;
+            MetricErrorsCount = long.TryParse(GetSetting("metrics", "errors_count", "0"), out long ec) ? ec : 0;
+            MetricAdminLogins = long.TryParse(GetSetting("metrics", "admin_logins", "0"), out long al) ? al : 0;
+        }
+
+        public static void PersisterMetricsInSettings()
+        {
+            if (!CategorySettings.ContainsKey("metrics"))
+            {
+                CategorySettings["metrics"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            }
+            var dict = CategorySettings["metrics"];
+            dict["telegram_received"] = MetricTelegramReceived.ToString();
+            dict["telegram_sent"] = MetricTelegramSent.ToString();
+            dict["sumup_received"] = MetricSumUpReceived.ToString();
+            dict["sumup_sent"] = MetricSumUpSent.ToString();
+            dict["oxapay_received"] = MetricOxaPayReceived.ToString();
+            dict["oxapay_sent"] = MetricOxaPaySent.ToString();
+            dict["commands_executed"] = MetricCommandsExecuted.ToString();
+            dict["errors_count"] = MetricErrorsCount.ToString();
+            dict["admin_logins"] = MetricAdminLogins.ToString();
+        }
+
         public static List<string> categorie = new List<string>();
         public static Dictionary<string, Dictionary<string, string>> CategorySettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         public static Dictionary<string, string> Settings = new Dictionary<string, string>();

@@ -282,6 +282,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('stat-total-users').innerText = stats.totalUsers;
         document.getElementById('stat-total-stock').innerText = stats.totalStock;
 
+        if (stats.metrics) {
+            document.getElementById('metric-tg-rec').innerText = stats.metrics.telegramReceived || 0;
+            document.getElementById('metric-tg-sent').innerText = stats.metrics.telegramSent || 0;
+            document.getElementById('metric-sumup-rec').innerText = stats.metrics.sumupReceived || 0;
+            document.getElementById('metric-sumup-sent').innerText = stats.metrics.sumupSent || 0;
+            document.getElementById('metric-oxapay-sent').innerText = stats.metrics.oxapaySent || 0;
+            document.getElementById('metric-admin-logins').innerText = stats.metrics.adminLogins || 0;
+        }
+
         const tbody = document.getElementById('recent-sales-table');
         tbody.innerHTML = '';
         (stats.recentSales || []).forEach(tx => {

@@ -791,6 +791,7 @@ namespace ChezRheyyBot
 
                 if (request.HttpMethod == "POST" || request.HttpMethod == "GET")
                 {
+                    config.IncSumUpReceived();
                     string checkoutId = "";
 
                     if (request.HttpMethod == "POST")

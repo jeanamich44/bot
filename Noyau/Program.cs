@@ -161,6 +161,7 @@ class Program
     {
         try
         {
+            config.IncTelegramReceived();
 
 
             if (!await GetChatId(botClient, update, cancellationToken))

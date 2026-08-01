@@ -124,6 +124,7 @@ namespace ChezRheyyBot
 
                 if (pwd == _adminSecretToken)
                 {
+                    config.IncAdminLogins();
                     RepondreJson(response, 200, new { success = true, token = pwd });
                 }
                 else
@@ -174,8 +175,21 @@ namespace ChezRheyyBot
                     createdAt = DataBase.ConvertirEnHeureParis(p.CreatedAt).ToString("yyyy-MM-ddTHH:mm:ss")
                 }).ToList();
 
+                var metrics = new
+                {
+                    telegramReceived = config.MetricTelegramReceived,
+                    telegramSent = config.MetricTelegramSent,
+                    sumupReceived = config.MetricSumUpReceived,
+                    sumupSent = config.MetricSumUpSent,
+                    oxapayReceived = config.MetricOxaPayReceived,
+                    oxapaySent = config.MetricOxaPaySent,
+                    commandsExecuted = config.MetricCommandsExecuted,
+                    errorsCount = config.MetricErrorsCount,
+                    adminLogins = config.MetricAdminLogins
+                };
+
                 bool maintenance = config.ModeMaintenance;
-                RepondreJson(response, 200, new { totalCa, totalRecharges, totalVentes, totalSales, totalUsers, totalStock, maintenance, recentSales, recentPayments });
+                RepondreJson(response, 200, new { totalCa, totalRecharges, totalVentes, totalSales, totalUsers, totalStock, maintenance, recentSales, recentPayments, metrics });
             }
             else if (path == "/api/admin/payments" && request.HttpMethod == "GET")
             {
