@@ -35,6 +35,18 @@ namespace ChezRheyyBot
             set => SetSetting("general", "maintenance", value ? "true" : "false");
         }
 
+        public static string ModeTelegram
+        {
+            get => GetSetting("general", "telegram_mode", "polling");
+            set => SetSetting("general", "telegram_mode", value);
+        }
+
+        public static string AdminSlug
+        {
+            get => GetSetting("admin", "slug", "espace-sec-x9k2m7");
+            set => SetSetting("admin", "slug", value);
+        }
+
         public static bool blockstart = false;
         public static bool promotion = false;
 

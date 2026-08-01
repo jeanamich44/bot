@@ -8,7 +8,7 @@ namespace ChezRheyyBot
 {
     internal class ServeurWeb
     {
-        private static string _adminSecretToken => config.GetSetting("admin", "password", Environment.GetEnvironmentVariable("ADMIN_PANEL_PASSWORD") ?? "ChezRheyy2026!");
+        private static string _adminSecretToken => config.GetSetting("admin", "password", "");
 
         public static async Task LancerServeurWebAdmin(ITelegramBotClient botClient, CancellationToken cancellationToken)
         {
@@ -65,6 +65,22 @@ namespace ChezRheyyBot
 
             try
             {
+                if (rawUrl.StartsWith("/webhook/telegram"))
+                {
+                    using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+                    string bodyStr = await reader.ReadToEndAsync();
+                    if (!string.IsNullOrWhiteSpace(bodyStr))
+                    {
+                        var update = JsonSerializer.Deserialize<Telegram.Bot.Types.Update>(bodyStr);
+                        if (update != null)
+                        {
+                            _ = Task.Run(() => Program.TraiterUpdateWebhook(botClient, update, cancellationToken), cancellationToken);
+                        }
+                    }
+                    RepondreJson(response, 200, new { ok = true });
+                    return;
+                }
+
                 if (rawUrl.StartsWith("/webhook/sumup/"))
                 {
                     await paiement.TraiterRequeteWebhookPublique(context, botClient, cancellationToken);
@@ -345,7 +361,18 @@ namespace ChezRheyyBot
             else if (path == "/api/admin/settings" && request.HttpMethod == "GET")
             {
                 var iptv = config.CategorySettings.TryGetValue("iptv", out var dict) ? dict : new Dictionary<string, string>();
-                RepondreJson(response, 200, new { iptv });
+                string telegramMode = config.ModeTelegram;
+                RepondreJson(response, 200, new { iptv, telegramMode });
+            }
+            else if (path == "/api/admin/settings/telegram" && request.HttpMethod == "POST")
+            {
+                using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+                string bodyStr = await reader.ReadToEndAsync();
+                using var doc = JsonDocument.Parse(bodyStr);
+                string mode = doc.RootElement.GetProperty("mode").GetString() ?? "polling";
+
+                await Program.AppliquerModeTelegram(botClient, mode);
+                RepondreJson(response, 200, new { success = true, mode = config.ModeTelegram });
             }
             else if (path == "/api/admin/settings/iptv" && request.HttpMethod == "POST")
             {
@@ -367,15 +394,39 @@ namespace ChezRheyyBot
             }
         }
 
+        private static void AjouterHeadersSecuriteAntiIndexation(HttpListenerResponse response)
+        {
+            try
+            {
+                response.Headers.Add("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");
+                response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+                response.Headers.Add("Pragma", "no-cache");
+            }
+            catch { }
+        }
+
         private static async Task GererFichiersStatiques(HttpListenerContext context)
         {
             var request = context.Request;
             var response = context.Response;
             string rawUrl = request.Url?.AbsolutePath ?? "/";
 
-            if (rawUrl == "/" || string.IsNullOrWhiteSpace(rawUrl))
+            AjouterHeadersSecuriteAntiIndexation(response);
+
+            string slug = config.AdminSlug.Trim('/');
+            string secretPrefix = "/" + slug;
+
+            if (!rawUrl.Equals(secretPrefix, StringComparison.OrdinalIgnoreCase) && !rawUrl.StartsWith(secretPrefix + "/", StringComparison.OrdinalIgnoreCase))
             {
-                rawUrl = "/index.html";
+                response.StatusCode = 404;
+                response.Close();
+                return;
+            }
+
+            string relativePath = rawUrl.Substring(secretPrefix.Length);
+            if (string.IsNullOrWhiteSpace(relativePath) || relativePath == "/")
+            {
+                relativePath = "/index.html";
             }
 
             string baseDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Administration", "Web");
@@ -384,7 +435,7 @@ namespace ChezRheyyBot
                 baseDir = Path.Combine(Directory.GetCurrentDirectory(), "Administration", "Web");
             }
 
-            string filePath = Path.Combine(baseDir, rawUrl.TrimStart('/'));
+            string filePath = Path.Combine(baseDir, relativePath.TrimStart('/'));
 
             if (!File.Exists(filePath))
             {
@@ -410,6 +461,7 @@ namespace ChezRheyyBot
         {
             try
             {
+                AjouterHeadersSecuriteAntiIndexation(response);
                 response.StatusCode = statusCode;
                 response.ContentType = "application/json; charset=utf-8";
                 string json = JsonSerializer.Serialize(data);

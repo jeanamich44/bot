@@ -428,6 +428,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('setting-iptv-3m').value = iptv.price_3m || '10';
         document.getElementById('setting-iptv-6m').value = iptv.price_6m || '15';
         document.getElementById('setting-iptv-12m').value = iptv.price_12m || '30';
+
+        if (data.telegramMode) {
+            document.getElementById('setting-telegram-mode').value = data.telegramMode;
+        }
     }
 
     async function loadPaymentsData() {
@@ -453,6 +457,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${new Date(p.createdAt).toLocaleString('fr-FR')}</td>
             `;
             tbody.appendChild(tr);
+        });
+    }
+
+    const tgModeForm = document.getElementById('settings-telegram-mode-form');
+    if (tgModeForm) {
+        tgModeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const mode = document.getElementById('setting-telegram-mode').value;
+            const res = await apiRequest('/settings/telegram', 'POST', { mode });
+            if (res && res.success) {
+                showToast(`Mode Telegram basculé sur ${res.mode === 'webhook' ? 'Webhook ⚡' : 'Long Polling 🔄'} avec succès !`, 'success');
+            }
         });
     }
 

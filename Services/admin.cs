@@ -21,6 +21,7 @@ namespace ChezRheyyBot
             "/crypto",
             "/message",
             "/maintenance",
+            "/panel",
             "/help"
         };
 
@@ -38,6 +39,7 @@ namespace ChezRheyyBot
             { "crypto", ("Interroge l'API OxaPay pour connaître le statut en direct d'une transaction.", "/crypto track_123456", "/crypto <trackId>") },
             { "message", ("Envoie un message de diffusion (broadcast) à tous les utilisateurs du bot.", "/message - Bonjour à tous !", "/message - <texte>") },
             { "maintenance", ("Active ou désactive le mode maintenance du bot.", "/maintenance on ou /maintenance off", "/maintenance [on|off]") },
+            { "panel", ("Affiche l'URL secrète d'accès au Panel d'Administration Web.", "/panel", "/panel") },
             { "help", ("Affiche l'aide des commandes administration.", "/help ou /help stock ou /help all", "/help [commande|all]") }
         };
 
@@ -70,6 +72,9 @@ namespace ChezRheyyBot
                         break;
                     case "/maintenance":
                         await ToggleMaintenance(message, botClient, update, cancellationToken);
+                        break;
+                    case "/panel":
+                        await SendPanelUrl(botClient, update, cancellationToken);
                         break;
                     case "/info":
                         await GetInFoUser(botClient, update, cancellationToken);
@@ -571,6 +576,19 @@ namespace ChezRheyyBot
 
                 string statusText = config.ModeMaintenance ? "ACTIVÉ 🔴" : "DÉSACTIVÉ 🟢";
                 await botClient.SendTextMessageAsync(config.CurrentChatId, $"🛠️ Mode Maintenance : <b>{statusText}</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+            }
+            catch { }
+        }
+
+        private static async Task SendPanelUrl(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            try
+            {
+                string domainEnv = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN") ?? Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL") ?? "serveur-production-db21.up.railway.app";
+                string slug = config.AdminSlug.Trim('/');
+                string fullUrl = $"https://{domainEnv}/{slug}/";
+
+                await botClient.SendTextMessageAsync(config.CurrentChatId, $"🔑 <b>URL d'Accès au Panel Admin Web :</b>\n\n<code>{fullUrl}</code>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
             }
             catch { }
         }

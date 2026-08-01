@@ -8,32 +8,26 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 class Program
 {
+    private static CancellationTokenSource? _pollingCts;
+    private static readonly object _modeLock = new object();
+
     static async Task Main(string[] args)
     {
-        var botClient = new TelegramBotClient(config.botToken);
+        using var httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(65)
+        };
+        var botClient = new TelegramBotClient(config.botToken, httpClient);
 
-        // Configure le gestionnaire des mises à jour
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
-
-        var receiverOptions = new ReceiverOptions
-        {
-            AllowedUpdates = Array.Empty<UpdateType>() // Recevoir tous les types d'update
-        };
-
-        botClient.StartReceiving(
-            HandleUpdateAsync,
-            HandleErrorAsync,
-            receiverOptions,
-            cancellationToken
-        );
-
-
 
         DataBase.CreerTableStockSiExistePas();
         await config.ReadJson();
         config.InitialiseCategorie();
         config.GetProfileSettings();
+
+        await AppliquerModeTelegram(botClient, config.ModeTelegram);
 
         var me = await botClient.GetMeAsync();
 
@@ -46,7 +40,7 @@ class Program
         }
         catch { }
 
-        Console.WriteLine($"Bot {me.Username} est démarré...");
+        Console.WriteLine($"Bot {me.Username} est démarré (Mode: {config.ModeTelegram})...");
         Task verifierTask = paiement.VerifierPaiement(botClient, cts.Token);
         Task verifierSumUpTask = paiement.VerifierPaiementSumAPI(botClient, cts.Token);
         Task serveurWebTask = ServeurWeb.LancerServeurWebAdmin(botClient, cts.Token);
@@ -56,6 +50,57 @@ class Program
         config.JsonWrite();
         config.SetProfileSettings();
         cts.Cancel();
+    }
+
+    public static async Task AppliquerModeTelegram(ITelegramBotClient botClient, string targetMode)
+    {
+        string mode = targetMode.ToLower() == "webhook" ? "webhook" : "polling";
+        config.ModeTelegram = mode;
+
+        if (mode == "webhook")
+        {
+            lock (_modeLock)
+            {
+                if (_pollingCts != null)
+                {
+                    _pollingCts.Cancel();
+                    _pollingCts.Dispose();
+                    _pollingCts = null;
+                }
+            }
+
+            string domainEnv = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN") ?? Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL") ?? "";
+            if (!string.IsNullOrEmpty(domainEnv))
+            {
+                string webhookUrl = $"https://{domainEnv}/webhook/telegram/";
+                await botClient.SetWebhookAsync(webhookUrl);
+                Console.WriteLine($"[Telegram Mode] Webhook configuré sur {webhookUrl}");
+            }
+        }
+        else
+        {
+            try
+            {
+                await botClient.DeleteWebhookAsync();
+            }
+            catch { }
+
+            lock (_modeLock)
+            {
+                if (_pollingCts == null)
+                {
+                    _pollingCts = new CancellationTokenSource();
+                    var receiverOptions = new ReceiverOptions { AllowedUpdates = Array.Empty<UpdateType>() };
+                    botClient.StartReceiving(HandleUpdateAsync, HandleErrorAsync, receiverOptions, _pollingCts.Token);
+                    Console.WriteLine("[Telegram Mode] Long Polling réactivé.");
+                }
+            }
+        }
+    }
+
+    public static async Task TraiterUpdateWebhook(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+    {
+        await HandleUpdateAsync(botClient, update, cancellationToken);
     }
 
     static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
