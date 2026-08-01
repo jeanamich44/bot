@@ -175,7 +175,7 @@ namespace ChezRheyyBot
             using (var connexion = new NpgsqlConnection(GetConnectionString()))
             {
                 connexion.Open();
-                string requete = "SELECT Id, Value, Price, Code, Pin FROM stock WHERE Brand = @brand";
+                string requete = "SELECT Id, Value, Price, Code, Pin FROM stock WHERE Brand = @brand ORDER BY Value DESC, Price DESC;";
 
                 using (var cmd = new NpgsqlCommand(requete, connexion))
                 {
@@ -197,7 +197,9 @@ namespace ChezRheyyBot
                 }
             }
 
-            return resultats;
+            return resultats.OrderByDescending(x => int.TryParse(x.Value, out int v) ? v : 0)
+                            .ThenByDescending(x => double.TryParse(x.Price, out double p) ? p : 0)
+                            .ToList();
         }
 
         public static StockItem ObtenirStockParId(int id)
