@@ -283,16 +283,16 @@
 
             <div id="tab-users" class="tab-content" style="display: none;">
                 <div class="card-panel">
-                    <div class="card-panel-header" style="flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between;">
-                        <h2 class="card-panel-title">Liste des Utilisateurs</h2>
-                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                            <div style="position: relative; display: flex; align-items: center;">
-                                <span style="position: absolute; left: 12px; color: var(--text-secondary); pointer-events: none; font-size: 14px;">🔍</span>
-                                <input type="text" id="user-search-input" class="form-input" placeholder="Rechercher par ID, @username, #Rang..." style="width: 280px; padding-left: 36px; padding-right: 32px;">
-                                <button type="button" id="user-search-clear" style="position: absolute; right: 10px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; display: none;" title="Effacer la recherche">✕</button>
+                    <div class="card-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                        <h2 class="card-panel-title" style="margin: 0;">Liste des Utilisateurs</h2>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="position: relative; width: 280px; display: flex; align-items: center;">
+                                <span style="position: absolute; left: 12px; color: var(--text-secondary); pointer-events: none; font-size: 13px;">🔍</span>
+                                <input type="text" id="user-search-input" class="form-input" placeholder="Rechercher ID, @username, #Rang..." style="width: 100%; padding-left: 36px; padding-right: 32px; height: 38px; font-size: 13px;">
+                                <button type="button" id="user-search-clear" style="position: absolute; right: 10px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; display: none;" title="Effacer">✕</button>
                             </div>
-                            <button type="button" id="btn-sync-usernames" class="btn-primary" style="padding: 10px 18px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                                <span>🔄</span> Synchro Pseudos Telegram
+                            <button type="button" id="btn-sync-usernames" class="btn-primary" style="height: 38px; padding: 0 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; width: auto;" title="Synchroniser les pseudos Telegram">
+                                <span>🔄</span> Sync Pseudos
                             </button>
                         </div>
                     </div>
@@ -531,6 +531,16 @@
                 <button id="modal-confirm-btn" class="btn-primary" style="width: auto; padding: 8px 18px;">Confirmer</button>
             </div>
         </div>
+    </div>
+
+    <div id="custom-context-menu" class="context-menu" style="display: none;">
+        <div class="context-menu-item" id="ctx-edit-solde">💳 Modifier le Solde</div>
+        <div class="context-menu-item" id="ctx-toggle-ban">🚫 Bannir / Débannir</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="ctx-copy-id">📋 Copier l'ID Telegram</div>
+        <div class="context-menu-item" id="ctx-copy-username">💬 Copier le Username</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item danger" id="ctx-delete-user">🗑️ Supprimer l'Utilisateur</div>
     </div>
 
     <div id="toast-container" class="toast-container"></div>

@@ -418,6 +418,47 @@ tr:hover td {
     border-color: var(--danger);
 }
 
+/* Context Menu */
+.context-menu {
+    position: absolute;
+    z-index: 10000;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    padding: 6px;
+    min-width: 210px;
+}
+
+.context-menu-item {
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #f8fafc;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.context-menu-item:hover {
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+}
+
+.context-menu-item.danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.context-menu-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 4px 0;
+}
+
 .modal-backdrop {
     position: fixed;
     top: 0;

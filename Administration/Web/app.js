@@ -447,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         users.forEach(user => {
             const tr = document.createElement('tr');
+            tr.style.cursor = 'context-menu';
             const statusBadge = user.isBanned 
                 ? `<span class="badge badge-danger">Banni</span>` 
                 : `<span class="badge badge-success">Actif</span>`;
@@ -471,7 +472,102 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="action-btn action-btn-danger" style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);" onclick="btnDeleteUser('${user.id}')">🗑️ Supprimer</button>
                 </td>
             `;
+
+            tr.addEventListener('contextmenu', (e) => showContextMenu(e, user));
             tbody.appendChild(tr);
+        });
+    }
+
+    // Context Menu Logic
+    let selectedContextUser = null;
+    const ctxMenu = document.getElementById('custom-context-menu');
+
+    function showContextMenu(e, user) {
+        e.preventDefault();
+        selectedContextUser = user;
+        if (!ctxMenu) return;
+
+        ctxMenu.style.display = 'block';
+        ctxMenu.style.left = `${e.pageX}px`;
+        ctxMenu.style.top = `${e.pageY}px`;
+
+        const toggleBanElem = document.getElementById('ctx-toggle-ban');
+        if (toggleBanElem) {
+            toggleBanElem.innerText = user.isBanned ? '🔓 Débannir l\'Utilisateur' : '🚫 Bannir l\'Utilisateur';
+        }
+    }
+
+    function hideContextMenu() {
+        if (ctxMenu) ctxMenu.style.display = 'none';
+        selectedContextUser = null;
+    }
+
+    document.addEventListener('click', hideContextMenu);
+    document.addEventListener('scroll', hideContextMenu);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') hideContextMenu();
+    });
+
+    const ctxEditSolde = document.getElementById('ctx-edit-solde');
+    if (ctxEditSolde) {
+        ctxEditSolde.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (selectedContextUser) {
+                btnEditSolde(selectedContextUser.id, selectedContextUser.solde);
+            }
+            hideContextMenu();
+        });
+    }
+
+    const ctxToggleBan = document.getElementById('ctx-toggle-ban');
+    if (ctxToggleBan) {
+        ctxToggleBan.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (selectedContextUser) {
+                if (selectedContextUser.isBanned) {
+                    btnDebanUser(selectedContextUser.id);
+                } else {
+                    btnBanUser(selectedContextUser.id);
+                }
+            }
+            hideContextMenu();
+        });
+    }
+
+    const ctxCopyId = document.getElementById('ctx-copy-id');
+    if (ctxCopyId) {
+        ctxCopyId.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (selectedContextUser) {
+                navigator.clipboard.writeText(String(selectedContextUser.id));
+                showToast(`ID Telegram ${selectedContextUser.id} copié !`, 'info');
+            }
+            hideContextMenu();
+        });
+    }
+
+    const ctxCopyUsername = document.getElementById('ctx-copy-username');
+    if (ctxCopyUsername) {
+        ctxCopyUsername.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (selectedContextUser && selectedContextUser.username) {
+                navigator.clipboard.writeText(selectedContextUser.username);
+                showToast(`Username ${selectedContextUser.username} copié !`, 'info');
+            } else {
+                showToast('Aucun username à copier', 'warning');
+            }
+            hideContextMenu();
+        });
+    }
+
+    const ctxDeleteUser = document.getElementById('ctx-delete-user');
+    if (ctxDeleteUser) {
+        ctxDeleteUser.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (selectedContextUser) {
+                btnDeleteUser(selectedContextUser.id);
+            }
+            hideContextMenu();
         });
     }
 
