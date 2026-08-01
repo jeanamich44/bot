@@ -400,21 +400,42 @@ namespace ChezRheyyBot
 
                                 try
                                 {
-                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"Paiement <code>{item.TrackId}</code> expiré", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"⌛ <b>FACTURE EXPIRÉE</b>\n\nLe paiement Crypto <code>{item.TrackId}</code> a expiré.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                                 }
                                 catch { }
+
+                                foreach (var idAdmin in config.idAdmins)
+                                {
+                                    try
+                                    {
+                                        await botClient.SendTextMessageAsync(idAdmin, $"⌛ <b>[PAIEMENT CRYPTO EXPIRÉ]</b>\n<b>User / ChatID</b>: <code>{item.ChatId}</code>\n<b>TrackID</b>: <code>{item.TrackId}</code>\n<b>Montant</b>: {item.Amount} €", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                    }
+                                    catch { }
+                                }
                             }
                         }
                         else if (string.Equals(status, "canceled", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "failed", StringComparison.OrdinalIgnoreCase))
                         {
-                            Console.WriteLine($"[Paiement Crypto Annulé/Échec] Facture {item.TrackId} annulée pour ChatID: {item.ChatId}");
-                            DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "FAILED");
-
-                            try
+                            if (!string.Equals(item.Status, "FAILED", StringComparison.OrdinalIgnoreCase))
                             {
-                                await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"Paiement <code>{item.TrackId}</code> annulé ou échoué", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                Console.WriteLine($"[Paiement Crypto Annulé/Échec] Facture {item.TrackId} annulée pour ChatID: {item.ChatId}");
+                                DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "FAILED");
+
+                                try
+                                {
+                                    await botClient.SendTextMessageAsync(long.Parse(item.ChatId), $"❌ <b>PAIEMENT ÉCHOUÉ</b>\n\nLe paiement Crypto <code>{item.TrackId}</code> a été annulé ou a échoué.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                }
+                                catch { }
+
+                                foreach (var idAdmin in config.idAdmins)
+                                {
+                                    try
+                                    {
+                                        await botClient.SendTextMessageAsync(idAdmin, $"❌ <b>[PAIEMENT CRYPTO ÉCHOUÉ/ANNULÉ]</b>\n<b>User / ChatID</b>: <code>{item.ChatId}</code>\n<b>TrackID</b>: <code>{item.TrackId}</code>\n<b>Montant</b>: {item.Amount} €", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                    }
+                                    catch { }
+                                }
                             }
-                            catch { }
                         }
                     }
                     catch (Exception ex)
@@ -630,7 +651,7 @@ namespace ChezRheyyBot
                                 {
                                     try
                                     {
-                                        await botClient.SendTextMessageAsync(idAdmin, $"[PAIEMENT CB EXPIRÉ] ChatID: {item.ChatId} | TrackID: {item.TrackId}");
+                                        await botClient.SendTextMessageAsync(idAdmin, $"⌛ <b>[PAIEMENT CB EXPIRÉ]</b>\n<b>User / ChatID</b>: <code>{item.ChatId}</code>\n<b>TrackID</b>: <code>{item.TrackId}</code>\n<b>Montant</b>: {item.Amount} €", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                                     }
                                     catch { }
                                 }
@@ -836,6 +857,31 @@ namespace ChezRheyyBot
                                     if (string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "SUCCESSFUL", StringComparison.OrdinalIgnoreCase))
                                     {
                                         await TraiterValidationPaiementSumUp(botClient, item.ChatId, checkoutId, montantSumUp, "WEBHOOK SUMUP REÇU");
+                                    }
+                                    else if (string.Equals(status, "EXPIRED", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        if (!string.Equals(item.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            DataBase.MettreAJourPaiementStatutBDD(checkoutId, "EXPIRED");
+                                            try
+                                            {
+                                                var homeKb = new InlineKeyboardMarkup(new[]
+                                                {
+                                                    new[] { InlineKeyboardButton.WithCallbackData("💳 Nouveau paiement", "iCustomP"), InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome") }
+                                                });
+                                                await botClient.SendTextMessageAsync(long.Parse(item.ChatId), "⌛ <b>FACTURE EXPIRÉE</b>\n\nLe délai de 15 minutes pour effectuer le paiement par carte est dépassé.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyMarkup: homeKb);
+                                            }
+                                            catch { }
+
+                                            foreach (var idAdmin in config.idAdmins)
+                                            {
+                                                try
+                                                {
+                                                    await botClient.SendTextMessageAsync(idAdmin, $"⌛ <b>[PAIEMENT CB EXPIRÉ]</b>\n<b>User / ChatID</b>: <code>{item.ChatId}</code>\n<b>TrackID</b>: <code>{checkoutId}</code>\n<b>Montant</b>: {item.Amount} €", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                                                }
+                                                catch { }
+                                            }
+                                        }
                                     }
                                 }
                             }
