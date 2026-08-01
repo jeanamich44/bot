@@ -104,7 +104,8 @@ namespace ChezRheyyBot
                     await botClient.SendTextMessageAsync(config.CurrentChatId, $"*ChezRheyy IPTV*\n\nHost:{baseUrl}\nUsername:{username}\nPassword:{password}\n", parseMode: ParseMode.Markdown);
 
                     long.TryParse(config.CurrentChatId, out long userIdIptv);
-                    DataBase.EnregistrerTransaction(userIdIptv, "IPTV", number.ToString(), "", 0, prix);
+                    string codeIptv = !string.IsNullOrWhiteSpace(username) ? $"{number}M ({username})" : $"{number} mois";
+                    DataBase.EnregistrerTransaction(userIdIptv, "IPTV", codeIptv, password ?? "", 0, prix);
                 }
                 else if (update.CallbackQuery.Data == "iHome")
                 {
