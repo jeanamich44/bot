@@ -452,7 +452,8 @@ namespace ChezRheyyBot
                             break;
                         }
                         DateTime dateParis = DataBase.ConvertirEnHeureParis(tx.CreatedAt);
-                        sb.AppendLine($"Brand = {tx.Brand} | Carte = {tx.Code} | Solde = {tx.Value} | Prix = {tx.Price}€ | Date = {dateParis:dd/MM/yyyy HH:mm}");
+                        string pinPart = string.IsNullOrWhiteSpace(tx.Pin) ? "" : $" | PIN = {tx.Pin}";
+                        sb.AppendLine($"Produit = {tx.Brand} | Carte = {tx.Code}{pinPart} | Solde = {tx.Value}€ | Prix = {tx.Price}€ | Date = {dateParis:dd/MM/yyyy HH:mm}");
                     }
                 }
 
