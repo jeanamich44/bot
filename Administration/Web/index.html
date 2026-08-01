@@ -131,84 +131,148 @@
             </div>
 
             <div id="tab-metrics" class="tab-content" style="display: none;">
-                <div class="card-panel" style="margin-bottom: 24px;">
-                    <div class="card-panel-header" style="flex-wrap: wrap; gap: 12px;">
-                        <div>
-                            <h2 class="card-panel-title" style="display: flex; align-items: center; gap: 10px;">
-                                <span>⚡</span> Métriques & Trafic Système
-                                <span class="badge badge-success" style="font-size: 11px; padding: 3px 8px; font-weight: 500;">
-                                    <span class="pulse-dot"></span> EN DIRECT
-                                </span>
-                            </h2>
-                            <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-                                Suivi en temps réel sans coupure des échanges API, requêtes Telegram, SumUp, OxaPay et métriques système.
+                <!-- Hero Banner Trafic & Santé -->
+                <div class="card-panel" style="margin-bottom: 24px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(99, 102, 241, 0.25); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <div style="width: 52px; height: 52px; border-radius: 14px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); display: flex; align-items: center; justify-content: center; font-size: 24px; color: #818cf8;">🚀</div>
+                            <div>
+                                <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Volume Réseau Global</div>
+                                <div id="metric-total-traffic" style="font-size: 28px; font-weight: 800; color: #ffffff; line-height: 1.2;">0</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                            <span class="badge badge-success" style="font-size: 12px; padding: 6px 14px; border-radius: 20px; font-weight: 600;">
+                                <span class="pulse-dot"></span> SYNCHRONISÉ EN TEMPS RÉEL
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 1: Activité Telegram -->
+                <div style="margin-bottom: 28px;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                        <span>📱</span> Activité du Bot Telegram
+                    </h3>
+                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px;">
+                        <div class="stat-card" style="flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                                <div class="stat-icon" style="background: rgba(0, 136, 204, 0.15); color: #0088cc;">📥</div>
+                                <div style="flex: 1;">
+                                    <div class="stat-val" id="metric-tg-rec" style="font-size: 24px;">0</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Messages & Clics Reçus</div>
+                                </div>
+                            </div>
+                            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
+                                Total des messages, commandes et clics sur boutons envoyés par les utilisateurs au bot.
+                            </p>
+                        </div>
+
+                        <div class="stat-card" style="flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                                <div class="stat-icon" style="background: rgba(0, 136, 204, 0.15); color: #0088cc;">📤</div>
+                                <div style="flex: 1;">
+                                    <div class="stat-val" id="metric-tg-sent" style="font-size: 24px;">0</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Messages & Réponses Envoyés</div>
+                                </div>
+                            </div>
+                            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
+                                Total des réponses, visuels, menus et notifications renvoyés par le bot aux utilisateurs.
+                            </p>
+                        </div>
+
+                        <div class="stat-card" style="flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">⚙️</div>
+                                <div style="flex: 1;">
+                                    <div class="stat-val" id="metric-commands-exec" style="font-size: 24px;">0</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Commandes Traitées</div>
+                                </div>
+                            </div>
+                            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
+                                Nombre d'actions utilisateur traitées (ex: /start, sélection de produit, rechargement).
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 24px;">
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;">🚀</div>
-                        <div>
-                            <div class="stat-val" id="metric-total-traffic">0</div>
-                            <div class="stat-lbl">Trafic Total (Requêtes)</div>
+                <!-- SECTION 2: Passerelles de Paiement -->
+                <div style="margin-bottom: 28px;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                        <span>💳</span> Transactions & Passerelles de Paiement
+                    </h3>
+                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px;">
+                        <div class="stat-card" style="flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                                <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">💳</div>
+                                <div style="flex: 1;">
+                                    <div class="stat-val" id="metric-sumup-rec" style="font-size: 24px;">0</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Webhooks SumUp (CB)</div>
+                                </div>
+                            </div>
+                            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
+                                Notifications de paiement Carte / Apple Pay envoyées en temps réel par SumUp.
+                            </p>
+                        </div>
+
+                        <div class="stat-card" style="flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                                <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">⚡</div>
+                                <div style="flex: 1;">
+                                    <div class="stat-val" id="metric-sumup-sent" style="font-size: 24px;">0</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Requêtes API SumUp</div>
+                                </div>
+                            </div>
+                            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
+                                Interrogations automatiques effectuées par le bot pour vérifier l'état des paiements par carte.
+                            </p>
+                        </div>
+
+                        <div class="stat-card" style="flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                                <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">🪙</div>
+                                <div style="flex: 1;">
+                                    <div class="stat-val" id="metric-oxapay-sent" style="font-size: 24px;">0</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Requêtes API OxaPay (Crypto)</div>
+                                </div>
+                            </div>
+                            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
+                                Interrogations automatiques auprès d'OxaPay pour valider les factures en Cryptomonnaie.
+                            </p>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(0, 136, 204, 0.15); color: #0088cc;">📲</div>
-                        <div>
-                            <div class="stat-val" id="metric-tg-rec">0</div>
-                            <div class="stat-lbl">Telegram Reçus (Updates)</div>
+                </div>
+
+                <!-- SECTION 3: Sécurité & Supervision -->
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                        <span>🛡️</span> Sécurité & Santé Système
+                    </h3>
+                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px;">
+                        <div class="stat-card" style="flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                                <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: #a855f7;">🔑</div>
+                                <div style="flex: 1;">
+                                    <div class="stat-val" id="metric-admin-logins" style="font-size: 24px;">0</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Connexions Admin Panel</div>
+                                </div>
+                            </div>
+                            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
+                                Nombre total d'accès réussis à cette interface web d'administration.
+                            </p>
                         </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(0, 136, 204, 0.15); color: #0088cc;">📤</div>
-                        <div>
-                            <div class="stat-val" id="metric-tg-sent">0</div>
-                            <div class="stat-lbl">Telegram Envoyés (Messages)</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">💳</div>
-                        <div>
-                            <div class="stat-val" id="metric-sumup-rec">0</div>
-                            <div class="stat-lbl">SumUp Webhooks (Reçus)</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">⚡</div>
-                        <div>
-                            <div class="stat-val" id="metric-sumup-sent">0</div>
-                            <div class="stat-lbl">SumUp API (Requêtes)</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">🪙</div>
-                        <div>
-                            <div class="stat-val" id="metric-oxapay-sent">0</div>
-                            <div class="stat-lbl">OxaPay API (Crypto)</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">⚙️</div>
-                        <div>
-                            <div class="stat-val" id="metric-commands-exec">0</div>
-                            <div class="stat-lbl">Commandes Traitées</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">⚠️</div>
-                        <div>
-                            <div class="stat-val" id="metric-errors-count">0</div>
-                            <div class="stat-lbl">Erreurs Interceptées</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: #a855f7;">🔑</div>
-                        <div>
-                            <div class="stat-val" id="metric-admin-logins">0</div>
-                            <div class="stat-lbl">Connexions Admin Panel</div>
+
+                        <div class="stat-card" style="flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                                <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">⚠️</div>
+                                <div style="flex: 1;">
+                                    <div class="stat-val" id="metric-errors-count" style="font-size: 24px;">0</div>
+                                    <div class="stat-lbl" style="font-size: 13px; font-weight: 600;">Erreurs Interceptées</div>
+                                </div>
+                            </div>
+                            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; width: 100%;">
+                                Nombre d'erreurs attrapées de manière sécurisée sans interrompre l'exécution du bot.
+                            </p>
                         </div>
                     </div>
                 </div>
