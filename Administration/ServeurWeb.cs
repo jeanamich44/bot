@@ -203,7 +203,11 @@ namespace ChezRheyyBot
                 string bodyStr = await reader.ReadToEndAsync();
                 using var doc = JsonDocument.Parse(bodyStr);
                 bool mtn = doc.RootElement.GetProperty("maintenance").GetBoolean();
-                config.ModeMaintenance = mtn;
+                if (config.ModeMaintenance != mtn)
+                {
+                    config.ModeMaintenance = mtn;
+                    _ = Program.AnnoncerModeMaintenance(botClient, mtn, cancellationToken);
+                }
                 RepondreJson(response, 200, new { success = true, maintenance = config.ModeMaintenance });
             }
             else if (path == "/api/admin/users" && request.HttpMethod == "GET")

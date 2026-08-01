@@ -134,6 +134,24 @@ class Program
         }
     }
 
+    public static async Task AnnoncerModeMaintenance(ITelegramBotClient botClient, bool maintenance, CancellationToken cancellationToken = default)
+    {
+        string msg = maintenance
+            ? "🛠️ <b>Mode Maintenance Activé</b>\n\nLe bot est actuellement en maintenance. Certaines fonctionnalités peuvent être indisponibles temporairement.\n\n💬 <b>Besoin d'Aide ? Contactez un Admin :</b>\n@RheyyFondaa\n@NtRheyyTech"
+            : "🟢 <b>Mode Maintenance Désactivé</b>\n\nLe bot est de nouveau entièrement opérationnel ! Merci de votre patience. 🎉";
+
+        var users = config.UserSave.ToList();
+        foreach (var item in users)
+        {
+            try
+            {
+                await botClient.SendTextMessageAsync(item.Item1, msg, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                await Task.Delay(35, cancellationToken);
+            }
+            catch { }
+        }
+    }
+
     public static async Task TraiterUpdateWebhook(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
         await HandleUpdateAsync(botClient, update, cancellationToken);

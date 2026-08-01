@@ -561,6 +561,7 @@ namespace ChezRheyyBot
         {
             try
             {
+                bool ancienState = config.ModeMaintenance;
                 var parts = message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length > 1)
                 {
@@ -583,10 +584,18 @@ namespace ChezRheyyBot
                     config.ModeMaintenance = !config.ModeMaintenance;
                 }
 
+                if (ancienState != config.ModeMaintenance)
+                {
+                    _ = Program.AnnoncerModeMaintenance(botClient, config.ModeMaintenance, cancellationToken);
+                }
+
                 string statusText = config.ModeMaintenance ? "ACTIVÉ 🔴" : "DÉSACTIVÉ 🟢";
                 await botClient.SendTextMessageAsync(config.CurrentChatId, $"🛠️ Mode Maintenance : <b>{statusText}</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Admin Erreur] {ex.Message}");
+            }
         }
 
         private static async Task SendPanelUrl(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
