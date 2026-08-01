@@ -472,12 +472,7 @@ namespace ChezRheyyBot
 
                         if (tx.Brand?.Equals("iptv", StringComparison.OrdinalIgnoreCase) == true)
                         {
-                            string displayCode = tx.Code;
-                            if (int.TryParse(tx.Code, out int mois))
-                            {
-                                displayCode = $"{mois} mois";
-                            }
-                            sb.AppendLine($"• <code>{HtmlEncode(displayCode)}</code> | {tx.Price}€ | <i>{dateParis:dd/MM à HH:mm}</i>");
+                            sb.AppendLine($"• <code>{HtmlEncode(tx.Code)}</code> | {tx.Price}€ | <i>{dateParis:dd/MM à HH:mm}</i>");
                         }
                         else if (tx.Value <= 0)
                         {
