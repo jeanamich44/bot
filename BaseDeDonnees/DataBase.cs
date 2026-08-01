@@ -602,12 +602,12 @@ namespace ChezRheyyBot
                 }
             }
 
-            SauvegarderSettings();
-
             if (dbSuccess)
             {
                 config.ChargerMetricsFromSettings();
             }
+
+            SauvegarderSettings();
         }
 
         public static void SauvegarderSettings()

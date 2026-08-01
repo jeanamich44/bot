@@ -112,12 +112,17 @@ namespace ChezRheyyBot
         public static void IncAdminLogins() => System.Threading.Interlocked.Increment(ref MetricAdminLogins);
 
         public static readonly object SettingsLock = new object();
+        public static bool IsMetricsLoadedFromDb = false;
 
         public static void ChargerMetricsFromSettings()
         {
             lock (SettingsLock)
             {
-                if (!CategorySettings.TryGetValue("metrics", out var dict)) return;
+                if (!CategorySettings.TryGetValue("metrics", out var dict))
+                {
+                    IsMetricsLoadedFromDb = true;
+                    return;
+                }
 
                 long ParseVal(string key, long current)
                 {
@@ -133,6 +138,8 @@ namespace ChezRheyyBot
                 MetricCommandsExecuted = ParseVal("commands_executed", MetricCommandsExecuted);
                 MetricErrorsCount = ParseVal("errors_count", MetricErrorsCount);
                 MetricAdminLogins = ParseVal("admin_logins", MetricAdminLogins);
+
+                IsMetricsLoadedFromDb = true;
             }
         }
 
@@ -140,6 +147,8 @@ namespace ChezRheyyBot
         {
             lock (SettingsLock)
             {
+                if (!IsMetricsLoadedFromDb) return;
+
                 if (!CategorySettings.ContainsKey("metrics"))
                 {
                     CategorySettings["metrics"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
