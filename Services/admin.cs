@@ -11,6 +11,8 @@ namespace ChezRheyyBot
         {
             "/addMoney",
             "/removeMoney",
+            "/addstock",
+            "/addStock",
             "/ban",
             "/deban",
             "/unlock",
@@ -29,11 +31,12 @@ namespace ChezRheyyBot
         {
             { "addmoney", ("Ajoute du solde en euros à un utilisateur Telegram.", "/addMoney 123456789 25", "/addMoney <id> <montant>") },
             { "removemoney", ("Retire du solde en euros à un utilisateur.", "/removeMoney 123456789 10", "/removeMoney <id> <montant>") },
+            { "addstock", ("Ajoute du stock en BDD depuis un fichier .txt joint (ex: CODE:PIN:VALEUR:PRIX).", "Envoyer un .txt avec la légende /addstock carr", "/addstock [marque]") },
             { "ban", ("Bannit un utilisateur avec une raison optionnelle.", "/ban 123456789 ou /ban 123456789 Spam / Arnaque", "/ban <id> [raison...]") },
             { "deban", ("Débannit un utilisateur préalablement banni.", "/deban 123456789", "/deban <id>") },
             { "unlock", ("Débloque la génération de liens de paiement pour un utilisateur restreint.", "/unlock 123456789", "/unlock <id>") },
             { "stat", ("Affiche les statistiques globales des ventes et le CA par marque depuis la BDD.", "/stat", "/stat") },
-            { "stock", ("Affiche la quantité de stock actuellement disponible pour Carrefour.", "/stock", "/stock") },
+            { "stock", ("Affiche la quantité de stock actuellement disponible pour une marque (ex: /stock carr).", "/stock carr", "/stock [marque]") },
             { "commandes", ("Recherche l'historique des achats par ID utilisateur, nom de marque ou code carte.", "/commandes 123456789", "/commandes <id|marque|code>") },
             { "info", ("Affiche les informations d'un utilisateur (solde, nombre d'achats, statut banni).", "/info 123456789", "/info <id>") },
             { "crypto", ("Interroge l'API OxaPay pour connaître le statut en direct d'une transaction.", "/crypto track_123456", "/crypto <trackId>") },
@@ -60,6 +63,9 @@ namespace ChezRheyyBot
                         break;
                     case "/removemoney":
                         await RemoveMoney(message, botClient, update, cancellationToken);
+                        break;
+                    case "/addstock":
+                        await AddStockFromFile(message, botClient, update, cancellationToken);
                         break;
                     case "/ban":
                         await BanUser(botClient, update, cancellationToken);
@@ -613,6 +619,117 @@ namespace ChezRheyyBot
                 await botClient.SendTextMessageAsync(config.CurrentChatId, $"🔑 <b>URL d'Accès au Panel Admin Web :</b>\n\n<code>{fullUrl}</code>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
             }
             catch { }
+        }
+
+        private static async Task AddStockFromFile(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            try
+            {
+                string[] parts = message.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                string brand = parts.Length > 1 ? parts[1].Trim().ToLower() : "carr";
+
+                Document? doc = update.Message?.Document;
+                if (doc == null && update.Message?.ReplyToMessage != null)
+                {
+                    doc = update.Message.ReplyToMessage.Document;
+                }
+
+                if (doc == null)
+                {
+                    await botClient.SendTextMessageAsync(
+                        config.CurrentChatId,
+                        "❌ <b>Erreur : Aucun fichier attaché !</b>\n\n" +
+                        "Veuillez joindre un fichier <b>.txt</b> avec la légende <code>/addstock carr</code> (ou répondre à un fichier .txt avec cette commande).\n\n" +
+                        "<b>Formats de ligne acceptés :</b>\n" +
+                        "• <code>CODE:PIN:VALEUR:PRIX</code>\n" +
+                        "• <code>CODE:PIN:VALEUR</code>\n" +
+                        "• <code>CODE:PIN</code>\n" +
+                        "• <code>CODE</code>\n\n" +
+                        "<i>Séparateurs acceptés :</i> <code>:</code> <code>;</code> <code>|</code> <code>,</code>",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        cancellationToken: cancellationToken
+                    );
+                    return;
+                }
+
+                string fileName = doc.FileName ?? "stock.txt";
+                if (!fileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) && doc.MimeType != "text/plain")
+                {
+                    await botClient.SendTextMessageAsync(
+                        config.CurrentChatId,
+                        "❌ <b>Format invalide !</b> Le fichier attaché doit obligatoirement être au format <b>.txt</b>.",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        cancellationToken: cancellationToken
+                    );
+                    return;
+                }
+
+                var fileInfo = await botClient.GetFileAsync(doc.FileId, cancellationToken);
+                using var memoryStream = new MemoryStream();
+                await botClient.DownloadFileAsync(fileInfo.FilePath, memoryStream, cancellationToken);
+                memoryStream.Position = 0;
+
+                using var reader = new StreamReader(memoryStream, Encoding.UTF8);
+                string? line;
+                var stockItems = new List<DataBase.StockItem>();
+
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    string trimmed = line.Trim();
+                    if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#") || trimmed.StartsWith("//")) continue;
+
+                    string[] lineParts = trimmed.Split(new[] { ':', ';', '|', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (lineParts.Length == 0) continue;
+
+                    string code = lineParts[0].Trim();
+                    string pin = lineParts.Length > 1 ? lineParts[1].Trim() : "";
+                    string val = lineParts.Length > 2 ? lineParts[2].Trim() : "0";
+                    string price = lineParts.Length > 3 ? lineParts[3].Trim() : "0";
+
+                    if (!string.IsNullOrEmpty(code))
+                    {
+                        stockItems.Add(new DataBase.StockItem
+                        {
+                            Brand = brand,
+                            Code = code,
+                            Pin = pin,
+                            Value = val,
+                            Price = price
+                        });
+                    }
+                }
+
+                if (stockItems.Count == 0)
+                {
+                    await botClient.SendTextMessageAsync(
+                        config.CurrentChatId,
+                        "⚠️ <b>Aucune ligne de stock valide n'a été trouvée dans le fichier.</b>",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        cancellationToken: cancellationToken
+                    );
+                    return;
+                }
+
+                int insertedCount = DataBase.InsererStockEnMasse(stockItems);
+
+                await botClient.SendTextMessageAsync(
+                    config.CurrentChatId,
+                    $"✅ <b>Stock {brand.ToUpper()} Ajouté avec Succès !</b>\n\n" +
+                    $"📄 <b>Fichier :</b> <code>{fileName}</code>\n" +
+                    $"📦 <b>Cartes insérées en BDD :</b> <code>{insertedCount}</code>",
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                    cancellationToken: cancellationToken
+                );
+            }
+            catch (Exception ex)
+            {
+                await botClient.SendTextMessageAsync(
+                    config.CurrentChatId,
+                    $"❌ <b>Erreur lors de l'importation du stock :</b> {ex.Message}",
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                    cancellationToken: cancellationToken
+                );
+            }
         }
     }
 }

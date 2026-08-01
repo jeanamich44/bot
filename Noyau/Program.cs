@@ -252,20 +252,16 @@ class Program
                 DataBase.SauvegarderUtilisateurIndividuel(newUserId);
             }
 
-            if (update.Type == UpdateType.Message && update.Message is { } message && update.Message.Text == null)
+            if (update.Type == UpdateType.Message && update.Message is { } message)
             {
-                //error
-                return;
-            }
-            else if (update.Type == UpdateType.Message)
-            {
+                string textToProcess = message.Text ?? message.Caption ?? "";
                 if (config.idAdmins.Contains(config.CurrentChatId))
                 {
-                    if (await admin.CommandeAdmin(update.Message.Text, botClient, update, cancellationToken))
+                    if (!string.IsNullOrWhiteSpace(textToProcess) && await admin.CommandeAdmin(textToProcess, botClient, update, cancellationToken))
                     {
                         return;
                     }
-                    else if(update.Message.Text == "/start")
+                    else if (textToProcess == "/start")
                     {
                         await SampleM.SendMessage(botClient, update, cancellationToken);
                         return;
