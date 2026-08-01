@@ -469,14 +469,19 @@ namespace ChezRheyyBot
                     foreach (var tx in group.Take(15))
                     {
                         DateTime dateParis = DataBase.ConvertirEnHeureParis(tx.CreatedAt);
-                        string pinPart = string.IsNullOrWhiteSpace(tx.Pin) ? "" : $" | <b>PIN :</b> <code>{HtmlEncode(tx.Pin)}</code>";
 
-                        if (tx.Brand?.Equals("iptv", StringComparison.OrdinalIgnoreCase) == true || tx.Value <= 0)
+                        if (tx.Brand?.Equals("iptv", StringComparison.OrdinalIgnoreCase) == true)
                         {
+                            sb.AppendLine($"• <code>{HtmlEncode(tx.Code)}</code> | {tx.Price}€ | <i>{dateParis:dd/MM à HH:mm}</i>");
+                        }
+                        else if (tx.Value <= 0)
+                        {
+                            string pinPart = string.IsNullOrWhiteSpace(tx.Pin) ? "" : $" | <b>PIN :</b> <code>{HtmlEncode(tx.Pin)}</code>";
                             sb.AppendLine($"• <code>{HtmlEncode(tx.Code)}</code>{pinPart} | {tx.Price}€ | <i>{dateParis:dd/MM à HH:mm}</i>");
                         }
                         else
                         {
+                            string pinPart = string.IsNullOrWhiteSpace(tx.Pin) ? "" : $" | <b>PIN :</b> <code>{HtmlEncode(tx.Pin)}</code>";
                             sb.AppendLine($"• <code>{HtmlEncode(tx.Code)}</code>{pinPart} | {tx.Value}€ ({tx.Price}€) | <i>{dateParis:dd/MM à HH:mm}</i>");
                         }
                     }
