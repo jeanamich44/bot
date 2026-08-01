@@ -424,14 +424,19 @@ namespace ChezRheyyBot
         {
             try
             {
-                var message = update.Message.Text.Split(' ');
+                var message = update.Message.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 if (message.Length != 2)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: /commandes <id | marque | code>", cancellationToken: cancellationToken);
+                    await botClient.SendTextMessageAsync(
+                        config.CurrentChatId,
+                        "❌ <b>Usage :</b> <code>/commandes &lt;id | marque | code&gt;</code>",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        cancellationToken: cancellationToken
+                    );
                     return;
                 }
 
-                string searchArg = message[1];
+                string searchArg = message[1].Trim();
                 long.TryParse(searchArg, out long searchUserId);
                 var transactions = DataBase.ObtenirTransactions();
                 var sb = new StringBuilder();
@@ -448,25 +453,50 @@ namespace ChezRheyyBot
                         compteur++;
                         if (compteur > 20)
                         {
-                            sb.AppendLine("... (Résultats tronqués, trop d'entrées)");
+                            sb.AppendLine("<i>... (Résultats tronqués, maximum 20 affichés)</i>");
                             break;
                         }
+
                         DateTime dateParis = DataBase.ConvertirEnHeureParis(tx.CreatedAt);
-                        string pinPart = string.IsNullOrWhiteSpace(tx.Pin) ? "" : $" | PIN = {tx.Pin}";
-                        sb.AppendLine($"Produit = {tx.Brand} | Carte = {tx.Code}{pinPart} | Solde = {tx.Value}€ | Prix = {tx.Price}€ | Date = {dateParis:dd/MM/yyyy HH:mm}");
+                        string pinLine = string.IsNullOrWhiteSpace(tx.Pin) ? "" : $"\n• <b>PIN :</b> <code>{HtmlEncode(tx.Pin)}</code>";
+                        string brandName = tx.Brand?.ToUpper() ?? "PRODUIT";
+
+                        if (sb.Length > 0)
+                        {
+                            sb.AppendLine("\n───────────────────\n");
+                        }
+
+                        sb.AppendLine($"🛒 <b>{brandName}</b>");
+                        sb.AppendLine($"• <b>Client ID :</b> <code>{tx.UserId}</code>");
+                        sb.AppendLine($"• <b>Carte :</b> <code>{HtmlEncode(tx.Code)}</code>{pinLine}");
+                        sb.AppendLine($"• <b>Solde :</b> {tx.Value} €  |  <b>Prix :</b> {tx.Price} €");
+                        sb.AppendLine($"• <b>Date :</b> {dateParis:dd/MM/yyyy à HH:mm}");
                     }
                 }
 
                 if (sb.Length == 0)
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Aucune commande trouvée pour {searchArg}", cancellationToken: cancellationToken);
+                    await botClient.SendTextMessageAsync(
+                        config.CurrentChatId,
+                        $"⚠️ <b>Aucune commande trouvée pour :</b> <code>{HtmlEncode(searchArg)}</code>",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        cancellationToken: cancellationToken
+                    );
                 }
                 else
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Historique d'achats pour {searchArg} :\n\n{sb}", cancellationToken: cancellationToken);
+                    await botClient.SendTextMessageAsync(
+                        config.CurrentChatId,
+                        $"📋 <b>Historique d'Achats pour</b> <code>{HtmlEncode(searchArg)}</code> (<b>{compteur}</b>)\n\n{sb}",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        cancellationToken: cancellationToken
+                    );
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[RecupererAchatId Erreur] {ex.Message}");
+            }
         }
 
         private static async Task HelpCommande(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
