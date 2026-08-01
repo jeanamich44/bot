@@ -602,6 +602,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const pwdForm = document.getElementById('settings-password-form');
+    if (pwdForm) {
+        pwdForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pass = document.getElementById('setting-admin-password').value;
+            const confirmPass = document.getElementById('setting-admin-password-confirm').value;
+
+            if (pass !== confirmPass) {
+                showToast('Les mots de passe ne correspondent pas', 'danger');
+                return;
+            }
+
+            const res = await apiRequest('/settings/password', 'POST', { password: pass });
+            if (res && res.success) {
+                authToken = pass;
+                localStorage.setItem('admin_token', pass);
+                showToast('Mot de passe administrateur mis à jour avec succès !', 'success');
+                document.getElementById('setting-admin-password').value = '';
+                document.getElementById('setting-admin-password-confirm').value = '';
+            } else {
+                showToast(res ? res.message : 'Erreur lors du changement de mot de passe', 'danger');
+            }
+        });
+    }
+
     if (authToken) {
         initApp();
     }

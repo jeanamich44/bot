@@ -400,6 +400,22 @@ namespace ChezRheyyBot
 
                 RepondreJson(response, 200, new { success = true });
             }
+            else if (path == "/api/admin/settings/password" && request.HttpMethod == "POST")
+            {
+                using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+                string bodyStr = await reader.ReadToEndAsync();
+                using var doc = JsonDocument.Parse(bodyStr);
+                string newPassword = doc.RootElement.TryGetProperty("password", out var pElem) ? pElem.GetString() ?? "" : "";
+
+                if (string.IsNullOrWhiteSpace(newPassword))
+                {
+                    RepondreJson(response, 400, new { success = false, message = "Mot de passe invalide" });
+                    return;
+                }
+
+                config.SetSetting("admin", "password", newPassword);
+                RepondreJson(response, 200, new { success = true, message = "Mot de passe mis à jour avec succès" });
+            }
             else
             {
                 RepondreJson(response, 404, new { success = false, message = "Endpoint non trouvé" });
