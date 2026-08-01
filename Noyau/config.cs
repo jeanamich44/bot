@@ -111,35 +111,50 @@ namespace ChezRheyyBot
         public static void IncErrorsCount() => System.Threading.Interlocked.Increment(ref MetricErrorsCount);
         public static void IncAdminLogins() => System.Threading.Interlocked.Increment(ref MetricAdminLogins);
 
+        public static readonly object SettingsLock = new object();
+
         public static void ChargerMetricsFromSettings()
         {
-            MetricTelegramReceived = long.TryParse(GetSetting("metrics", "telegram_received", "0"), out long tr) ? tr : 0;
-            MetricTelegramSent = long.TryParse(GetSetting("metrics", "telegram_sent", "0"), out long ts) ? ts : 0;
-            MetricSumUpReceived = long.TryParse(GetSetting("metrics", "sumup_received", "0"), out long sr) ? sr : 0;
-            MetricSumUpSent = long.TryParse(GetSetting("metrics", "sumup_sent", "0"), out long ss) ? ss : 0;
-            MetricOxaPayReceived = long.TryParse(GetSetting("metrics", "oxapay_received", "0"), out long or) ? or : 0;
-            MetricOxaPaySent = long.TryParse(GetSetting("metrics", "oxapay_sent", "0"), out long os) ? os : 0;
-            MetricCommandsExecuted = long.TryParse(GetSetting("metrics", "commands_executed", "0"), out long ce) ? ce : 0;
-            MetricErrorsCount = long.TryParse(GetSetting("metrics", "errors_count", "0"), out long ec) ? ec : 0;
-            MetricAdminLogins = long.TryParse(GetSetting("metrics", "admin_logins", "0"), out long al) ? al : 0;
+            lock (SettingsLock)
+            {
+                if (!CategorySettings.TryGetValue("metrics", out var dict)) return;
+
+                long ParseVal(string key, long current)
+                {
+                    return dict.TryGetValue(key, out var s) && long.TryParse(s, out long val) ? Math.Max(val, current) : current;
+                }
+
+                MetricTelegramReceived = ParseVal("telegram_received", MetricTelegramReceived);
+                MetricTelegramSent = ParseVal("telegram_sent", MetricTelegramSent);
+                MetricSumUpReceived = ParseVal("sumup_received", MetricSumUpReceived);
+                MetricSumUpSent = ParseVal("sumup_sent", MetricSumUpSent);
+                MetricOxaPayReceived = ParseVal("oxapay_received", MetricOxaPayReceived);
+                MetricOxaPaySent = ParseVal("oxapay_sent", MetricOxaPaySent);
+                MetricCommandsExecuted = ParseVal("commands_executed", MetricCommandsExecuted);
+                MetricErrorsCount = ParseVal("errors_count", MetricErrorsCount);
+                MetricAdminLogins = ParseVal("admin_logins", MetricAdminLogins);
+            }
         }
 
         public static void PersisterMetricsInSettings()
         {
-            if (!CategorySettings.ContainsKey("metrics"))
+            lock (SettingsLock)
             {
-                CategorySettings["metrics"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                if (!CategorySettings.ContainsKey("metrics"))
+                {
+                    CategorySettings["metrics"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                }
+                var dict = CategorySettings["metrics"];
+                dict["telegram_received"] = MetricTelegramReceived.ToString();
+                dict["telegram_sent"] = MetricTelegramSent.ToString();
+                dict["sumup_received"] = MetricSumUpReceived.ToString();
+                dict["sumup_sent"] = MetricSumUpSent.ToString();
+                dict["oxapay_received"] = MetricOxaPayReceived.ToString();
+                dict["oxapay_sent"] = MetricOxaPaySent.ToString();
+                dict["commands_executed"] = MetricCommandsExecuted.ToString();
+                dict["errors_count"] = MetricErrorsCount.ToString();
+                dict["admin_logins"] = MetricAdminLogins.ToString();
             }
-            var dict = CategorySettings["metrics"];
-            dict["telegram_received"] = MetricTelegramReceived.ToString();
-            dict["telegram_sent"] = MetricTelegramSent.ToString();
-            dict["sumup_received"] = MetricSumUpReceived.ToString();
-            dict["sumup_sent"] = MetricSumUpSent.ToString();
-            dict["oxapay_received"] = MetricOxaPayReceived.ToString();
-            dict["oxapay_sent"] = MetricOxaPaySent.ToString();
-            dict["commands_executed"] = MetricCommandsExecuted.ToString();
-            dict["errors_count"] = MetricErrorsCount.ToString();
-            dict["admin_logins"] = MetricAdminLogins.ToString();
         }
 
         public static List<string> categorie = new List<string>();
@@ -149,20 +164,26 @@ namespace ChezRheyyBot
 
         public static string GetSetting(string category, string key, string defaultValue = "")
         {
-            if (CategorySettings.TryGetValue(category, out var dict) && dict.TryGetValue(key, out var val))
+            lock (SettingsLock)
             {
-                return val;
+                if (CategorySettings.TryGetValue(category, out var dict) && dict.TryGetValue(key, out var val))
+                {
+                    return val;
+                }
+                return defaultValue;
             }
-            return defaultValue;
         }
 
         public static void SetSetting(string category, string key, string value)
         {
-            if (!CategorySettings.ContainsKey(category))
+            lock (SettingsLock)
             {
-                CategorySettings[category] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                if (!CategorySettings.ContainsKey(category))
+                {
+                    CategorySettings[category] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                }
+                CategorySettings[category][key] = value;
             }
-            CategorySettings[category][key] = value;
             DataBase.SauvegarderSettings();
         }
 

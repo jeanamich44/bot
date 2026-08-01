@@ -522,6 +522,7 @@ namespace ChezRheyyBot
 
         public static void ChargerSettings()
         {
+            bool dbSuccess = false;
             try
             {
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
@@ -531,73 +532,79 @@ namespace ChezRheyyBot
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     using (var reader = cmd.ExecuteReader())
                     {
-                        config.CategorySettings.Clear();
-                        config.Settings.Clear();
+                        var tempSettings = new Dictionary<string, string>();
+                        var tempCategorySettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+
                         while (reader.Read())
                         {
                             string key = reader.GetString(0);
                             string val = reader.GetString(1);
-                            config.Settings[key] = val;
+                            tempSettings[key] = val;
 
                             try
                             {
                                 var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(val);
                                 if (dict != null)
                                 {
-                                    config.CategorySettings[key] = new Dictionary<string, string>(dict, StringComparer.OrdinalIgnoreCase);
+                                    tempCategorySettings[key] = new Dictionary<string, string>(dict, StringComparer.OrdinalIgnoreCase);
                                 }
                             }
                             catch
                             {
-                                if (!config.CategorySettings.ContainsKey("general"))
+                                if (!tempCategorySettings.ContainsKey("general"))
                                 {
-                                    config.CategorySettings["general"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                                    tempCategorySettings["general"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                                 }
-                                config.CategorySettings["general"][key] = val;
+                                tempCategorySettings["general"][key] = val;
                             }
                         }
+
+                        lock (config.SettingsLock)
+                        {
+                            foreach (var kvp in tempSettings) config.Settings[kvp.Key] = kvp.Value;
+                            foreach (var kvp in tempCategorySettings) config.CategorySettings[kvp.Key] = kvp.Value;
+                        }
+                        dbSuccess = true;
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-
+                Console.WriteLine($"[ChargerSettings Erreur] {ex.Message}");
             }
 
-            if (!config.CategorySettings.ContainsKey("iptv"))
+            lock (config.SettingsLock)
             {
-                config.CategorySettings["iptv"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                if (!config.CategorySettings.ContainsKey("iptv"))
                 {
-                    { "api_key", Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "" },
-                    { "api_url", "https://cms-4k.com/api/api.php" },
-                    { "pack", "43551" },
-                    { "type", "m3u" },
-                    { "price_1m", "5" },
-                    { "price_3m", "10" },
-                    { "price_6m", "15" },
-                    { "price_12m", "30" }
-                };
-                SauvegarderSettings();
-            }
-            else
-            {
-                config.CategorySettings["iptv"]["api_key"] = Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "";
-                config.CategorySettings["iptv"]["api_url"] = "https://cms-4k.com/api/api.php";
-                config.CategorySettings["iptv"]["pack"] = "43551";
-                config.CategorySettings["iptv"]["type"] = "m3u";
-                if (!config.CategorySettings["iptv"].ContainsKey("price_1m")) config.CategorySettings["iptv"]["price_1m"] = "5";
-                if (!config.CategorySettings["iptv"].ContainsKey("price_3m")) config.CategorySettings["iptv"]["price_3m"] = "10";
-                if (!config.CategorySettings["iptv"].ContainsKey("price_6m")) config.CategorySettings["iptv"]["price_6m"] = "15";
-                if (!config.CategorySettings["iptv"].ContainsKey("price_12m")) config.CategorySettings["iptv"]["price_12m"] = "30";
-                SauvegarderSettings();
+                    config.CategorySettings["iptv"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        { "api_key", Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "" },
+                        { "api_url", "https://cms-4k.com/api/api.php" },
+                        { "pack", "43551" },
+                        { "type", "m3u" },
+                        { "price_1m", "5" },
+                        { "price_3m", "10" },
+                        { "price_6m", "15" },
+                        { "price_12m", "30" }
+                    };
+                }
+                else
+                {
+                    config.CategorySettings["iptv"]["api_key"] = Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "";
+                    config.CategorySettings["iptv"]["api_url"] = "https://cms-4k.com/api/api.php";
+                    config.CategorySettings["iptv"]["pack"] = "43551";
+                    config.CategorySettings["iptv"]["type"] = "m3u";
+                    if (!config.CategorySettings["iptv"].ContainsKey("price_1m")) config.CategorySettings["iptv"]["price_1m"] = "5";
+                    if (!config.CategorySettings["iptv"].ContainsKey("price_3m")) config.CategorySettings["iptv"]["price_3m"] = "10";
+                    if (!config.CategorySettings["iptv"].ContainsKey("price_6m")) config.CategorySettings["iptv"]["price_6m"] = "15";
+                    if (!config.CategorySettings["iptv"].ContainsKey("price_12m")) config.CategorySettings["iptv"]["price_12m"] = "30";
+                }
             }
 
-            if (!config.CategorySettings.ContainsKey("metrics"))
-            {
-                config.PersisterMetricsInSettings();
-                SauvegarderSettings();
-            }
-            else
+            SauvegarderSettings();
+
+            if (dbSuccess)
             {
                 config.ChargerMetricsFromSettings();
             }
@@ -608,12 +615,18 @@ namespace ChezRheyyBot
             try
             {
                 config.PersisterMetricsInSettings();
+
+                List<KeyValuePair<string, string>> snapshot;
+                lock (config.SettingsLock)
+                {
+                    snapshot = config.CategorySettings.Select(cat => new KeyValuePair<string, string>(cat.Key, JsonSerializer.Serialize(cat.Value))).ToList();
+                }
+
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
-                    foreach (var cat in config.CategorySettings)
+                    foreach (var item in snapshot)
                     {
-                        string jsonValue = JsonSerializer.Serialize(cat.Value);
                         string requete = @"
                         INSERT INTO settings (Key, Value)
                         VALUES (@k, @v::jsonb)
@@ -621,16 +634,16 @@ namespace ChezRheyyBot
 
                         using (var cmd = new NpgsqlCommand(requete, connexion))
                         {
-                            cmd.Parameters.AddWithValue("@k", cat.Key);
-                            cmd.Parameters.AddWithValue("@v", jsonValue);
+                            cmd.Parameters.AddWithValue("@k", item.Key);
+                            cmd.Parameters.AddWithValue("@v", item.Value);
                             cmd.ExecuteNonQuery();
                         }
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-
+                Console.WriteLine($"[SauvegarderSettings Erreur] {ex.Message}");
             }
         }
 
