@@ -214,20 +214,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mobile Menu Toggle Logic
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const sidebar = document.querySelector('.sidebar');
-    if (mobileMenuBtn && sidebar) {
-        mobileMenuBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-        });
-        
-        // Fermer la sidebar sur mobile quand on clique sur un lien
-        navItems.forEach(item => {
-            item.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('active');
-                }
-            });
-        });
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    function toggleMobileMenu() {
+        if (!sidebar) return;
+        const isActive = sidebar.classList.toggle('active');
+        if (sidebarOverlay) {
+            if (isActive) sidebarOverlay.classList.add('active');
+            else sidebarOverlay.classList.remove('active');
+        }
     }
+
+    function closeMobileMenu() {
+        if (!sidebar || window.innerWidth > 768) return;
+        sidebar.classList.remove('active');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+    }
+
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+    }
+
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeMobileMenu);
+    }
+
+    navItems.forEach(item => {
+        item.addEventListener('click', closeMobileMenu);
+    });
     let currentMaintenanceState = false;
     const maintenanceBadge = document.getElementById('maintenance-badge');
     const toggleMaintenanceBtn = document.getElementById('toggle-maintenance-btn');
