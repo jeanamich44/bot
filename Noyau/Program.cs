@@ -233,7 +233,9 @@ class Program
             int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(config.CurrentChatId));
             if (result == -1)
             {
-                config.UserSave.Add(Tuple.Create(long.Parse(config.CurrentChatId), 0, 0.0, false));
+                long newUserId = long.Parse(config.CurrentChatId);
+                config.UserSave.Add(Tuple.Create(newUserId, 0, 0.0, false));
+                DataBase.SauvegarderUtilisateurIndividuel(newUserId);
             }
 
             if (update.Type == UpdateType.Message && update.Message is { } message && update.Message.Text == null)

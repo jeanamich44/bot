@@ -227,6 +227,7 @@ namespace ChezRheyyBot
             }
             else if (path == "/api/admin/users" && request.HttpMethod == "GET")
             {
+                DataBase.ChargerUtilisateurs();
                 var users = config.UserSave.Select(u => new
                 {
                     id = u.Item1,
