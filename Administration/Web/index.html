@@ -283,20 +283,29 @@
 
             <div id="tab-users" class="tab-content" style="display: none;">
                 <div class="card-panel">
-                    <div class="card-panel-header">
+                    <div class="card-panel-header" style="flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between;">
                         <h2 class="card-panel-title">Liste des Utilisateurs</h2>
-                        <input type="text" id="user-search-input" class="form-input" placeholder="Rechercher ID..." style="width: 220px;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <div style="position: relative; display: flex; align-items: center;">
+                                <span style="position: absolute; left: 12px; color: var(--text-secondary); pointer-events: none; font-size: 14px;">🔍</span>
+                                <input type="text" id="user-search-input" class="form-input" placeholder="Rechercher par ID, @username, #Rang..." style="width: 280px; padding-left: 36px; padding-right: 32px;">
+                                <button type="button" id="user-search-clear" style="position: absolute; right: 10px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; display: none;" title="Effacer la recherche">✕</button>
+                            </div>
+                            <button type="button" id="btn-sync-usernames" class="btn-primary" style="padding: 10px 18px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span>🔄</span> Synchro Pseudos Telegram
+                            </button>
+                        </div>
                     </div>
                     <div class="table-wrapper">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Rang (N°)</th>
-                                    <th>ID Telegram</th>
-                                    <th>Username</th>
-                                    <th>Solde</th>
-                                    <th>Commandes</th>
-                                    <th>Statut</th>
+                                    <th class="sortable-th" data-sort="userNumber" style="cursor: pointer; user-select: none;">Rang (N°) <span class="sort-arrow" id="sort-arrow-userNumber">▲</span></th>
+                                    <th class="sortable-th" data-sort="id" style="cursor: pointer; user-select: none;">ID Telegram <span class="sort-arrow" id="sort-arrow-id">↕</span></th>
+                                    <th class="sortable-th" data-sort="username" style="cursor: pointer; user-select: none;">Username <span class="sort-arrow" id="sort-arrow-username">↕</span></th>
+                                    <th class="sortable-th" data-sort="solde" style="cursor: pointer; user-select: none;">Solde <span class="sort-arrow" id="sort-arrow-solde">↕</span></th>
+                                    <th class="sortable-th" data-sort="achats" style="cursor: pointer; user-select: none;">Commandes <span class="sort-arrow" id="sort-arrow-achats">↕</span></th>
+                                    <th class="sortable-th" data-sort="isBanned" style="cursor: pointer; user-select: none;">Statut <span class="sort-arrow" id="sort-arrow-isBanned">↕</span></th>
                                     <th>Raison Ban</th>
                                     <th>Actions</th>
                                 </tr>
@@ -304,6 +313,28 @@
                             <tbody id="users-table">
                             </tbody>
                         </table>
+                    </div>
+                    <!-- Pagination Bar -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.06);">
+                        <div id="users-pagination-info" style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+                            Affichage 0-0 sur 0 utilisateurs
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 13px; color: var(--text-secondary);">Afficher :</span>
+                                <select id="users-per-page-select" class="form-input" style="width: auto; padding: 6px 10px; font-size: 13px;">
+                                    <option value="10" selected>10 par page</option>
+                                    <option value="25">25 par page</option>
+                                    <option value="50">50 par page</option>
+                                    <option value="all">Tout afficher</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <button id="btn-users-prev" class="action-btn" style="padding: 6px 12px;">◀ Précédent</button>
+                                <span id="users-page-indicator" style="font-weight: 600; font-size: 13px; color: var(--text-primary); padding: 0 4px;">Page 1 / 1</span>
+                                <button id="btn-users-next" class="action-btn" style="padding: 6px 12px;">Suivant ▶</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

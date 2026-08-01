@@ -345,17 +345,106 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let allUsers = [];
+    let userSortField = 'userNumber';
+    let userSortDir = 'asc';
+    let usersCurrentPage = 1;
+    let usersPerPage = 10;
+
     async function loadUsersData() {
         const data = await apiRequest('/users');
         if (!data) return;
 
         allUsers = data.users || [];
-        renderUsersTable(allUsers);
+        applyUsersFilterAndSort();
+    }
+
+    function applyUsersFilterAndSort() {
+        const searchInput = document.getElementById('user-search-input');
+        const clearBtn = document.getElementById('user-search-clear');
+        const q = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+        if (clearBtn) {
+            clearBtn.style.display = q ? 'block' : 'none';
+        }
+
+        let filtered = allUsers.filter(u => {
+            if (!q) return true;
+            return String(u.id).includes(q) ||
+                   String(u.userNumber).includes(q) ||
+                   (u.username && u.username.toLowerCase().includes(q)) ||
+                   String(u.solde).includes(q) ||
+                   (u.banReason && u.banReason.toLowerCase().includes(q));
+        });
+
+        filtered.sort((a, b) => {
+            let valA = a[userSortField];
+            let valB = b[userSortField];
+
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+
+            if (valA < valB) return userSortDir === 'asc' ? -1 : 1;
+            if (valA > valB) return userSortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        // Update Sort Arrow Indicators
+        document.querySelectorAll('.sortable-th').forEach(th => {
+            const field = th.getAttribute('data-sort');
+            const arrowSpan = th.querySelector('.sort-arrow');
+            if (arrowSpan) {
+                if (field === userSortField) {
+                    arrowSpan.innerText = userSortDir === 'asc' ? '▲' : '▼';
+                    th.style.color = 'var(--accent-primary)';
+                } else {
+                    arrowSpan.innerText = '↕';
+                    th.style.color = '';
+                }
+            }
+        });
+
+        // Pagination Slice
+        const totalItems = filtered.length;
+        let perPage = usersPerPage === 'all' ? totalItems : parseInt(usersPerPage) || 10;
+        if (perPage <= 0) perPage = 10;
+
+        const totalPages = Math.ceil(totalItems / perPage) || 1;
+        if (usersCurrentPage > totalPages) usersCurrentPage = totalPages;
+        if (usersCurrentPage < 1) usersCurrentPage = 1;
+
+        const startIdx = (usersCurrentPage - 1) * perPage;
+        const endIdx = usersPerPage === 'all' ? totalItems : Math.min(startIdx + perPage, totalItems);
+        const pageItems = filtered.slice(startIdx, endIdx);
+
+        // Update Pagination Info UI
+        const infoElem = document.getElementById('users-pagination-info');
+        if (infoElem) {
+            infoElem.innerText = totalItems > 0 
+                ? `Affichage ${startIdx + 1}-${endIdx} sur ${totalItems} utilisateur(s)`
+                : `Aucun utilisateur trouvé`;
+        }
+
+        const pageIndicator = document.getElementById('users-page-indicator');
+        if (pageIndicator) {
+            pageIndicator.innerText = `Page ${usersCurrentPage} / ${totalPages}`;
+        }
+
+        const btnPrev = document.getElementById('btn-users-prev');
+        const btnNext = document.getElementById('btn-users-next');
+        if (btnPrev) btnPrev.disabled = usersCurrentPage <= 1;
+        if (btnNext) btnNext.disabled = usersCurrentPage >= totalPages;
+
+        renderUsersTable(pageItems);
     }
 
     function renderUsersTable(users) {
         const tbody = document.getElementById('users-table');
         tbody.innerHTML = '';
+        if (users.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 24px;">Aucun utilisateur trouvé.</td></tr>`;
+            return;
+        }
+
         users.forEach(user => {
             const tr = document.createElement('tr');
             const statusBadge = user.isBanned 
@@ -379,25 +468,99 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${user.isBanned 
                         ? `<button class="action-btn action-btn-danger" onclick="btnDebanUser('${user.id}')">Débannir</button>` 
                         : `<button class="action-btn action-btn-danger" onclick="btnBanUser('${user.id}')">Bannir</button>`}
+                    <button class="action-btn action-btn-danger" style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);" onclick="btnDeleteUser('${user.id}')">🗑️ Supprimer</button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
     }
 
-    document.getElementById('user-search-input').addEventListener('input', (e) => {
-        const q = e.target.value.trim().toLowerCase();
-        if (!q) {
-            renderUsersTable(allUsers);
-        } else {
-            const filtered = allUsers.filter(u => 
-                String(u.id).includes(q) || 
-                String(u.userNumber).includes(q) || 
-                (u.username && u.username.toLowerCase().includes(q))
-            );
-            renderUsersTable(filtered);
-        }
+    // Attach Event Listeners for Search, Clear, Sorting & Pagination
+    const searchInputElem = document.getElementById('user-search-input');
+    if (searchInputElem) {
+        searchInputElem.addEventListener('input', () => {
+            usersCurrentPage = 1;
+            applyUsersFilterAndSort();
+        });
+    }
+
+    const clearBtnElem = document.getElementById('user-search-clear');
+    if (clearBtnElem) {
+        clearBtnElem.addEventListener('click', () => {
+            if (searchInputElem) searchInputElem.value = '';
+            usersCurrentPage = 1;
+            applyUsersFilterAndSort();
+        });
+    }
+
+    document.querySelectorAll('.sortable-th').forEach(th => {
+        th.addEventListener('click', () => {
+            const field = th.getAttribute('data-sort');
+            if (userSortField === field) {
+                userSortDir = userSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                userSortField = field;
+                userSortDir = 'asc';
+            }
+            applyUsersFilterAndSort();
+        });
     });
+
+    const perPageSelect = document.getElementById('users-per-page-select');
+    if (perPageSelect) {
+        perPageSelect.addEventListener('change', (e) => {
+            usersPerPage = e.target.value;
+            usersCurrentPage = 1;
+            applyUsersFilterAndSort();
+        });
+    }
+
+    const btnPrevElem = document.getElementById('btn-users-prev');
+    if (btnPrevElem) {
+        btnPrevElem.addEventListener('click', () => {
+            if (usersCurrentPage > 1) {
+                usersCurrentPage--;
+                applyUsersFilterAndSort();
+            }
+        });
+    }
+
+    const btnNextElem = document.getElementById('btn-users-next');
+    if (btnNextElem) {
+        btnNextElem.addEventListener('click', () => {
+            usersCurrentPage++;
+            applyUsersFilterAndSort();
+        });
+    }
+
+    const btnSyncElem = document.getElementById('btn-sync-usernames');
+    if (btnSyncElem) {
+        btnSyncElem.addEventListener('click', async () => {
+            btnSyncElem.disabled = true;
+            btnSyncElem.innerHTML = '<span>🔄</span> Synchro en cours...';
+            const res = await apiRequest('/users/sync-usernames', 'POST', {});
+            btnSyncElem.disabled = false;
+            btnSyncElem.innerHTML = '<span>🔄</span> Synchro Pseudos Telegram';
+            if (res && res.success) {
+                showToast('Pseudos Telegram synchronisés en direct !', 'success');
+                loadUsersData();
+            } else {
+                showToast('Erreur lors de la synchronisation', 'danger');
+            }
+        });
+    }
+
+    window.btnDeleteUser = (userId) => {
+        openModal(`Supprimer ${userId}`, `<p style="color: var(--text-secondary);">Êtes-vous sûr de vouloir <strong>supprimer définitivement</strong> l'utilisateur <code>${userId}</code> ?<br><br><span style="color:#ef4444; font-size:13px; font-weight:600;">⚠️ Cette action effacera toutes ses données comme s'il n'avait jamais rejoint le bot.</span></p>`, async () => {
+            const res = await apiRequest('/users/delete', 'POST', { userId: parseInt(userId) });
+            if (res && res.success) {
+                showToast('Utilisateur supprimé définitivement', 'success');
+                loadUsersData();
+            } else {
+                showToast('Erreur lors de la suppression', 'danger');
+            }
+        });
+    };
 
     window.btnEditSolde = (userId, currentSolde) => {
         const html = `

@@ -304,6 +304,21 @@ namespace ChezRheyyBot
                 DataBase.SauvegarderUtilisateurIndividuel(userId);
                 RepondreJson(response, 200, new { success = true });
             }
+            else if (path == "/api/admin/users/delete" && request.HttpMethod == "POST")
+            {
+                using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+                string bodyStr = await reader.ReadToEndAsync();
+                using var doc = JsonDocument.Parse(bodyStr);
+
+                long userId = doc.RootElement.GetProperty("userId").GetInt64();
+                bool deleted = DataBase.SupprimerUtilisateurCompletBDD(userId);
+                RepondreJson(response, 200, new { success = deleted });
+            }
+            else if (path == "/api/admin/users/sync-usernames" && request.HttpMethod == "POST")
+            {
+                await DataBase.SynchroniserUsernamesTelegram(botClient);
+                RepondreJson(response, 200, new { success = true });
+            }
             else if (path == "/api/admin/stock" && request.HttpMethod == "GET")
             {
                 var stock = DataBase.ObtenirStocksParBrand("carr").Select(s => new

@@ -1,5 +1,7 @@
 using Npgsql;
 using System.Text.Json;
+using Telegram.Bot;
+using Telegram.Bot.Types;
 
 namespace ChezRheyyBot
 {
@@ -387,6 +389,53 @@ namespace ChezRheyyBot
             catch
             {
 
+            }
+        }
+
+        public static bool SupprimerUtilisateurCompletBDD(long userId)
+        {
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    using var cmd = new NpgsqlCommand("DELETE FROM users WHERE Id = @id", connexion);
+                    cmd.Parameters.AddWithValue("@id", userId);
+                    cmd.ExecuteNonQuery();
+                }
+                config.UserSave.RemoveAll(u => u.Item1 == userId);
+                config.Usernames.Remove(userId);
+                config.UserNumbers.Remove(userId);
+                config.BanReasons.Remove(userId);
+                config.BanniUser.Remove(userId.ToString());
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static async Task SynchroniserUsernamesTelegram(Telegram.Bot.ITelegramBotClient botClient)
+        {
+            var usersCopy = config.UserSave.ToList();
+            foreach (var u in usersCopy)
+            {
+                long userId = u.Item1;
+                if (!config.Usernames.TryGetValue(userId, out string? existing) || string.IsNullOrWhiteSpace(existing))
+                {
+                    try
+                    {
+                        var chat = await botClient.GetChatAsync(new ChatId(userId));
+                        if (chat != null && !string.IsNullOrWhiteSpace(chat.Username))
+                        {
+                            string formatted = chat.Username.StartsWith("@") ? chat.Username : "@" + chat.Username;
+                            config.Usernames[userId] = formatted;
+                            SauvegarderUtilisateurIndividuel(userId);
+                        }
+                    }
+                    catch { }
+                }
             }
         }
 
