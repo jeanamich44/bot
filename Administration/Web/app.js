@@ -744,10 +744,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = '';
         (data.stock || []).forEach(item => {
             const tr = document.createElement('tr');
+            const valDisplay = (item.value != null && item.value > 0) ? `${item.value} €` : '-';
             tr.innerHTML = `
                 <td>#${item.id}</td>
                 <td><code>${item.code}</code></td>
-                <td><strong>${item.value} €</strong></td>
+                <td><strong>${valDisplay}</strong></td>
                 <td><strong>${item.price} €</strong></td>
                 <td>
                     <button class="action-btn action-btn-danger" onclick="btnDeleteStock(${item.id})">Supprimer</button>
@@ -840,12 +841,14 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = '';
         (data.transactions || []).forEach(tx => {
             const tr = document.createElement('tr');
+            const isIptv = (tx.brand || '').toLowerCase() === 'iptv';
+            const valueFormatted = (!isIptv && tx.value != null && tx.value > 0) ? `${tx.value} €` : '-';
             tr.innerHTML = `
                 <td>#${tx.id}</td>
                 <td style="cursor: pointer; color: var(--accent-primary);" onclick="window.redirectToUser('${tx.userId}')"><code>${tx.userId}</code></td>
                 <td>${escapeHtml(tx.brand)}</td>
                 <td><code>${escapeHtml(tx.code)}</code></td>
-                <td>${tx.value} €</td>
+                <td>${valueFormatted}</td>
                 <td><strong>${tx.price} €</strong></td>
                 <td>${formatParisDate(tx.createdAt)}</td>
             `;
