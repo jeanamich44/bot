@@ -372,6 +372,28 @@
                             </tbody>
                         </table>
                     </div>
+                    <!-- Pagination Bar Stock -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.06);">
+                        <div id="stock-pagination-info" style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+                            Affichage 0-0 sur 0 carte(s)
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 13px; color: var(--text-secondary);">Afficher :</span>
+                                <select id="stock-per-page-select" class="form-input" style="width: auto; padding: 6px 10px; font-size: 13px;">
+                                    <option value="10" selected>10 par page</option>
+                                    <option value="25">25 par page</option>
+                                    <option value="50">50 par page</option>
+                                    <option value="all">Tout afficher</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <button id="btn-stock-prev" class="action-btn" style="padding: 6px 12px;">◀ Précédent</button>
+                                <span id="stock-page-indicator" style="font-weight: 600; font-size: 13px; color: var(--text-primary); padding: 0 4px;">Page 1 / 1</span>
+                                <button id="btn-stock-next" class="action-btn" style="padding: 6px 12px;">Suivant ▶</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -402,6 +424,28 @@
                             </tbody>
                         </table>
                     </div>
+                    <!-- Pagination Bar Payments -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.06);">
+                        <div id="payments-pagination-info" style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+                            Affichage 0-0 sur 0 rechargement(s)
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 13px; color: var(--text-secondary);">Afficher :</span>
+                                <select id="payments-per-page-select" class="form-input" style="width: auto; padding: 6px 10px; font-size: 13px;">
+                                    <option value="10" selected>10 par page</option>
+                                    <option value="25">25 par page</option>
+                                    <option value="50">50 par page</option>
+                                    <option value="all">Tout afficher</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <button id="btn-payments-prev" class="action-btn" style="padding: 6px 12px;">◀ Précédent</button>
+                                <span id="payments-page-indicator" style="font-weight: 600; font-size: 13px; color: var(--text-primary); padding: 0 4px;">Page 1 / 1</span>
+                                <button id="btn-payments-next" class="action-btn" style="padding: 6px 12px;">Suivant ▶</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -426,6 +470,28 @@
                             <tbody id="all-transactions-table">
                             </tbody>
                         </table>
+                    </div>
+                    <!-- Pagination Bar Transactions -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.06);">
+                        <div id="transactions-pagination-info" style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+                            Affichage 0-0 sur 0 achat(s)
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 13px; color: var(--text-secondary);">Afficher :</span>
+                                <select id="transactions-per-page-select" class="form-input" style="width: auto; padding: 6px 10px; font-size: 13px;">
+                                    <option value="10" selected>10 par page</option>
+                                    <option value="25">25 par page</option>
+                                    <option value="50">50 par page</option>
+                                    <option value="all">Tout afficher</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <button id="btn-transactions-prev" class="action-btn" style="padding: 6px 12px;">◀ Précédent</button>
+                                <span id="transactions-page-indicator" style="font-weight: 600; font-size: 13px; color: var(--text-primary); padding: 0 4px;">Page 1 / 1</span>
+                                <button id="btn-transactions-next" class="action-btn" style="padding: 6px 12px;">Suivant ▶</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

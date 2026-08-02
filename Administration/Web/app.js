@@ -736,13 +736,61 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // [ STOCK PAGINATION LOGIC ] =============================================
+    let rawStockData = [];
+    let stockCurrentPage = 1;
+    let stockPerPage = '10';
+
     async function loadStockData() {
         const data = await apiRequest('/stock');
         if (!data) return;
+        rawStockData = data.stock || [];
+        stockCurrentPage = 1;
+        applyStockPagination();
+    }
 
+    function applyStockPagination() {
+        const totalItems = rawStockData.length;
+        let perPage = stockPerPage === 'all' ? totalItems : parseInt(stockPerPage) || 10;
+        if (perPage <= 0) perPage = 10;
+
+        const totalPages = Math.ceil(totalItems / perPage) || 1;
+        if (stockCurrentPage > totalPages) stockCurrentPage = totalPages;
+        if (stockCurrentPage < 1) stockCurrentPage = 1;
+
+        const startIdx = (stockCurrentPage - 1) * perPage;
+        const endIdx = stockPerPage === 'all' ? totalItems : Math.min(startIdx + perPage, totalItems);
+        const pageItems = rawStockData.slice(startIdx, endIdx);
+
+        const infoElem = document.getElementById('stock-pagination-info');
+        if (infoElem) {
+            infoElem.innerText = totalItems > 0 
+                ? `Affichage ${startIdx + 1}-${endIdx} sur ${totalItems} carte(s)`
+                : `Aucune carte disponible`;
+        }
+
+        const pageIndicator = document.getElementById('stock-page-indicator');
+        if (pageIndicator) {
+            pageIndicator.innerText = `Page ${stockCurrentPage} / ${totalPages}`;
+        }
+
+        const btnPrev = document.getElementById('btn-stock-prev');
+        const btnNext = document.getElementById('btn-stock-next');
+        if (btnPrev) btnPrev.disabled = stockCurrentPage <= 1;
+        if (btnNext) btnNext.disabled = stockCurrentPage >= totalPages;
+
+        renderStockTable(pageItems);
+    }
+
+    function renderStockTable(items) {
         const tbody = document.getElementById('stock-table');
         tbody.innerHTML = '';
-        (data.stock || []).forEach(item => {
+        if (items.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">Aucun stock disponible.</td></tr>`;
+            return;
+        }
+
+        items.forEach(item => {
             const tr = document.createElement('tr');
             const valDisplay = (item.value != null && item.value > 0) ? `${item.value} €` : '-';
             tr.innerHTML = `
@@ -755,6 +803,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
             `;
             tbody.appendChild(tr);
+        });
+    }
+
+    const stockPerPageSelect = document.getElementById('stock-per-page-select');
+    if (stockPerPageSelect) {
+        stockPerPageSelect.addEventListener('change', (e) => {
+            stockPerPage = e.target.value;
+            stockCurrentPage = 1;
+            applyStockPagination();
+        });
+    }
+    const btnStockPrev = document.getElementById('btn-stock-prev');
+    if (btnStockPrev) {
+        btnStockPrev.addEventListener('click', () => {
+            if (stockCurrentPage > 1) {
+                stockCurrentPage--;
+                applyStockPagination();
+            }
+        });
+    }
+    const btnStockNext = document.getElementById('btn-stock-next');
+    if (btnStockNext) {
+        btnStockNext.addEventListener('click', () => {
+            stockCurrentPage++;
+            applyStockPagination();
         });
     }
 
@@ -833,13 +906,61 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // [ TRANSACTIONS PAGINATION LOGIC ] =======================================
+    let rawTransactionsData = [];
+    let transactionsCurrentPage = 1;
+    let transactionsPerPage = '10';
+
     async function loadTransactionsData() {
         const data = await apiRequest('/transactions');
         if (!data) return;
+        rawTransactionsData = data.transactions || [];
+        transactionsCurrentPage = 1;
+        applyTransactionsPagination();
+    }
 
+    function applyTransactionsPagination() {
+        const totalItems = rawTransactionsData.length;
+        let perPage = transactionsPerPage === 'all' ? totalItems : parseInt(transactionsPerPage) || 10;
+        if (perPage <= 0) perPage = 10;
+
+        const totalPages = Math.ceil(totalItems / perPage) || 1;
+        if (transactionsCurrentPage > totalPages) transactionsCurrentPage = totalPages;
+        if (transactionsCurrentPage < 1) transactionsCurrentPage = 1;
+
+        const startIdx = (transactionsCurrentPage - 1) * perPage;
+        const endIdx = transactionsPerPage === 'all' ? totalItems : Math.min(startIdx + perPage, totalItems);
+        const pageItems = rawTransactionsData.slice(startIdx, endIdx);
+
+        const infoElem = document.getElementById('transactions-pagination-info');
+        if (infoElem) {
+            infoElem.innerText = totalItems > 0 
+                ? `Affichage ${startIdx + 1}-${endIdx} sur ${totalItems} achat(s)`
+                : `Aucun achat trouvé`;
+        }
+
+        const pageIndicator = document.getElementById('transactions-page-indicator');
+        if (pageIndicator) {
+            pageIndicator.innerText = `Page ${transactionsCurrentPage} / ${totalPages}`;
+        }
+
+        const btnPrev = document.getElementById('btn-transactions-prev');
+        const btnNext = document.getElementById('btn-transactions-next');
+        if (btnPrev) btnPrev.disabled = transactionsCurrentPage <= 1;
+        if (btnNext) btnNext.disabled = transactionsCurrentPage >= totalPages;
+
+        renderTransactionsTable(pageItems);
+    }
+
+    function renderTransactionsTable(transactions) {
         const tbody = document.getElementById('all-transactions-table');
         tbody.innerHTML = '';
-        (data.transactions || []).forEach(tx => {
+        if (transactions.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 24px;">Aucune transaction enregistrée.</td></tr>`;
+            return;
+        }
+
+        transactions.forEach(tx => {
             const tr = document.createElement('tr');
             const isIptv = (tx.brand || '').toLowerCase() === 'iptv';
             const valueFormatted = (!isIptv && tx.value != null && tx.value > 0) ? `${tx.value} €` : '-';
@@ -853,6 +974,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${formatParisDate(tx.createdAt)}</td>
             `;
             tbody.appendChild(tr);
+        });
+    }
+
+    const txPerPageSelect = document.getElementById('transactions-per-page-select');
+    if (txPerPageSelect) {
+        txPerPageSelect.addEventListener('change', (e) => {
+            transactionsPerPage = e.target.value;
+            transactionsCurrentPage = 1;
+            applyTransactionsPagination();
+        });
+    }
+    const btnTxPrev = document.getElementById('btn-transactions-prev');
+    if (btnTxPrev) {
+        btnTxPrev.addEventListener('click', () => {
+            if (transactionsCurrentPage > 1) {
+                transactionsCurrentPage--;
+                applyTransactionsPagination();
+            }
+        });
+    }
+    const btnTxNext = document.getElementById('btn-transactions-next');
+    if (btnTxNext) {
+        btnTxNext.addEventListener('click', () => {
+            transactionsCurrentPage++;
+            applyTransactionsPagination();
         });
     }
 
@@ -874,13 +1020,72 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // [ PAYMENTS PAGINATION LOGIC ] ==========================================
+    let rawPaymentsData = [];
+    let paymentsCurrentPage = 1;
+    let paymentsPerPage = '10';
+
     async function loadPaymentsData() {
         const data = await apiRequest('/payments');
         if (!data) return;
+        rawPaymentsData = data.payments || [];
+        paymentsCurrentPage = 1;
+        applyPaymentsPagination();
+    }
 
+    window.filterPayments = function() {
+        paymentsCurrentPage = 1;
+        applyPaymentsPagination();
+    };
+
+    function applyPaymentsPagination() {
+        const filterValue = (document.getElementById('filter-payments-method')?.value || '').toUpperCase();
+        let filtered = rawPaymentsData;
+        if (filterValue) {
+            filtered = rawPaymentsData.filter(p => (p.method || '').toUpperCase() === filterValue);
+        }
+
+        const totalItems = filtered.length;
+        let perPage = paymentsPerPage === 'all' ? totalItems : parseInt(paymentsPerPage) || 10;
+        if (perPage <= 0) perPage = 10;
+
+        const totalPages = Math.ceil(totalItems / perPage) || 1;
+        if (paymentsCurrentPage > totalPages) paymentsCurrentPage = totalPages;
+        if (paymentsCurrentPage < 1) paymentsCurrentPage = 1;
+
+        const startIdx = (paymentsCurrentPage - 1) * perPage;
+        const endIdx = paymentsPerPage === 'all' ? totalItems : Math.min(startIdx + perPage, totalItems);
+        const pageItems = filtered.slice(startIdx, endIdx);
+
+        const infoElem = document.getElementById('payments-pagination-info');
+        if (infoElem) {
+            infoElem.innerText = totalItems > 0 
+                ? `Affichage ${startIdx + 1}-${endIdx} sur ${totalItems} rechargement(s)`
+                : `Aucun rechargement trouvé`;
+        }
+
+        const pageIndicator = document.getElementById('payments-page-indicator');
+        if (pageIndicator) {
+            pageIndicator.innerText = `Page ${paymentsCurrentPage} / ${totalPages}`;
+        }
+
+        const btnPrev = document.getElementById('btn-payments-prev');
+        const btnNext = document.getElementById('btn-payments-next');
+        if (btnPrev) btnPrev.disabled = paymentsCurrentPage <= 1;
+        if (btnNext) btnNext.disabled = paymentsCurrentPage >= totalPages;
+
+        renderPaymentsTable(pageItems);
+    }
+
+    function renderPaymentsTable(payments) {
         const tbody = document.getElementById('all-payments-table');
         tbody.innerHTML = '';
-        (data.payments || []).forEach(p => {
+        if (payments.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 24px;">Aucun rechargement trouvé.</td></tr>`;
+            return;
+        }
+
+        payments.forEach(p => {
             const tr = document.createElement('tr');
             
             const statusStr = p.status ? p.status.toUpperCase() : 'INCONNU';
@@ -901,6 +1106,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${p.createdAt ? formatParisDate(p.createdAt) : 'N/A'}</td>
             `;
             tbody.appendChild(tr);
+        });
+    }
+
+    const pmPerPageSelect = document.getElementById('payments-per-page-select');
+    if (pmPerPageSelect) {
+        pmPerPageSelect.addEventListener('change', (e) => {
+            paymentsPerPage = e.target.value;
+            paymentsCurrentPage = 1;
+            applyPaymentsPagination();
+        });
+    }
+    const btnPmPrev = document.getElementById('btn-payments-prev');
+    if (btnPmPrev) {
+        btnPmPrev.addEventListener('click', () => {
+            if (paymentsCurrentPage > 1) {
+                paymentsCurrentPage--;
+                applyPaymentsPagination();
+            }
+        });
+    }
+    const btnPmNext = document.getElementById('btn-payments-next');
+    if (btnPmNext) {
+        btnPmNext.addEventListener('click', () => {
+            paymentsCurrentPage++;
+            applyPaymentsPagination();
         });
     }
 
