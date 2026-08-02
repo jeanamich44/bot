@@ -422,24 +422,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return null;
 
-        const gradient = ctx.createLinearGradient(0, 0, 0, 120);
+        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
         gradient.addColorStop(0, fillHex);
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.02)');
 
         return new Chart(ctx, {
             type: 'line',
             data: {
                 labels: metricsHistory.labels,
                 datasets: [{
+                    label: 'Volume',
                     data: [],
                     borderColor: mainColor,
                     borderWidth: 2.5,
                     backgroundColor: gradient,
                     fill: true,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 4,
-                    pointHoverBackgroundColor: mainColor
+                    tension: 0.35,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: mainColor,
+                    pointHoverBackgroundColor: '#ffffff'
                 }]
             },
             options: {
@@ -448,11 +450,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 animation: false,
                 plugins: {
                     legend: { display: false },
-                    tooltip: { mode: 'index', intersect: false }
+                    tooltip: { 
+                        mode: 'index', 
+                        intersect: false,
+                        padding: 10,
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleColor: '#ffffff',
+                        bodyColor: mainColor,
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1
+                    }
                 },
                 scales: {
-                    x: { display: false },
-                    y: { display: false, beginAtZero: true }
+                    x: {
+                        display: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { font: { size: 9 }, color: '#94a3b8', maxRotation: 0 }
+                    },
+                    y: {
+                        display: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        beginAtZero: true,
+                        ticks: { font: { size: 9 }, color: '#94a3b8', precision: 0 }
+                    }
                 }
             }
         });
