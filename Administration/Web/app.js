@@ -308,6 +308,172 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    let rawRecentSales = [];
+    let currentRecentSalesPage = 1;
+    let recentSalesPerPage = '10';
+    let currentRecentSalesSortField = 'id';
+    let currentRecentSalesSortDir = 'desc';
+
+    function renderRecentSalesTable() {
+        const tbody = document.getElementById('recent-sales-table');
+        if (!tbody) return;
+
+        const searchInput = document.getElementById('recent-sales-search-input');
+        const clearBtn = document.getElementById('recent-sales-search-clear');
+        const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+        if (clearBtn) clearBtn.style.display = query ? 'block' : 'none';
+
+        let filtered = rawRecentSales.filter(tx => {
+            if (!query) return true;
+            return String(tx.id || '').toLowerCase().includes(query) ||
+                   String(tx.userId || '').toLowerCase().includes(query) ||
+                   String(tx.brand || '').toLowerCase().includes(query) ||
+                   String(tx.price || '').toLowerCase().includes(query) ||
+                   String(tx.createdAt || '').toLowerCase().includes(query);
+        });
+
+        filtered.sort((a, b) => {
+            let valA = a[currentRecentSalesSortField];
+            let valB = b[currentRecentSalesSortField];
+            if (valA === undefined || valA === null) valA = '';
+            if (valB === undefined || valB === null) valB = '';
+
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                return currentRecentSalesSortDir === 'asc' ? valA - valB : valB - valA;
+            }
+            const strA = String(valA).toLowerCase();
+            const strB = String(valB).toLowerCase();
+            if (strA < strB) return currentRecentSalesSortDir === 'asc' ? -1 : 1;
+            if (strA > strB) return currentRecentSalesSortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        ['id', 'userId', 'brand', 'price', 'createdAt'].forEach(field => {
+            const arrowEl = document.getElementById(`sort-arrow-sales-${field}`);
+            if (arrowEl) {
+                if (field === currentRecentSalesSortField) {
+                    arrowEl.innerText = currentRecentSalesSortDir === 'asc' ? '▲' : '▼';
+                    arrowEl.style.color = 'var(--accent-primary)';
+                } else {
+                    arrowEl.innerText = '↕';
+                    arrowEl.style.color = 'var(--text-secondary)';
+                }
+            }
+        });
+
+        const totalItems = filtered.length;
+        let perPage = recentSalesPerPage === 'all' ? totalItems : parseInt(recentSalesPerPage, 10);
+        if (isNaN(perPage) || perPage <= 0) perPage = totalItems || 1;
+
+        const totalPages = Math.ceil(totalItems / perPage) || 1;
+        if (currentRecentSalesPage > totalPages) currentRecentSalesPage = totalPages;
+        if (currentRecentSalesPage < 1) currentRecentSalesPage = 1;
+
+        const startIdx = (currentRecentSalesPage - 1) * perPage;
+        const endIdx = recentSalesPerPage === 'all' ? totalItems : Math.min(startIdx + perPage, totalItems);
+        const pageItems = filtered.slice(startIdx, endIdx);
+
+        tbody.innerHTML = '';
+        if (pageItems.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">Aucune vente trouvée</td></tr>`;
+        } else {
+            pageItems.forEach(tx => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>#${tx.id}</td>
+                    <td style="cursor: pointer; color: var(--accent-primary);" onclick="window.redirectToUser('${tx.userId}')"><code>${tx.userId}</code></td>
+                    <td>${escapeHtml(tx.brand)}</td>
+                    <td><strong>${tx.price} €</strong></td>
+                    <td>${formatParisDate(tx.createdAt)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        const infoEl = document.getElementById('recent-sales-pagination-info');
+        if (infoEl) {
+            infoEl.innerText = totalItems === 0 
+                ? 'Affichage 0 sur 0 vente(s)' 
+                : `Affichage ${startIdx + 1}-${endIdx} sur ${totalItems} vente(s)`;
+        }
+
+        const indicatorEl = document.getElementById('recent-sales-page-indicator');
+        if (indicatorEl) indicatorEl.innerText = `Page ${currentRecentSalesPage} / ${totalPages}`;
+
+        const prevBtn = document.getElementById('btn-recent-sales-prev');
+        const nextBtn = document.getElementById('btn-recent-sales-next');
+        if (prevBtn) prevBtn.disabled = currentRecentSalesPage <= 1;
+        if (nextBtn) nextBtn.disabled = currentRecentSalesPage >= totalPages;
+    }
+
+    function initRecentSalesListeners() {
+        const searchInput = document.getElementById('recent-sales-search-input');
+        const clearBtn = document.getElementById('recent-sales-search-clear');
+        const perPageSelect = document.getElementById('recent-sales-per-page-select');
+        const prevBtn = document.getElementById('btn-recent-sales-prev');
+        const nextBtn = document.getElementById('btn-recent-sales-next');
+
+        if (searchInput && !searchInput.dataset.initialized) {
+            searchInput.dataset.initialized = 'true';
+            searchInput.addEventListener('input', () => {
+                currentRecentSalesPage = 1;
+                renderRecentSalesTable();
+            });
+        }
+
+        if (clearBtn && !clearBtn.dataset.initialized) {
+            clearBtn.dataset.initialized = 'true';
+            clearBtn.addEventListener('click', () => {
+                if (searchInput) searchInput.value = '';
+                currentRecentSalesPage = 1;
+                renderRecentSalesTable();
+            });
+        }
+
+        if (perPageSelect && !perPageSelect.dataset.initialized) {
+            perPageSelect.dataset.initialized = 'true';
+            perPageSelect.addEventListener('change', (e) => {
+                recentSalesPerPage = e.target.value;
+                currentRecentSalesPage = 1;
+                renderRecentSalesTable();
+            });
+        }
+
+        if (prevBtn && !prevBtn.dataset.initialized) {
+            prevBtn.dataset.initialized = 'true';
+            prevBtn.addEventListener('click', () => {
+                if (currentRecentSalesPage > 1) {
+                    currentRecentSalesPage--;
+                    renderRecentSalesTable();
+                }
+            });
+        }
+
+        if (nextBtn && !nextBtn.dataset.initialized) {
+            nextBtn.dataset.initialized = 'true';
+            nextBtn.addEventListener('click', () => {
+                currentRecentSalesPage++;
+                renderRecentSalesTable();
+            });
+        }
+
+        document.querySelectorAll('.sortable-th[data-table="recent-sales"]').forEach(th => {
+            if (!th.dataset.initialized) {
+                th.dataset.initialized = 'true';
+                th.addEventListener('click', () => {
+                    const sortField = th.dataset.sort;
+                    if (currentRecentSalesSortField === sortField) {
+                        currentRecentSalesSortDir = currentRecentSalesSortDir === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentRecentSalesSortField = sortField;
+                        currentRecentSalesSortDir = 'asc';
+                    }
+                    renderRecentSalesTable();
+                });
+            }
+        });
+    }
+
     async function loadDashboardData() {
         const stats = await apiRequest('/stats');
         if (!stats) return;
@@ -319,19 +485,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('stat-total-users').innerText = stats.totalUsers;
         document.getElementById('stat-total-stock').innerText = stats.totalStock;
 
-        const tbody = document.getElementById('recent-sales-table');
-        tbody.innerHTML = '';
-        (stats.recentSales || []).forEach(tx => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>#${tx.id}</td>
-                <td style="cursor: pointer; color: var(--accent-primary);" onclick="window.redirectToUser('${tx.userId}')"><code>${tx.userId}</code></td>
-                <td>${escapeHtml(tx.brand)}</td>
-                <td><strong>${tx.price} €</strong></td>
-                <td>${formatParisDate(tx.createdAt)}</td>
-            `;
-            tbody.appendChild(tr);
-        });
+        rawRecentSales = stats.recentSales || [];
+        initRecentSalesListeners();
+        renderRecentSalesTable();
     }
 
     let metricsLiveInterval = null;
@@ -1092,17 +1248,101 @@ document.addEventListener('DOMContentLoaded', () => {
     let rawStockData = [];
     let stockCurrentPage = 1;
     let stockPerPage = '10';
+    let currentStockSortField = 'id';
+    let currentStockSortDir = 'desc';
 
     async function loadStockData() {
         const data = await apiRequest('/stock');
         if (!data) return;
         rawStockData = data.stock || [];
         stockCurrentPage = 1;
+        initStockListeners();
         applyStockPagination();
     }
 
+    function initStockListeners() {
+        const searchInput = document.getElementById('stock-search-input');
+        const clearBtn = document.getElementById('stock-search-clear');
+
+        if (searchInput && !searchInput.dataset.initialized) {
+            searchInput.dataset.initialized = 'true';
+            searchInput.addEventListener('input', () => {
+                stockCurrentPage = 1;
+                applyStockPagination();
+            });
+        }
+
+        if (clearBtn && !clearBtn.dataset.initialized) {
+            clearBtn.dataset.initialized = 'true';
+            clearBtn.addEventListener('click', () => {
+                if (searchInput) searchInput.value = '';
+                stockCurrentPage = 1;
+                applyStockPagination();
+            });
+        }
+
+        document.querySelectorAll('.sortable-th[data-table="stock"]').forEach(th => {
+            if (!th.dataset.initialized) {
+                th.dataset.initialized = 'true';
+                th.addEventListener('click', () => {
+                    const sortField = th.dataset.sort;
+                    if (currentStockSortField === sortField) {
+                        currentStockSortDir = currentStockSortDir === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentStockSortField = sortField;
+                        currentStockSortDir = 'asc';
+                    }
+                    applyStockPagination();
+                });
+            }
+        });
+    }
+
     function applyStockPagination() {
-        const totalItems = rawStockData.length;
+        const searchInput = document.getElementById('stock-search-input');
+        const clearBtn = document.getElementById('stock-search-clear');
+        const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+        if (clearBtn) clearBtn.style.display = query ? 'block' : 'none';
+
+        let filtered = rawStockData.filter(item => {
+            if (!query) return true;
+            return String(item.id || '').toLowerCase().includes(query) ||
+                   String(item.code || '').toLowerCase().includes(query) ||
+                   String(item.pin || '').toLowerCase().includes(query) ||
+                   String(item.value || '').toLowerCase().includes(query) ||
+                   String(item.price || '').toLowerCase().includes(query);
+        });
+
+        filtered.sort((a, b) => {
+            let valA = a[currentStockSortField === 'valeur' ? 'value' : currentStockSortField];
+            let valB = b[currentStockSortField === 'valeur' ? 'value' : currentStockSortField];
+            if (valA === undefined || valA === null) valA = '';
+            if (valB === undefined || valB === null) valB = '';
+
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                return currentStockSortDir === 'asc' ? valA - valB : valB - valA;
+            }
+            const strA = String(valA).toLowerCase();
+            const strB = String(valB).toLowerCase();
+            if (strA < strB) return currentStockSortDir === 'asc' ? -1 : 1;
+            if (strA > strB) return currentStockSortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        ['id', 'code', 'pin', 'valeur', 'price'].forEach(field => {
+            const arrowEl = document.getElementById(`sort-arrow-stock-${field}`);
+            if (arrowEl) {
+                if (field === currentStockSortField) {
+                    arrowEl.innerText = currentStockSortDir === 'asc' ? '▲' : '▼';
+                    arrowEl.style.color = 'var(--accent-primary)';
+                } else {
+                    arrowEl.innerText = '↕';
+                    arrowEl.style.color = 'var(--text-secondary)';
+                }
+            }
+        });
+
+        const totalItems = filtered.length;
         let perPage = stockPerPage === 'all' ? totalItems : parseInt(stockPerPage) || 10;
         if (perPage <= 0) perPage = 10;
 
@@ -1112,7 +1352,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const startIdx = (stockCurrentPage - 1) * perPage;
         const endIdx = stockPerPage === 'all' ? totalItems : Math.min(startIdx + perPage, totalItems);
-        const pageItems = rawStockData.slice(startIdx, endIdx);
+        const pageItems = filtered.slice(startIdx, endIdx);
 
         const infoElem = document.getElementById('stock-pagination-info');
         if (infoElem) {

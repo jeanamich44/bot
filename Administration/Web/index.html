@@ -112,23 +112,50 @@
                 </div>
 
                 <div class="card-panel">
-                    <div class="card-panel-header">
-                        <h2 class="card-panel-title">Dernières Ventes Enregistrées</h2>
+                    <div class="card-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                        <h2 class="card-panel-title" style="margin: 0;">Dernières Ventes Enregistrées</h2>
+                        <div style="position: relative; width: 280px; display: flex; align-items: center;">
+                            <span style="position: absolute; left: 12px; color: var(--text-secondary); pointer-events: none; font-size: 13px;">🔍</span>
+                            <input type="text" id="recent-sales-search-input" class="form-input" placeholder="Rechercher ID, Telegram, Produit..." style="width: 100%; padding-left: 36px; padding-right: 32px; height: 38px; font-size: 13px;">
+                            <button type="button" id="recent-sales-search-clear" style="position: absolute; right: 10px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; display: none;" title="Effacer">✕</button>
+                        </div>
                     </div>
                     <div class="table-wrapper">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID Transaction</th>
-                                    <th>ID Telegram</th>
-                                    <th>Produit</th>
-                                    <th>Prix</th>
-                                    <th>Date</th>
+                                    <th class="sortable-th" data-table="recent-sales" data-sort="id" style="cursor: pointer; user-select: none;">ID Transaction <span class="sort-arrow" id="sort-arrow-sales-id">▲</span></th>
+                                    <th class="sortable-th" data-table="recent-sales" data-sort="userId" style="cursor: pointer; user-select: none;">ID Telegram <span class="sort-arrow" id="sort-arrow-sales-userId">↕</span></th>
+                                    <th class="sortable-th" data-table="recent-sales" data-sort="brand" style="cursor: pointer; user-select: none;">Produit <span class="sort-arrow" id="sort-arrow-sales-brand">↕</span></th>
+                                    <th class="sortable-th" data-table="recent-sales" data-sort="price" style="cursor: pointer; user-select: none;">Prix <span class="sort-arrow" id="sort-arrow-sales-price">↕</span></th>
+                                    <th class="sortable-th" data-table="recent-sales" data-sort="createdAt" style="cursor: pointer; user-select: none;">Date <span class="sort-arrow" id="sort-arrow-sales-createdAt">↕</span></th>
                                 </tr>
                             </thead>
                             <tbody id="recent-sales-table">
                             </tbody>
                         </table>
+                    </div>
+                    <!-- Pagination Bar Recent Sales -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.06);">
+                        <div id="recent-sales-pagination-info" style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+                            Affichage 0-0 sur 0 vente(s)
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 13px; color: var(--text-secondary);">Afficher :</span>
+                                <select id="recent-sales-per-page-select" class="form-input" style="width: auto; padding: 6px 10px; font-size: 13px;">
+                                    <option value="10" selected>10 par page</option>
+                                    <option value="25">25 par page</option>
+                                    <option value="50">50 par page</option>
+                                    <option value="all">Tout afficher</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <button id="btn-recent-sales-prev" class="action-btn" style="padding: 6px 12px;">◀ Précédent</button>
+                                <span id="recent-sales-page-indicator" style="font-weight: 600; font-size: 13px; color: var(--text-primary); padding: 0 4px;">Page 1 / 1</span>
+                                <button id="btn-recent-sales-next" class="action-btn" style="padding: 6px 12px;">Suivant ▶</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -546,18 +573,23 @@
                 </div>
 
                 <div class="card-panel">
-                    <div class="card-panel-header">
-                        <h2 class="card-panel-title">Stock Carrefour</h2>
+                    <div class="card-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                        <h2 class="card-panel-title" style="margin: 0;">Stock Carrefour</h2>
+                        <div style="position: relative; width: 280px; display: flex; align-items: center;">
+                            <span style="position: absolute; left: 12px; color: var(--text-secondary); pointer-events: none; font-size: 13px;">🔍</span>
+                            <input type="text" id="stock-search-input" class="form-input" placeholder="Rechercher Code, PIN, Prix..." style="width: 100%; padding-left: 36px; padding-right: 32px; height: 38px; font-size: 13px;">
+                            <button type="button" id="stock-search-clear" style="position: absolute; right: 10px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; display: none;" title="Effacer">✕</button>
+                        </div>
                     </div>
                     <div class="table-wrapper">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID Stock</th>
-                                    <th>Code</th>
-                                    <th>PIN</th>
-                                    <th>Solde Carte</th>
-                                    <th>Prix Vente</th>
+                                    <th class="sortable-th" data-table="stock" data-sort="id" style="cursor: pointer; user-select: none;">ID Stock <span class="sort-arrow" id="sort-arrow-stock-id">▲</span></th>
+                                    <th class="sortable-th" data-table="stock" data-sort="code" style="cursor: pointer; user-select: none;">Code <span class="sort-arrow" id="sort-arrow-stock-code">↕</span></th>
+                                    <th class="sortable-th" data-table="stock" data-sort="pin" style="cursor: pointer; user-select: none;">PIN <span class="sort-arrow" id="sort-arrow-stock-pin">↕</span></th>
+                                    <th class="sortable-th" data-table="stock" data-sort="valeur" style="cursor: pointer; user-select: none;">Solde Carte <span class="sort-arrow" id="sort-arrow-stock-valeur">↕</span></th>
+                                    <th class="sortable-th" data-table="stock" data-sort="price" style="cursor: pointer; user-select: none;">Prix Vente <span class="sort-arrow" id="sort-arrow-stock-price">↕</span></th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
