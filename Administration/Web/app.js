@@ -578,10 +578,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const nowTime = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         
-        // Pousser uniquement si la valeur a changé ou si le tampon est vide
-        const lastVal = metricsHistory.totalTraffic[metricsHistory.totalTraffic.length - 1];
-        if (lastVal !== totalTraffic || metricsHistory.labels.length === 0) {
-            if (metricsHistory.labels.length >= MAX_HISTORY_POINTS) {
+        // Initialiser 10 points si le buffer est vide pour tracer immédiatement une ligne complète
+        if (metricsHistory.labels.length === 0) {
+            const now = new Date();
+            for (let i = 9; i >= 0; i--) {
+                const pastTime = new Date(now.getTime() - i * 2000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                metricsHistory.labels.push(pastTime);
+                metricsHistory.totalTraffic.push(totalTraffic || 0);
+            }
+        } else {
+            if (metricsHistory.labels.length >= 10) {
                 metricsHistory.labels.shift();
                 metricsHistory.totalTraffic.shift();
             }
