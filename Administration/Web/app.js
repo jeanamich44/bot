@@ -508,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             borderColor: '#6366f1', 
                             backgroundColor: gradGlobal, 
                             fill: true, 
-                            tension: 0.35, 
+                            tension: 0.1, 
                             borderWidth: 3,
                             pointBackgroundColor: '#818cf8',
                             pointRadius: 3

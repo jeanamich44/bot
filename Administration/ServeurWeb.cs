@@ -197,14 +197,15 @@ namespace ChezRheyyBot
 
                 var nowParis = DataBase.ConvertirEnHeureParis(DateTime.UtcNow);
                 var todayStart = nowParis.Date;
-                int currentHourBlock = nowParis.Hour / 2; // Index du bloc 2h actuel (0 a 11)
-
                 var todayBlocks = new List<object>();
-                for (int i = 0; i < 24; i += 2)
+                for (int i = 11; i >= 0; i--)
                 {
-                    int blockIndex = i / 2;
-                    long blockVol = (blockIndex == currentHourBlock) ? totalRequests : 0;
-                    todayBlocks.Add(new { label = $"{i:D2}h-{(i+2):D2}h", volume = blockVol });
+                    var blockTime = nowParis.AddHours(-i * 2);
+                    int hStart = (blockTime.Hour / 2) * 2;
+                    int hEnd = hStart + 2;
+                    string lbl = $"{hStart:D2}h-{hEnd:D2}h";
+                    long blockVol = (i == 0) ? totalRequests : 0;
+                    todayBlocks.Add(new { label = lbl, volume = blockVol });
                 }
 
                 var last7Days = new List<object>();
