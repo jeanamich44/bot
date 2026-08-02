@@ -363,9 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // [ ADVANCED METRICS CHARTS SYSTEM ] =====================================
     let chartGlobalVolume = null;
-    let chartTelegramActivity = null;
-    let chartGatewaysActivity = null;
-    let chartHealthActivity = null;
+    const individualCharts = {};
 
     const metricsHistory = {
         labels: [],
@@ -374,8 +372,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tgSent: [],
         cmdExec: [],
         sumupRec: [],
+        sumupSent: [],
+        oxapayRec: [],
         oxapaySent: [],
-        errors: []
+        adminLogins: [],
+        errorsCount: []
     };
     const MAX_HISTORY_POINTS = 15;
 
@@ -415,6 +416,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let selectedTimeframe = 'live';
 
+    function createSparklineChart(canvasId, mainColor, fillHex) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return null;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 120);
+        gradient.addColorStop(0, fillHex);
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+        return new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: metricsHistory.labels,
+                datasets: [{
+                    data: [],
+                    borderColor: mainColor,
+                    borderWidth: 2.5,
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointHoverBackgroundColor: mainColor
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { display: false },
+                    y: { display: false, beginAtZero: true }
+                }
+            }
+        });
+    }
+
     function initMetricsCharts() {
         if (typeof Chart === 'undefined') return;
 
@@ -423,6 +466,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const ctxGlobal = document.getElementById('chart-global-volume')?.getContext('2d');
         if (ctxGlobal && !chartGlobalVolume) {
+            const gradGlobal = ctxGlobal.createLinearGradient(0, 0, 0, 240);
+            gradGlobal.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+            gradGlobal.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
             chartGlobalVolume = new Chart(ctxGlobal, {
                 type: 'line',
                 data: {
@@ -432,9 +479,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             label: 'Volume Réseau Global', 
                             data: metricsHistory.totalTraffic, 
                             borderColor: '#6366f1', 
-                            backgroundColor: 'rgba(99, 102, 241, 0.18)', 
+                            backgroundColor: gradGlobal, 
                             fill: true, 
-                            tension: 0.2, 
+                            tension: 0.35, 
                             borderWidth: 3,
                             pointBackgroundColor: '#818cf8',
                             pointRadius: 3
@@ -457,79 +504,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const ctxTg = document.getElementById('chart-telegram-activity')?.getContext('2d');
-        if (ctxTg && !chartTelegramActivity) {
-            chartTelegramActivity = new Chart(ctxTg, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Requêtes Entrantes', 'Requêtes Sortantes'],
-                    datasets: [{
-                        data: [0, 0],
-                        backgroundColor: ['#0088cc', '#a855f7'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false,
-                    plugins: { legend: { position: 'bottom' } },
-                    cutout: '70%'
-                }
-            });
-        }
-
-        const ctxGateways = document.getElementById('chart-gateways-activity')?.getContext('2d');
-        if (ctxGateways && !chartGatewaysActivity) {
-            chartGatewaysActivity = new Chart(ctxGateways, {
-                type: 'bar',
-                data: {
-                    labels: ['SumUp Reçus', 'SumUp Envoyés', 'OxaPay Reçus', 'OxaPay Envoyés'],
-                    datasets: [{
-                        label: 'Nombre de requêtes',
-                        data: [0, 0, 0, 0],
-                        backgroundColor: ['#3b82f6', '#60a5fa', '#f59e0b', '#fbbf24'],
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
-                    }
-                }
-            });
-        }
-
-        const ctxHealth = document.getElementById('chart-health-activity')?.getContext('2d');
-        if (ctxHealth && !chartHealthActivity) {
-            chartHealthActivity = new Chart(ctxHealth, {
-                type: 'bar',
-                data: {
-                    labels: ['Processus Traités', 'Accès Admin', 'Erreurs'],
-                    datasets: [{
-                        label: 'Volume',
-                        data: [0, 0, 0],
-                        backgroundColor: ['#10b981', '#a855f7', '#ef4444'],
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
-                    }
-                }
-            });
-        }
+        if (!individualCharts.tgRec) individualCharts.tgRec = createSparklineChart('chart-tg-rec', '#06b6d4', 'rgba(6, 182, 212, 0.35)');
+        if (!individualCharts.tgSent) individualCharts.tgSent = createSparklineChart('chart-tg-sent', '#a855f7', 'rgba(168, 85, 247, 0.35)');
+        if (!individualCharts.cmdExec) individualCharts.cmdExec = createSparklineChart('chart-commands-exec', '#10b981', 'rgba(16, 185, 129, 0.35)');
+        if (!individualCharts.sumupRec) individualCharts.sumupRec = createSparklineChart('chart-sumup-rec', '#3b82f6', 'rgba(59, 130, 246, 0.35)');
+        if (!individualCharts.sumupSent) individualCharts.sumupSent = createSparklineChart('chart-sumup-sent', '#38bdf8', 'rgba(56, 189, 248, 0.35)');
+        if (!individualCharts.oxapayRec) individualCharts.oxapayRec = createSparklineChart('chart-oxapay-rec', '#f59e0b', 'rgba(245, 158, 11, 0.35)');
+        if (!individualCharts.oxapaySent) individualCharts.oxapaySent = createSparklineChart('chart-oxapay-sent', '#f97316', 'rgba(249, 115, 22, 0.35)');
+        if (!individualCharts.adminLogins) individualCharts.adminLogins = createSparklineChart('chart-admin-logins', '#8b5cf6', 'rgba(139, 92, 246, 0.35)');
+        if (!individualCharts.errorsCount) individualCharts.errorsCount = createSparklineChart('chart-errors-count', '#ef4444', 'rgba(239, 68, 68, 0.35)');
 
         const selectTimeframe = document.getElementById('chart-timeframe-select');
         const customContainer = document.getElementById('custom-date-picker-container');
@@ -540,7 +523,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectTimeframe && !selectTimeframe.dataset.initialized) {
             selectTimeframe.dataset.initialized = 'true';
             
-            // Defaut dates: il y a 7 jours jusqu a aujourd hui
             const todayStr = new Date().toISOString().split('T')[0];
             const past7Str = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
             if (startDateInput) startDateInput.value = past7Str;
@@ -617,37 +599,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const nowTime = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         
-        // Initialiser 10 points si le buffer est vide pour tracer immédiatement une ligne complète
         if (metricsHistory.labels.length === 0) {
             const now = new Date();
             for (let i = 9; i >= 0; i--) {
                 const pastTime = new Date(now.getTime() - i * 2000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                 metricsHistory.labels.push(pastTime);
                 metricsHistory.totalTraffic.push(totalTraffic || 0);
+                metricsHistory.tgRec.push(m.telegramReceived || 0);
+                metricsHistory.tgSent.push(m.telegramSent || 0);
+                metricsHistory.cmdExec.push(m.commandsExecuted || 0);
+                metricsHistory.sumupRec.push(m.sumupReceived || 0);
+                metricsHistory.sumupSent.push(m.sumupSent || 0);
+                metricsHistory.oxapayRec.push(m.oxapayReceived || 0);
+                metricsHistory.oxapaySent.push(m.oxapaySent || 0);
+                metricsHistory.adminLogins.push(m.adminLogins || 0);
+                metricsHistory.errorsCount.push(m.errorsCount || 0);
             }
         } else {
             if (metricsHistory.labels.length >= 10) {
                 metricsHistory.labels.shift();
                 metricsHistory.totalTraffic.shift();
+                metricsHistory.tgRec.shift();
+                metricsHistory.tgSent.shift();
+                metricsHistory.cmdExec.shift();
+                metricsHistory.sumupRec.shift();
+                metricsHistory.sumupSent.shift();
+                metricsHistory.oxapayRec.shift();
+                metricsHistory.oxapaySent.shift();
+                metricsHistory.adminLogins.shift();
+                metricsHistory.errorsCount.shift();
             }
             metricsHistory.labels.push(nowTime);
             metricsHistory.totalTraffic.push(totalTraffic || 0);
+            metricsHistory.tgRec.push(m.telegramReceived || 0);
+            metricsHistory.tgSent.push(m.telegramSent || 0);
+            metricsHistory.cmdExec.push(m.commandsExecuted || 0);
+            metricsHistory.sumupRec.push(m.sumupReceived || 0);
+            metricsHistory.sumupSent.push(m.sumupSent || 0);
+            metricsHistory.oxapayRec.push(m.oxapayReceived || 0);
+            metricsHistory.oxapaySent.push(m.oxapaySent || 0);
+            metricsHistory.adminLogins.push(m.adminLogins || 0);
+            metricsHistory.errorsCount.push(m.errorsCount || 0);
         }
 
         renderMainVolumeChart(stats);
 
-        if (chartTelegramActivity) {
-            chartTelegramActivity.data.datasets[0].data = [m.telegramReceived || 0, m.telegramSent || 0];
-            chartTelegramActivity.update('none');
-        }
-        if (chartGatewaysActivity) {
-            chartGatewaysActivity.data.datasets[0].data = [m.sumupReceived || 0, m.sumupSent || 0, m.oxapayReceived || 0, m.oxapaySent || 0];
-            chartGatewaysActivity.update('none');
-        }
-        if (chartHealthActivity) {
-            chartHealthActivity.data.datasets[0].data = [m.commandsExecuted || 0, m.adminLogins || 0, m.errorsCount || 0];
-            chartHealthActivity.update('none');
-        }
+        updateCounter('chart-val-tg-rec', m.telegramReceived);
+        updateCounter('chart-val-tg-sent', m.telegramSent);
+        updateCounter('chart-val-commands-exec', m.commandsExecuted);
+        updateCounter('chart-val-sumup-rec', m.sumupReceived);
+        updateCounter('chart-val-sumup-sent', m.sumupSent);
+        updateCounter('chart-val-oxapay-rec', m.oxapayReceived);
+        updateCounter('chart-val-oxapay-sent', m.oxapaySent);
+        updateCounter('chart-val-admin-logins', m.adminLogins);
+        updateCounter('chart-val-errors-count', m.errorsCount);
+
+        const updateSpark = (chartObj, dataArr) => {
+            if (chartObj) {
+                chartObj.data.labels = metricsHistory.labels;
+                chartObj.data.datasets[0].data = dataArr;
+                chartObj.update('none');
+            }
+        };
+
+        updateSpark(individualCharts.tgRec, metricsHistory.tgRec);
+        updateSpark(individualCharts.tgSent, metricsHistory.tgSent);
+        updateSpark(individualCharts.cmdExec, metricsHistory.cmdExec);
+        updateSpark(individualCharts.sumupRec, metricsHistory.sumupRec);
+        updateSpark(individualCharts.sumupSent, metricsHistory.sumupSent);
+        updateSpark(individualCharts.oxapayRec, metricsHistory.oxapayRec);
+        updateSpark(individualCharts.oxapaySent, metricsHistory.oxapaySent);
+        updateSpark(individualCharts.adminLogins, metricsHistory.adminLogins);
+        updateSpark(individualCharts.errorsCount, metricsHistory.errorsCount);
     }
 
     async function loadMetricsData() {
