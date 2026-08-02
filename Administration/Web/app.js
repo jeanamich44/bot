@@ -602,27 +602,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderMainVolumeChart(stats) {
         if (!chartGlobalVolume) return;
+        const subTitle = document.getElementById('main-chart-subtitle');
 
         if (selectedTimeframe === 'live') {
             chartGlobalVolume.data.labels = [...metricsHistory.labels];
             chartGlobalVolume.data.datasets[0].data = [...metricsHistory.totalTraffic];
-            chartGlobalVolume.data.datasets[0].label = 'Volume Réseau Global (En Direct)';
+            chartGlobalVolume.data.datasets[0].label = 'Volume Réseau Global (En Direct RAM)';
+            if (subTitle) subTitle.textContent = "Évolution globale du trafic et des requêtes réseau instantanées (RAM)";
         } else if (stats && stats.history) {
             let hData = [];
             if (selectedTimeframe === 'today') {
                 hData = stats.history.today || [];
-                chartGlobalVolume.data.datasets[0].label = 'Volume (Aujourd\'hui par tranche de 2h)';
+                chartGlobalVolume.data.datasets[0].label = 'Transactions & Paiements (Aujourd\'hui par tranche de 2h)';
+                if (subTitle) subTitle.textContent = "Historique des ventes d'achats et rechargements enregistrés aujourd'hui (BDD)";
             } else if (selectedTimeframe === '7d') {
                 hData = stats.history.days7 || [];
-                chartGlobalVolume.data.datasets[0].label = 'Volume (7 Derniers Jours)';
+                chartGlobalVolume.data.datasets[0].label = 'Transactions & Paiements (7 Derniers Jours)';
+                if (subTitle) subTitle.textContent = "Historique quotidien des transactions d'achats et rechargements (BDD 7 Jours)";
             } else if (selectedTimeframe === '30d') {
                 hData = stats.history.days30 || [];
-                chartGlobalVolume.data.datasets[0].label = 'Volume (30 Derniers Jours)';
+                chartGlobalVolume.data.datasets[0].label = 'Transactions & Paiements (30 Derniers Jours)';
+                if (subTitle) subTitle.textContent = "Historique quotidien des transactions d'achats et rechargements (BDD 30 Jours)";
             } else if (selectedTimeframe === 'custom') {
                 hData = stats.history.custom || [];
                 const sDate = document.getElementById('chart-start-date')?.value || '';
                 const eDate = document.getElementById('chart-end-date')?.value || '';
-                chartGlobalVolume.data.datasets[0].label = `Volume du ${sDate} au ${eDate}`;
+                chartGlobalVolume.data.datasets[0].label = `Transactions & Paiements du ${sDate} au ${eDate}`;
+                if (subTitle) subTitle.textContent = `Historique des transactions d'achats et rechargements du ${sDate} au ${eDate} (BDD)`;
             }
             chartGlobalVolume.data.labels = hData.map(x => x.label);
             chartGlobalVolume.data.datasets[0].data = hData.map(x => x.volume);
