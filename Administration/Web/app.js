@@ -1521,13 +1521,34 @@ document.addEventListener('DOMContentLoaded', () => {
     let rawTransactionsData = [];
     let transactionsCurrentPage = 1;
     let transactionsPerPage = '10';
+    let currentTransactionsSortField = 'id';
+    let currentTransactionsSortDir = 'desc';
 
     async function loadTransactionsData() {
         const data = await apiRequest('/transactions');
         if (!data) return;
         rawTransactionsData = data.transactions || [];
         transactionsCurrentPage = 1;
+        initTransactionsListeners();
         applyTransactionsPagination();
+    }
+
+    function initTransactionsListeners() {
+        document.querySelectorAll('.sortable-th[data-table="transactions"]').forEach(th => {
+            if (!th.dataset.initialized) {
+                th.dataset.initialized = 'true';
+                th.addEventListener('click', () => {
+                    const sortField = th.dataset.sort;
+                    if (currentTransactionsSortField === sortField) {
+                        currentTransactionsSortDir = currentTransactionsSortDir === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentTransactionsSortField = sortField;
+                        currentTransactionsSortDir = 'asc';
+                    }
+                    applyTransactionsPagination();
+                });
+            }
+        });
     }
 
     function applyTransactionsPagination() {
@@ -1541,9 +1562,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 String(t.userId || '').toLowerCase().includes(query) ||
                 String(t.brand || '').toLowerCase().includes(query) ||
                 String(t.code || '').toLowerCase().includes(query) ||
+                String(t.valeur || t.value || '').toLowerCase().includes(query) ||
+                String(t.price || '').toLowerCase().includes(query) ||
                 String(t.id || '').toLowerCase().includes(query)
             );
         }
+
+        filtered.sort((a, b) => {
+            let valA = a[currentTransactionsSortField === 'valeur' ? 'value' : currentTransactionsSortField];
+            let valB = b[currentTransactionsSortField === 'valeur' ? 'value' : currentTransactionsSortField];
+            if (valA === undefined || valA === null) valA = '';
+            if (valB === undefined || valB === null) valB = '';
+
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                return currentTransactionsSortDir === 'asc' ? valA - valB : valB - valA;
+            }
+            const strA = String(valA).toLowerCase();
+            const strB = String(valB).toLowerCase();
+            if (strA < strB) return currentTransactionsSortDir === 'asc' ? -1 : 1;
+            if (strA > strB) return currentTransactionsSortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        ['id', 'userId', 'brand', 'code', 'valeur', 'price', 'createdAt'].forEach(field => {
+            const arrowEl = document.getElementById(`sort-arrow-transactions-${field}`);
+            if (arrowEl) {
+                if (field === currentTransactionsSortField) {
+                    arrowEl.innerText = currentTransactionsSortDir === 'asc' ? '▲' : '▼';
+                    arrowEl.style.color = 'var(--accent-primary)';
+                } else {
+                    arrowEl.innerText = '↕';
+                    arrowEl.style.color = 'var(--text-secondary)';
+                }
+            }
+        });
 
         const totalItems = filtered.length;
         let perPage = transactionsPerPage === 'all' ? totalItems : parseInt(transactionsPerPage) || 10;
@@ -1677,12 +1729,34 @@ document.addEventListener('DOMContentLoaded', () => {
     let paymentsCurrentPage = 1;
     let paymentsPerPage = '10';
 
+    let currentPaymentsSortField = 'id';
+    let currentPaymentsSortDir = 'desc';
+
     async function loadPaymentsData() {
         const data = await apiRequest('/payments');
         if (!data) return;
         rawPaymentsData = data.payments || [];
         paymentsCurrentPage = 1;
+        initPaymentsListeners();
         applyPaymentsPagination();
+    }
+
+    function initPaymentsListeners() {
+        document.querySelectorAll('.sortable-th[data-table="payments"]').forEach(th => {
+            if (!th.dataset.initialized) {
+                th.dataset.initialized = 'true';
+                th.addEventListener('click', () => {
+                    const sortField = th.dataset.sort;
+                    if (currentPaymentsSortField === sortField) {
+                        currentPaymentsSortDir = currentPaymentsSortDir === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentPaymentsSortField = sortField;
+                        currentPaymentsSortDir = 'asc';
+                    }
+                    applyPaymentsPagination();
+                });
+            }
+        });
     }
 
     window.filterPayments = function() {
@@ -1707,9 +1781,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 String(p.trackId || '').toLowerCase().includes(query) ||
                 String(p.method || '').toLowerCase().includes(query) ||
                 String(p.status || '').toLowerCase().includes(query) ||
+                String(p.amount || '').toLowerCase().includes(query) ||
                 String(p.id || '').toLowerCase().includes(query)
             );
         }
+
+        filtered.sort((a, b) => {
+            let valA = a[currentPaymentsSortField];
+            let valB = b[currentPaymentsSortField];
+            if (valA === undefined || valA === null) valA = '';
+            if (valB === undefined || valB === null) valB = '';
+
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                return currentPaymentsSortDir === 'asc' ? valA - valB : valB - valA;
+            }
+            const strA = String(valA).toLowerCase();
+            const strB = String(valB).toLowerCase();
+            if (strA < strB) return currentPaymentsSortDir === 'asc' ? -1 : 1;
+            if (strA > strB) return currentPaymentsSortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        ['id', 'chatId', 'method', 'amount', 'status', 'trackId', 'createdAt'].forEach(field => {
+            const arrowEl = document.getElementById(`sort-arrow-payments-${field}`);
+            if (arrowEl) {
+                if (field === currentPaymentsSortField) {
+                    arrowEl.innerText = currentPaymentsSortDir === 'asc' ? '▲' : '▼';
+                    arrowEl.style.color = 'var(--accent-primary)';
+                } else {
+                    arrowEl.innerText = '↕';
+                    arrowEl.style.color = 'var(--text-secondary)';
+                }
+            }
+        });
 
         const totalItems = filtered.length;
         let perPage = paymentsPerPage === 'all' ? totalItems : parseInt(paymentsPerPage) || 10;
