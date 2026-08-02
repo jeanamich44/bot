@@ -919,6 +919,34 @@ namespace ChezRheyyBot
             return list;
         }
 
+        public static int ViderStockBDD(string brand)
+        {
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = string.Equals(brand, "all", StringComparison.OrdinalIgnoreCase)
+                        ? "DELETE FROM stock;"
+                        : "DELETE FROM stock WHERE LOWER(brand) = LOWER(@brand);";
+
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    {
+                        if (!string.Equals(brand, "all", StringComparison.OrdinalIgnoreCase))
+                        {
+                            cmd.Parameters.AddWithValue("@brand", brand);
+                        }
+                        return cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ViderStockBDD Erreur] {ex.Message}");
+                return 0;
+            }
+        }
+
         public static DateTime ConvertirEnHeureParis(DateTime dateUtc)
         {
             try

@@ -18,6 +18,7 @@ namespace ChezRheyyBot
             "/unlock",
             "/stat",
             "/stock",
+            "/clear",
             "/commandes",
             "/info",
             "/crypto",
@@ -37,6 +38,7 @@ namespace ChezRheyyBot
             { "unlock", ("Débloque la génération de liens de paiement pour un utilisateur restreint.", "/unlock 123456789", "/unlock <id>") },
             { "stat", ("Affiche les statistiques globales des ventes et le CA par marque depuis la BDD.", "/stat", "/stat") },
             { "stock", ("Affiche la quantité de stock actuellement disponible pour une marque (ex: /stock carr).", "/stock carr", "/stock [marque]") },
+            { "clear", ("Vide intégralement le stock d'une marque (ex: /clear carr) ou la totalité du stock (/clear all).", "/clear carr", "/clear <marque|all>") },
             { "commandes", ("Recherche l'historique des achats par ID utilisateur, nom de marque ou code carte.", "/commandes 123456789", "/commandes <id|marque|code>") },
             { "info", ("Affiche les informations d'un utilisateur (solde, nombre d'achats, statut banni).", "/info 123456789", "/info <id>") },
             { "crypto", ("Interroge l'API OxaPay pour connaître le statut en direct d'une transaction.", "/crypto track_123456", "/crypto <trackId>") },
@@ -87,6 +89,9 @@ namespace ChezRheyyBot
                         break;
                     case "/stock":
                         await ConnaitreNombreDeStock(message, botClient, update, cancellationToken);
+                        break;
+                    case "/clear":
+                        await ClearStockCommand(message, botClient, update, cancellationToken);
                         break;
                     case "/commandes":
                         await RecupererAchatId(botClient, update, cancellationToken);
@@ -835,6 +840,60 @@ namespace ChezRheyyBot
                 await botClient.SendTextMessageAsync(
                     config.CurrentChatId,
                     $"❌ <b>Erreur lors de l'importation du stock :</b> {ex.Message}",
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                    cancellationToken: cancellationToken
+                );
+            }
+        }
+
+        private static async Task ClearStockCommand(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            try
+            {
+                string[] parts = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length < 2)
+                {
+                    await botClient.SendTextMessageAsync(
+                        config.CurrentChatId,
+                        "⚠️ <b>Utilisation :</b> <code>/clear &lt;marque|all&gt;</code>\n\n" +
+                        "<i>Exemples :</i>\n" +
+                        "• <code>/clear carr</code> (Vide le stock Carrefour)\n" +
+                        "• <code>/clear all</code> (Vide l'intégralité du stock)",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        cancellationToken: cancellationToken
+                    );
+                    return;
+                }
+
+                string targetBrand = parts[1].Trim().ToLower();
+                int deletedCount = DataBase.ViderStockBDD(targetBrand);
+
+                if (deletedCount > 0)
+                {
+                    await botClient.SendTextMessageAsync(
+                        config.CurrentChatId,
+                        $"🗑️ <b>Stock vidé avec succès !</b>\n\n" +
+                        $"<b>Marque :</b> <code>{targetBrand.ToUpper()}</code>\n" +
+                        $"<b>Cartes supprimées :</b> <code>{deletedCount}</code>",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        cancellationToken: cancellationToken
+                    );
+                }
+                else
+                {
+                    await botClient.SendTextMessageAsync(
+                        config.CurrentChatId,
+                        $"ℹ️ Aucun stock disponible à supprimer pour la marque <code>{targetBrand.ToUpper()}</code>.",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        cancellationToken: cancellationToken
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                await botClient.SendTextMessageAsync(
+                    config.CurrentChatId,
+                    $"❌ <b>Erreur /clear :</b> {ex.Message}",
                     parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
                     cancellationToken: cancellationToken
                 );

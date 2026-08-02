@@ -575,10 +575,15 @@
                 <div class="card-panel">
                     <div class="card-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
                         <h2 class="card-panel-title" style="margin: 0;">Stock Carrefour</h2>
-                        <div style="position: relative; width: 280px; display: flex; align-items: center;">
-                            <span style="position: absolute; left: 12px; color: var(--text-secondary); pointer-events: none; font-size: 13px;">🔍</span>
-                            <input type="text" id="stock-search-input" class="form-input" placeholder="Rechercher Code, PIN, Prix..." style="width: 100%; padding-left: 36px; padding-right: 32px; height: 38px; font-size: 13px;">
-                            <button type="button" id="stock-search-clear" style="position: absolute; right: 10px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; display: none;" title="Effacer">✕</button>
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <div style="position: relative; width: 260px; display: flex; align-items: center;">
+                                <span style="position: absolute; left: 12px; color: var(--text-secondary); pointer-events: none; font-size: 13px;">🔍</span>
+                                <input type="text" id="stock-search-input" class="form-input" placeholder="Rechercher Code, PIN, Prix..." style="width: 100%; padding-left: 36px; padding-right: 32px; height: 38px; font-size: 13px;">
+                                <button type="button" id="stock-search-clear" style="position: absolute; right: 10px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; display: none;" title="Effacer">✕</button>
+                            </div>
+                            <button type="button" id="btn-clear-stock" class="btn btn-danger" style="height: 38px; padding: 0 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;" title="Vider entièrement le stock Carrefour">
+                                <span>🗑️</span> Vider le Stock
+                            </button>
                         </div>
                     </div>
                     <div class="table-wrapper">

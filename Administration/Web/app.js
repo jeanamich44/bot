@@ -1281,6 +1281,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        const btnClear = document.getElementById('btn-clear-stock');
+        if (btnClear && !btnClear.dataset.initialized) {
+            btnClear.dataset.initialized = 'true';
+            btnClear.addEventListener('click', () => {
+                openModal('Vider le Stock Carrefour', '<p>Êtes-vous sûr de vouloir <strong>SUPPRIMER TOUTES LES CARTES</strong> du stock Carrefour ?<br><br><span style="color: var(--text-secondary);">Cette action est définitive et irréversible.</span></p>', async () => {
+                    const res = await apiRequest('/stock/clear', 'POST', { brand: 'carr' });
+                    if (res && res.success) {
+                        showToast(`🗑️ Stock Carrefour entièrement vidé (${res.count || 0} carte(s) supprimée(s)) !`, 'success');
+                        loadStockData();
+                    }
+                });
+            });
+        }
+
         document.querySelectorAll('.sortable-th[data-table="stock"]').forEach(th => {
             if (!th.dataset.initialized) {
                 th.dataset.initialized = 'true';

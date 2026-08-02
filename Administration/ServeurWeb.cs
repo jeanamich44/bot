@@ -467,6 +467,16 @@ namespace ChezRheyyBot
                 bool deleted = DataBase.SupprimerStockParId(id);
                 RepondreJson(response, 200, new { success = deleted });
             }
+            else if (path == "/api/admin/stock/clear" && request.HttpMethod == "POST")
+            {
+                using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+                string bodyStr = await reader.ReadToEndAsync();
+                using var doc = JsonDocument.Parse(bodyStr);
+                string brand = doc.RootElement.TryGetProperty("brand", out var bElem) ? bElem.GetString() ?? "carr" : "carr";
+
+                int deletedCount = DataBase.ViderStockBDD(brand);
+                RepondreJson(response, 200, new { success = true, count = deletedCount });
+            }
             else if (path == "/api/admin/transactions" && request.HttpMethod == "GET")
             {
                 var transactions = DataBase.ObtenirTransactions().Select(t => new
