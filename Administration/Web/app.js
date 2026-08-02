@@ -361,6 +361,168 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // [ ADVANCED METRICS CHARTS SYSTEM ] =====================================
+    let chartGlobalVolume = null;
+    let chartTelegramActivity = null;
+    let chartGatewaysActivity = null;
+    let chartHealthActivity = null;
+
+    const metricsHistory = {
+        labels: [],
+        tgRec: [],
+        tgSent: [],
+        cmdExec: [],
+        sumupRec: [],
+        oxapaySent: [],
+        errors: []
+    };
+    const MAX_HISTORY_POINTS = 15;
+
+    function initMetricsCharts() {
+        if (typeof Chart === 'undefined') return;
+
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.font.family = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+        const ctxGlobal = document.getElementById('chart-global-volume')?.getContext('2d');
+        if (ctxGlobal && !chartGlobalVolume) {
+            chartGlobalVolume = new Chart(ctxGlobal, {
+                type: 'line',
+                data: {
+                    labels: metricsHistory.labels,
+                    datasets: [
+                        { label: 'Telegram Reçus', data: metricsHistory.tgRec, borderColor: '#0088cc', backgroundColor: 'rgba(0, 136, 204, 0.15)', fill: true, tension: 0.35, borderWidth: 2 },
+                        { label: 'Telegram Envoyés', data: metricsHistory.tgSent, borderColor: '#a855f7', backgroundColor: 'rgba(168, 85, 247, 0.15)', fill: true, tension: 0.35, borderWidth: 2 },
+                        { label: 'Processus Traités', data: metricsHistory.cmdExec, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.15)', fill: true, tension: 0.35, borderWidth: 2 },
+                        { label: 'SumUp CB', data: metricsHistory.sumupRec, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.15)', fill: true, tension: 0.35, borderWidth: 2 },
+                        { label: 'Erreurs Système', data: metricsHistory.errors, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', fill: true, tension: 0.35, borderWidth: 2 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, padding: 16 } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        const ctxTg = document.getElementById('chart-telegram-activity')?.getContext('2d');
+        if (ctxTg && !chartTelegramActivity) {
+            chartTelegramActivity = new Chart(ctxTg, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Requêtes Entrantes', 'Requêtes Sortantes'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#0088cc', '#a855f7'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        const ctxGateways = document.getElementById('chart-gateways-activity')?.getContext('2d');
+        if (ctxGateways && !chartGatewaysActivity) {
+            chartGatewaysActivity = new Chart(ctxGateways, {
+                type: 'bar',
+                data: {
+                    labels: ['SumUp Reçus', 'SumUp Envoyés', 'OxaPay API'],
+                    datasets: [{
+                        label: 'Nombre de requêtes',
+                        data: [0, 0, 0],
+                        backgroundColor: ['#3b82f6', '#60a5fa', '#f59e0b'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        const ctxHealth = document.getElementById('chart-health-activity')?.getContext('2d');
+        if (ctxHealth && !chartHealthActivity) {
+            chartHealthActivity = new Chart(ctxHealth, {
+                type: 'bar',
+                data: {
+                    labels: ['Processus Traités', 'Accès Admin', 'Erreurs'],
+                    datasets: [{
+                        label: 'Volume',
+                        data: [0, 0, 0],
+                        backgroundColor: ['#10b981', '#a855f7', '#ef4444'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+    }
+
+    function updateChartsWithMetrics(m) {
+        initMetricsCharts();
+
+        const nowTime = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        
+        if (metricsHistory.labels.length >= MAX_HISTORY_POINTS) {
+            metricsHistory.labels.shift();
+            metricsHistory.tgRec.shift();
+            metricsHistory.tgSent.shift();
+            metricsHistory.cmdExec.shift();
+            metricsHistory.sumupRec.shift();
+            metricsHistory.oxapaySent.shift();
+            metricsHistory.errors.shift();
+        }
+
+        metricsHistory.labels.push(nowTime);
+        metricsHistory.tgRec.push(m.telegramReceived || 0);
+        metricsHistory.tgSent.push(m.telegramSent || 0);
+        metricsHistory.cmdExec.push(m.commandsExecuted || 0);
+        metricsHistory.sumupRec.push(m.sumupReceived || 0);
+        metricsHistory.oxapaySent.push(m.oxapaySent || 0);
+        metricsHistory.errors.push(m.errorsCount || 0);
+
+        if (chartGlobalVolume) chartGlobalVolume.update();
+        if (chartTelegramActivity) {
+            chartTelegramActivity.data.datasets[0].data = [m.telegramReceived || 0, m.telegramSent || 0];
+            chartTelegramActivity.update();
+        }
+        if (chartGatewaysActivity) {
+            chartGatewaysActivity.data.datasets[0].data = [m.sumupReceived || 0, m.sumupSent || 0, m.oxapaySent || 0];
+            chartGatewaysActivity.update();
+        }
+        if (chartHealthActivity) {
+            chartHealthActivity.data.datasets[0].data = [m.commandsExecuted || 0, m.adminLogins || 0, m.errorsCount || 0];
+            chartHealthActivity.update();
+        }
+    }
+
     async function loadMetricsData() {
         const stats = await apiRequest('/stats');
         if (!stats || !stats.metrics) return;
@@ -377,6 +539,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const totalTraffic = (m.telegramReceived || 0) + (m.telegramSent || 0) + (m.sumupReceived || 0) + (m.sumupSent || 0) + (m.oxapayReceived || 0) + (m.oxapaySent || 0);
         updateCounter('metric-total-traffic', totalTraffic);
+
+        updateChartsWithMetrics(m);
     }
 
     const resetMetricsBtn = document.getElementById('reset-metrics-btn');
@@ -390,6 +554,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const res = await apiRequest('/metrics/reset', 'POST');
                     if (res && res.success) {
                         showToast('Compteurs réinitialisés à 0', 'success');
+                        metricsHistory.labels.length = 0;
+                        metricsHistory.tgRec.length = 0;
+                        metricsHistory.tgSent.length = 0;
+                        metricsHistory.cmdExec.length = 0;
+                        metricsHistory.sumupRec.length = 0;
+                        metricsHistory.oxapaySent.length = 0;
+                        metricsHistory.errors.length = 0;
                         await loadMetricsData();
                     } else {
                         showToast('Erreur lors de la réinitialisation', 'error');
