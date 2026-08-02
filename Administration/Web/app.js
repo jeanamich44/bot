@@ -600,39 +600,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let lastStatsResponse = null;
 
-    function renderMainVolumeChart(stats) {
+    function renderMainVolumeChart() {
         if (!chartGlobalVolume) return;
         const subTitle = document.getElementById('main-chart-subtitle');
 
-        if (selectedTimeframe === 'live') {
-            chartGlobalVolume.data.labels = [...metricsHistory.labels];
-            chartGlobalVolume.data.datasets[0].data = [...metricsHistory.totalTraffic];
-            chartGlobalVolume.data.datasets[0].label = 'Volume Réseau Global (En Direct)';
-            if (subTitle) subTitle.textContent = "Évolution globale du trafic et des requêtes réseau instantanées";
-        } else if (stats && stats.history) {
-            let hData = [];
-            if (selectedTimeframe === 'today') {
-                hData = stats.history.today || [];
-                chartGlobalVolume.data.datasets[0].label = 'Volume Réseau Global (Aujourd\'hui par tranche de 2h)';
-                if (subTitle) subTitle.textContent = "Évolution globale du volume de requêtes réseau enregistrées aujourd'hui";
-            } else if (selectedTimeframe === '7d') {
-                hData = stats.history.days7 || [];
-                chartGlobalVolume.data.datasets[0].label = 'Volume Réseau Global (7 Derniers Jours)';
-                if (subTitle) subTitle.textContent = "Évolution du volume global des requêtes réseau sur les 7 derniers jours";
-            } else if (selectedTimeframe === '30d') {
-                hData = stats.history.days30 || [];
-                chartGlobalVolume.data.datasets[0].label = 'Volume Réseau Global (30 Derniers Jours)';
-                if (subTitle) subTitle.textContent = "Évolution du volume global des requêtes réseau sur les 30 derniers jours";
-            } else if (selectedTimeframe === 'custom') {
-                hData = stats.history.custom || [];
-                const sDate = document.getElementById('chart-start-date')?.value || '';
-                const eDate = document.getElementById('chart-end-date')?.value || '';
-                chartGlobalVolume.data.datasets[0].label = `Volume Réseau Global du ${sDate} au ${eDate}`;
-                if (subTitle) subTitle.textContent = `Évolution du volume global des requêtes réseau du ${sDate} au ${eDate}`;
-            }
-            chartGlobalVolume.data.labels = hData.map(x => x.label);
-            chartGlobalVolume.data.datasets[0].data = hData.map(x => x.volume);
-        }
+        chartGlobalVolume.data.labels = [...metricsHistory.labels];
+        chartGlobalVolume.data.datasets[0].data = [...metricsHistory.totalTraffic];
+        chartGlobalVolume.data.datasets[0].label = 'Volume Réseau Global (En Direct)';
+        if (subTitle) subTitle.textContent = "Évolution globale du trafic et des requêtes réseau en temps réel";
 
         chartGlobalVolume.update('none');
     }
