@@ -464,13 +464,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 scales: {
                     x: {
                         display: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { font: { size: 9 }, color: '#94a3b8', maxRotation: 0 }
+                        grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                        ticks: { 
+                            font: { size: 9 }, 
+                            color: '#94a3b8', 
+                            maxRotation: 0,
+                            maxTicksLimit: 5,
+                            autoSkip: true 
+                        }
                     },
                     y: {
                         display: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.04)' },
                         beginAtZero: true,
+                        suggestedMax: 5,
                         ticks: { font: { size: 9 }, color: '#94a3b8', precision: 0 }
                     }
                 }
