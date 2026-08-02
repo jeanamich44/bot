@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chartGatewaysActivity = new Chart(ctxGateways, {
                 type: 'bar',
                 data: {
-                    labels: ['SumUp Reçus', 'SumUp Envoyés', 'OxaPay API'],
+                    labels: ['SumUp Reçus', 'SumUp Envoyés', 'OxaPay'],
                     datasets: [{
                         label: 'Nombre de requêtes',
                         data: [0, 0, 0],
