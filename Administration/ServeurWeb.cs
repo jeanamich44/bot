@@ -240,11 +240,38 @@ namespace ChezRheyyBot
                     last30Days.Add(new { label = dayDate.ToString("dd/MM"), volume = txCount + payCount });
                 }
 
+                string startStr = request.QueryString["startDate"] ?? "";
+                string endStr = request.QueryString["endDate"] ?? "";
+                var customBlocks = new List<object>();
+                if (!string.IsNullOrEmpty(startStr) && !string.IsNullOrEmpty(endStr) && DateTime.TryParse(startStr, out DateTime sDate) && DateTime.TryParse(endStr, out DateTime eDate))
+                {
+                    var cur = sDate.Date;
+                    var limit = eDate.Date;
+                    if (limit < cur) { var temp = cur; cur = limit; limit = temp; }
+                    int daySpan = (limit - cur).Days;
+                    if (daySpan > 90) daySpan = 90;
+                    for (int i = 0; i <= daySpan; i++)
+                    {
+                        var dayDate = cur.AddDays(i);
+                        var dayEnd = dayDate.AddDays(1);
+                        int txCount = transactions.Count(t => {
+                            var d = DataBase.ConvertirEnHeureParis(t.CreatedAt);
+                            return d >= dayDate && d < dayEnd;
+                        });
+                        int payCount = allPayments.Count(p => {
+                            var d = DataBase.ConvertirEnHeureParis(p.CreatedAt);
+                            return d >= dayDate && d < dayEnd;
+                        });
+                        customBlocks.Add(new { label = dayDate.ToString("dd/MM"), volume = txCount + payCount });
+                    }
+                }
+
                 var history = new
                 {
                     today = todayBlocks,
                     days7 = last7Days,
-                    days30 = last30Days
+                    days30 = last30Days,
+                    custom = customBlocks
                 };
 
                 bool maintenance = config.ModeMaintenance;

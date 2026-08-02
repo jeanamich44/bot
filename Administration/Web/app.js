@@ -532,14 +532,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const selectTimeframe = document.getElementById('chart-timeframe-select');
+        const customContainer = document.getElementById('custom-date-picker-container');
+        const startDateInput = document.getElementById('chart-start-date');
+        const endDateInput = document.getElementById('chart-end-date');
+        const applyCustomBtn = document.getElementById('btn-apply-custom-date');
+
         if (selectTimeframe && !selectTimeframe.dataset.initialized) {
             selectTimeframe.dataset.initialized = 'true';
-            selectTimeframe.addEventListener('change', (e) => {
+            
+            // Defaut dates: il y a 7 jours jusqu a aujourd hui
+            const todayStr = new Date().toISOString().split('T')[0];
+            const past7Str = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+            if (startDateInput) startDateInput.value = past7Str;
+            if (endDateInput) endDateInput.value = todayStr;
+
+            selectTimeframe.addEventListener('change', async (e) => {
                 selectedTimeframe = e.target.value;
-                if (lastStatsResponse) {
+                if (customContainer) {
+                    customContainer.style.display = selectedTimeframe === 'custom' ? 'flex' : 'none';
+                }
+                if (selectedTimeframe === 'custom') {
+                    await fetchAndRenderCustomStats();
+                } else if (lastStatsResponse) {
                     renderMainVolumeChart(lastStatsResponse);
                 }
             });
+
+            if (applyCustomBtn) {
+                applyCustomBtn.addEventListener('click', async () => {
+                    await fetchAndRenderCustomStats();
+                });
+            }
+        }
+    }
+
+    async function fetchAndRenderCustomStats() {
+        const sDate = document.getElementById('chart-start-date')?.value || '';
+        const eDate = document.getElementById('chart-end-date')?.value || '';
+        if (!sDate || !eDate) return;
+        const res = await apiRequest(`/stats?startDate=${sDate}&endDate=${eDate}`);
+        if (res && res.history) {
+            lastStatsResponse = res;
+            renderMainVolumeChart(res);
         }
     }
 
@@ -556,13 +590,18 @@ document.addEventListener('DOMContentLoaded', () => {
             let hData = [];
             if (selectedTimeframe === 'today') {
                 hData = stats.history.today || [];
-                chartGlobalVolume.data.datasets[0].label = 'Volume des Achats & Rechargements (Aujourd\'hui)';
+                chartGlobalVolume.data.datasets[0].label = 'Volume (Aujourd\'hui par tranche de 2h)';
             } else if (selectedTimeframe === '7d') {
                 hData = stats.history.days7 || [];
-                chartGlobalVolume.data.datasets[0].label = 'Volume des Achats & Rechargements (7 Derniers Jours)';
+                chartGlobalVolume.data.datasets[0].label = 'Volume (7 Derniers Jours)';
             } else if (selectedTimeframe === '30d') {
                 hData = stats.history.days30 || [];
-                chartGlobalVolume.data.datasets[0].label = 'Volume des Achats & Rechargements (30 Derniers Jours)';
+                chartGlobalVolume.data.datasets[0].label = 'Volume (30 Derniers Jours)';
+            } else if (selectedTimeframe === 'custom') {
+                hData = stats.history.custom || [];
+                const sDate = document.getElementById('chart-start-date')?.value || '';
+                const eDate = document.getElementById('chart-end-date')?.value || '';
+                chartGlobalVolume.data.datasets[0].label = `Volume du ${sDate} au ${eDate}`;
             }
             chartGlobalVolume.data.labels = hData.map(x => x.label);
             chartGlobalVolume.data.datasets[0].data = hData.map(x => x.volume);
