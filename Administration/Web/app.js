@@ -484,11 +484,11 @@ document.addEventListener('DOMContentLoaded', () => {
             chartGatewaysActivity = new Chart(ctxGateways, {
                 type: 'bar',
                 data: {
-                    labels: ['SumUp Reçus', 'SumUp Envoyés', 'OxaPay'],
+                    labels: ['SumUp Reçus', 'SumUp Envoyés', 'OxaPay Reçus', 'OxaPay Envoyés'],
                     datasets: [{
                         label: 'Nombre de requêtes',
-                        data: [0, 0, 0],
-                        backgroundColor: ['#3b82f6', '#60a5fa', '#f59e0b'],
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#3b82f6', '#60a5fa', '#f59e0b', '#fbbf24'],
                         borderRadius: 6
                     }]
                 },
@@ -641,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chartTelegramActivity.update('none');
         }
         if (chartGatewaysActivity) {
-            chartGatewaysActivity.data.datasets[0].data = [m.sumupReceived || 0, m.sumupSent || 0, m.oxapaySent || 0];
+            chartGatewaysActivity.data.datasets[0].data = [m.sumupReceived || 0, m.sumupSent || 0, m.oxapayReceived || 0, m.oxapaySent || 0];
             chartGatewaysActivity.update('none');
         }
         if (chartHealthActivity) {
@@ -659,6 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCounter('metric-tg-sent', m.telegramSent);
         updateCounter('metric-sumup-rec', m.sumupReceived);
         updateCounter('metric-sumup-sent', m.sumupSent);
+        updateCounter('metric-oxapay-rec', m.oxapayReceived);
         updateCounter('metric-oxapay-sent', m.oxapaySent);
         updateCounter('metric-commands-exec', m.commandsExecuted);
         updateCounter('metric-errors-count', m.errorsCount);
