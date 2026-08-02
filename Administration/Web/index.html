@@ -144,6 +144,12 @@
                             <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Évolution globale du trafic et des requêtes en temps réel</p>
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
+                            <select id="chart-timeframe-select" class="form-input" style="width: auto; padding: 6px 12px; font-size: 12px; height: 34px;">
+                                <option value="live" selected>⚡ En Direct (Live)</option>
+                                <option value="today">📅 Aujourd'hui</option>
+                                <option value="7d">🗓️ 7 Derniers Jours</option>
+                                <option value="30d">📊 30 Derniers Jours</option>
+                            </select>
                             <span class="badge badge-success" style="font-size: 12px; padding: 6px 12px;">🔴 Live Polling</span>
                             <button id="reset-metrics-btn" class="btn btn-danger" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 8px; cursor: pointer;">
                                 🧹 Réinitialiser

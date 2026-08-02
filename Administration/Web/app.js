@@ -413,6 +413,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setViewMode(savedMode);
     }
 
+    let selectedTimeframe = 'live';
+
     function initMetricsCharts() {
         if (typeof Chart === 'undefined') return;
 
@@ -427,21 +429,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     labels: metricsHistory.labels,
                     datasets: [
                         { 
-                            label: 'Volume Réseau Global Total', 
+                            label: 'Volume Réseau Global', 
                             data: metricsHistory.totalTraffic, 
                             borderColor: '#6366f1', 
                             backgroundColor: 'rgba(99, 102, 241, 0.18)', 
                             fill: true, 
-                            tension: 0.35, 
+                            tension: 0.2, 
                             borderWidth: 3,
                             pointBackgroundColor: '#818cf8',
-                            pointRadius: 4
+                            pointRadius: 3
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: false,
                     plugins: {
                         legend: { position: 'top', labels: { boxWidth: 12, padding: 16 } },
                         tooltip: { mode: 'index', intersect: false }
@@ -469,6 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: false,
                     plugins: { legend: { position: 'bottom' } },
                     cutout: '70%'
                 }
@@ -491,6 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: false,
                     plugins: { legend: { display: false } },
                     scales: {
                         x: { grid: { display: false } },
@@ -516,6 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: false,
                     plugins: { legend: { display: false } },
                     scales: {
                         x: { grid: { display: false } },
@@ -524,46 +530,78 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+
+        const selectTimeframe = document.getElementById('chart-timeframe-select');
+        if (selectTimeframe && !selectTimeframe.dataset.initialized) {
+            selectTimeframe.dataset.initialized = 'true';
+            selectTimeframe.addEventListener('change', (e) => {
+                selectedTimeframe = e.target.value;
+                if (lastStatsResponse) {
+                    renderMainVolumeChart(lastStatsResponse);
+                }
+            });
+        }
     }
 
-    function updateChartsWithMetrics(m, totalTraffic) {
+    let lastStatsResponse = null;
+
+    function renderMainVolumeChart(stats) {
+        if (!chartGlobalVolume) return;
+
+        if (selectedTimeframe === 'live') {
+            chartGlobalVolume.data.labels = metricsHistory.labels;
+            chartGlobalVolume.data.datasets[0].data = metricsHistory.totalTraffic;
+            chartGlobalVolume.data.datasets[0].label = 'Volume Réseau Global (En Direct)';
+        } else if (stats && stats.history) {
+            let hData = [];
+            if (selectedTimeframe === 'today') {
+                hData = stats.history.today || [];
+                chartGlobalVolume.data.datasets[0].label = 'Volume des Achats & Rechargements (Aujourd\'hui)';
+            } else if (selectedTimeframe === '7d') {
+                hData = stats.history.days7 || [];
+                chartGlobalVolume.data.datasets[0].label = 'Volume des Achats & Rechargements (7 Derniers Jours)';
+            } else if (selectedTimeframe === '30d') {
+                hData = stats.history.days30 || [];
+                chartGlobalVolume.data.datasets[0].label = 'Volume des Achats & Rechargements (30 Derniers Jours)';
+            }
+            chartGlobalVolume.data.labels = hData.map(x => x.label);
+            chartGlobalVolume.data.datasets[0].data = hData.map(x => x.volume);
+        }
+
+        chartGlobalVolume.update('none');
+    }
+
+    function updateChartsWithMetrics(m, totalTraffic, stats) {
         initMetricsCharts();
         initMetricsViewMode();
+        lastStatsResponse = stats;
 
         const nowTime = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         
-        if (metricsHistory.labels.length >= MAX_HISTORY_POINTS) {
-            metricsHistory.labels.shift();
-            metricsHistory.totalTraffic.shift();
-            metricsHistory.tgRec.shift();
-            metricsHistory.tgSent.shift();
-            metricsHistory.cmdExec.shift();
-            metricsHistory.sumupRec.shift();
-            metricsHistory.oxapaySent.shift();
-            metricsHistory.errors.shift();
+        // Pousser uniquement si la valeur a changé ou si le tampon est vide
+        const lastVal = metricsHistory.totalTraffic[metricsHistory.totalTraffic.length - 1];
+        if (lastVal !== totalTraffic || metricsHistory.labels.length === 0) {
+            if (metricsHistory.labels.length >= MAX_HISTORY_POINTS) {
+                metricsHistory.labels.shift();
+                metricsHistory.totalTraffic.shift();
+            }
+            metricsHistory.labels.push(nowTime);
+            metricsHistory.totalTraffic.push(totalTraffic || 0);
         }
 
-        metricsHistory.labels.push(nowTime);
-        metricsHistory.totalTraffic.push(totalTraffic || 0);
-        metricsHistory.tgRec.push(m.telegramReceived || 0);
-        metricsHistory.tgSent.push(m.telegramSent || 0);
-        metricsHistory.cmdExec.push(m.commandsExecuted || 0);
-        metricsHistory.sumupRec.push(m.sumupReceived || 0);
-        metricsHistory.oxapaySent.push(m.oxapaySent || 0);
-        metricsHistory.errors.push(m.errorsCount || 0);
+        renderMainVolumeChart(stats);
 
-        if (chartGlobalVolume) chartGlobalVolume.update();
         if (chartTelegramActivity) {
             chartTelegramActivity.data.datasets[0].data = [m.telegramReceived || 0, m.telegramSent || 0];
-            chartTelegramActivity.update();
+            chartTelegramActivity.update('none');
         }
         if (chartGatewaysActivity) {
             chartGatewaysActivity.data.datasets[0].data = [m.sumupReceived || 0, m.sumupSent || 0, m.oxapaySent || 0];
-            chartGatewaysActivity.update();
+            chartGatewaysActivity.update('none');
         }
         if (chartHealthActivity) {
             chartHealthActivity.data.datasets[0].data = [m.commandsExecuted || 0, m.adminLogins || 0, m.errorsCount || 0];
-            chartHealthActivity.update();
+            chartHealthActivity.update('none');
         }
     }
 
@@ -584,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalTraffic = (m.telegramReceived || 0) + (m.telegramSent || 0) + (m.sumupReceived || 0) + (m.sumupSent || 0) + (m.oxapayReceived || 0) + (m.oxapaySent || 0);
         updateCounter('metric-total-traffic', totalTraffic);
 
-        updateChartsWithMetrics(m, totalTraffic);
+        updateChartsWithMetrics(m, totalTraffic, stats);
     }
 
     const resetMetricsBtn = document.getElementById('reset-metrics-btn');

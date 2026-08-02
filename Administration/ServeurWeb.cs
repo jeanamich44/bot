@@ -189,8 +189,66 @@ namespace ChezRheyyBot
                     adminLogins = config.MetricAdminLogins
                 };
 
+                var nowParis = DataBase.ConvertirEnHeureParis(DateTime.UtcNow);
+                var todayStart = nowParis.Date;
+
+                var todayBlocks = new List<object>();
+                for (int i = 0; i < 24; i += 2)
+                {
+                    var blockStart = todayStart.AddHours(i);
+                    var blockEnd = todayStart.AddHours(i + 2);
+                    int txCount = transactions.Count(t => {
+                        var d = DataBase.ConvertirEnHeureParis(t.CreatedAt);
+                        return d >= blockStart && d < blockEnd;
+                    });
+                    int payCount = allPayments.Count(p => {
+                        var d = DataBase.ConvertirEnHeureParis(p.CreatedAt);
+                        return d >= blockStart && d < blockEnd;
+                    });
+                    todayBlocks.Add(new { label = $"{i:D2}h-{(i+2):D2}h", volume = txCount + payCount });
+                }
+
+                var last7Days = new List<object>();
+                for (int i = 6; i >= 0; i--)
+                {
+                    var dayDate = todayStart.AddDays(-i);
+                    var dayEnd = dayDate.AddDays(1);
+                    int txCount = transactions.Count(t => {
+                        var d = DataBase.ConvertirEnHeureParis(t.CreatedAt);
+                        return d >= dayDate && d < dayEnd;
+                    });
+                    int payCount = allPayments.Count(p => {
+                        var d = DataBase.ConvertirEnHeureParis(p.CreatedAt);
+                        return d >= dayDate && d < dayEnd;
+                    });
+                    last7Days.Add(new { label = dayDate.ToString("dd/MM"), volume = txCount + payCount });
+                }
+
+                var last30Days = new List<object>();
+                for (int i = 29; i >= 0; i--)
+                {
+                    var dayDate = todayStart.AddDays(-i);
+                    var dayEnd = dayDate.AddDays(1);
+                    int txCount = transactions.Count(t => {
+                        var d = DataBase.ConvertirEnHeureParis(t.CreatedAt);
+                        return d >= dayDate && d < dayEnd;
+                    });
+                    int payCount = allPayments.Count(p => {
+                        var d = DataBase.ConvertirEnHeureParis(p.CreatedAt);
+                        return d >= dayDate && d < dayEnd;
+                    });
+                    last30Days.Add(new { label = dayDate.ToString("dd/MM"), volume = txCount + payCount });
+                }
+
+                var history = new
+                {
+                    today = todayBlocks,
+                    days7 = last7Days,
+                    days30 = last30Days
+                };
+
                 bool maintenance = config.ModeMaintenance;
-                RepondreJson(response, 200, new { totalCa, totalRecharges, totalVentes, totalSales, totalUsers, totalStock, maintenance, recentSales, recentPayments, metrics });
+                RepondreJson(response, 200, new { totalCa, totalRecharges, totalVentes, totalSales, totalUsers, totalStock, maintenance, recentSales, recentPayments, metrics, history });
             }
             else if (path == "/api/admin/metrics/reset" && request.HttpMethod == "POST")
             {
