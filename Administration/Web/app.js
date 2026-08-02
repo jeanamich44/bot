@@ -541,30 +541,42 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!individualCharts.adminLogins) individualCharts.adminLogins = createSparklineChart('chart-admin-logins', '#8b5cf6', 'rgba(139, 92, 246, 0.35)');
         if (!individualCharts.errorsCount) individualCharts.errorsCount = createSparklineChart('chart-errors-count', '#ef4444', 'rgba(239, 68, 68, 0.35)');
 
-        const selectTimeframe = document.getElementById('chart-timeframe-select');
+        const segmentedBar = document.getElementById('timeframe-segmented-bar');
         const customContainer = document.getElementById('custom-date-picker-container');
         const startDateInput = document.getElementById('chart-start-date');
         const endDateInput = document.getElementById('chart-end-date');
         const applyCustomBtn = document.getElementById('btn-apply-custom-date');
 
-        if (selectTimeframe && !selectTimeframe.dataset.initialized) {
-            selectTimeframe.dataset.initialized = 'true';
+        if (segmentedBar && !segmentedBar.dataset.initialized) {
+            segmentedBar.dataset.initialized = 'true';
             
             const todayStr = new Date().toISOString().split('T')[0];
             const past7Str = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
             if (startDateInput) startDateInput.value = past7Str;
             if (endDateInput) endDateInput.value = todayStr;
 
-            selectTimeframe.addEventListener('change', async (e) => {
-                selectedTimeframe = e.target.value;
-                if (customContainer) {
-                    customContainer.style.display = selectedTimeframe === 'custom' ? 'flex' : 'none';
-                }
-                if (selectedTimeframe === 'custom') {
-                    await fetchAndRenderCustomStats();
-                } else if (lastStatsResponse) {
-                    renderMainVolumeChart(lastStatsResponse);
-                }
+            const buttons = segmentedBar.querySelectorAll('.timeframe-btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    buttons.forEach(b => {
+                        b.style.background = 'transparent';
+                        b.style.color = 'var(--text-secondary)';
+                        b.classList.remove('active');
+                    });
+                    btn.style.background = 'var(--accent-primary)';
+                    btn.style.color = '#ffffff';
+                    btn.classList.add('active');
+
+                    selectedTimeframe = btn.dataset.value;
+                    if (customContainer) {
+                        customContainer.style.display = selectedTimeframe === 'custom' ? 'flex' : 'none';
+                    }
+                    if (selectedTimeframe === 'custom') {
+                        await fetchAndRenderCustomStats();
+                    } else if (lastStatsResponse) {
+                        renderMainVolumeChart(lastStatsResponse);
+                    }
+                });
             });
 
             if (applyCustomBtn) {
@@ -592,8 +604,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!chartGlobalVolume) return;
 
         if (selectedTimeframe === 'live') {
-            chartGlobalVolume.data.labels = metricsHistory.labels;
-            chartGlobalVolume.data.datasets[0].data = metricsHistory.totalTraffic;
+            chartGlobalVolume.data.labels = [...metricsHistory.labels];
+            chartGlobalVolume.data.datasets[0].data = [...metricsHistory.totalTraffic];
             chartGlobalVolume.data.datasets[0].label = 'Volume Réseau Global (En Direct)';
         } else if (stats && stats.history) {
             let hData = [];

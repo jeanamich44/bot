@@ -144,13 +144,13 @@
                             <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Évolution globale du trafic et des requêtes en temps réel</p>
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                            <select id="chart-timeframe-select" class="form-input" style="width: auto; padding: 6px 12px; font-size: 12px; height: 34px;">
-                                <option value="live" selected>⚡ En Direct (Live)</option>
-                                <option value="today">📅 Aujourd'hui</option>
-                                <option value="7d">🗓️ 7 Derniers Jours</option>
-                                <option value="30d">📊 30 Derniers Jours</option>
-                                <option value="custom">📆 Période Personnalisée</option>
-                            </select>
+                            <div id="timeframe-segmented-bar" style="display: flex; background: rgba(255, 255, 255, 0.05); padding: 4px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.08); gap: 4px;">
+                                <button class="timeframe-btn active" data-value="live" style="padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; background: var(--accent-primary); color: #ffffff; transition: all 0.2s;">⚡ Live</button>
+                                <button class="timeframe-btn" data-value="today" style="padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">📅 Aujourd'hui</button>
+                                <button class="timeframe-btn" data-value="7d" style="padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">🗓️ 7 Jours</button>
+                                <button class="timeframe-btn" data-value="30d" style="padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">📊 30 Jours</button>
+                                <button class="timeframe-btn" data-value="custom" style="padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-secondary); transition: all 0.2s;">📆 Personnalisé</button>
+                            </div>
                             <div id="custom-date-picker-container" style="display: none; align-items: center; gap: 6px;">
                                 <input type="date" id="chart-start-date" class="form-input" style="width: auto; padding: 4px 8px; font-size: 12px; height: 34px;">
                                 <span style="font-size: 12px; color: var(--text-secondary);">à</span>
