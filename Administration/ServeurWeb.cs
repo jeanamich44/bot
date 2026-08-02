@@ -197,17 +197,13 @@ namespace ChezRheyyBot
 
                 var nowParis = DataBase.ConvertirEnHeureParis(DateTime.UtcNow);
                 var todayStart = nowParis.Date;
-                int currentHour = nowParis.Hour;
+                int currentHourBlock = nowParis.Hour / 2; // Index du bloc 2h actuel (0 a 11)
 
                 var todayBlocks = new List<object>();
                 for (int i = 0; i < 24; i += 2)
                 {
-                    long blockVol = 0;
-                    if (i <= currentHour)
-                    {
-                        int pastBlocksCount = (currentHour / 2) + 1;
-                        blockVol = pastBlocksCount > 0 ? (totalRequests / pastBlocksCount) : totalRequests;
-                    }
+                    int blockIndex = i / 2;
+                    long blockVol = (blockIndex == currentHourBlock) ? totalRequests : 0;
                     todayBlocks.Add(new { label = $"{i:D2}h-{(i+2):D2}h", volume = blockVol });
                 }
 
@@ -215,7 +211,7 @@ namespace ChezRheyyBot
                 for (int i = 6; i >= 0; i--)
                 {
                     var dayDate = todayStart.AddDays(-i);
-                    long dayVol = (i == 0) ? totalRequests : (long)(totalRequests * (0.6 + (i % 3) * 0.15));
+                    long dayVol = (i == 0) ? totalRequests : 0;
                     last7Days.Add(new { label = dayDate.ToString("dd/MM"), volume = dayVol });
                 }
 
@@ -223,7 +219,7 @@ namespace ChezRheyyBot
                 for (int i = 29; i >= 0; i--)
                 {
                     var dayDate = todayStart.AddDays(-i);
-                    long dayVol = (i == 0) ? totalRequests : (long)(totalRequests * (0.5 + (i % 4) * 0.12));
+                    long dayVol = (i == 0) ? totalRequests : 0;
                     last30Days.Add(new { label = dayDate.ToString("dd/MM"), volume = dayVol });
                 }
 
@@ -240,7 +236,7 @@ namespace ChezRheyyBot
                     for (int i = 0; i <= daySpan; i++)
                     {
                         var dayDate = cur.AddDays(i);
-                        long dayVol = (dayDate == todayStart) ? totalRequests : (long)(totalRequests * (0.55 + (i % 5) * 0.09));
+                        long dayVol = (dayDate == todayStart) ? totalRequests : 0;
                         customBlocks.Add(new { label = dayDate.ToString("dd/MM"), volume = dayVol });
                     }
                 }
