@@ -343,6 +343,7 @@ namespace ChezRheyyBot
                 {
                     id = s.Id,
                     code = s.Code,
+                    pin = s.Pin,
                     value = s.Value,
                     price = s.Price
                 }).ToList();

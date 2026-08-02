@@ -777,7 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tbody = document.getElementById('stock-table');
         tbody.innerHTML = '';
         if (items.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">Aucun stock disponible.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 24px;">Aucun stock disponible.</td></tr>`;
             return;
         }
 
@@ -785,9 +785,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             tr.style.cursor = 'context-menu';
             const valDisplay = (item.value != null && item.value > 0) ? `${item.value} €` : '-';
+            const pinDisplay = item.pin ? `<code>${escapeHtml(item.pin)}</code>` : `<span style="color: var(--text-secondary); font-style: italic; opacity: 0.5;">-</span>`;
             tr.innerHTML = `
                 <td>#${item.id}</td>
                 <td><code>${item.code}</code></td>
+                <td>${pinDisplay}</td>
                 <td><strong>${valDisplay}</strong></td>
                 <td><strong>${item.price} €</strong></td>
                 <td>
@@ -797,7 +799,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.addEventListener('contextmenu', (e) => {
                 showDynamicContextMenu(e, [
                     { label: '📋 Copier le Code Carte', action: () => { navigator.clipboard.writeText(item.code); showToast(`Code ${item.code} copié !`, 'info'); } },
-                    { label: '📌 Copier Ligne Complète (Code|Solde|Prix)', action: () => {
+                    { label: '🔑 Copier le PIN', action: () => { if (item.pin) { navigator.clipboard.writeText(item.pin); showToast(`PIN ${item.pin} copié !`, 'info'); } else showToast('Aucun PIN sur cette carte', 'warning'); } },
+                    { label: '📌 Copier Ligne Complète (Code|PIN|Solde|Prix)', action: () => {
                         const line = item.pin ? `${item.code}|${item.pin}|${item.value || 0}|${item.price || 0}` : `${item.code}|${item.value || 0}|${item.price || 0}`;
                         navigator.clipboard.writeText(line);
                         showToast('Ligne complète copiée !', 'info');
