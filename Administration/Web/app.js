@@ -1,5 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
-    let authToken = localStorage.getItem('admin_auth_token') || '';
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000; // 24 heures en millisecondes
+
+    function getValidAuthToken() {
+        const token = localStorage.getItem('admin_auth_token') || '';
+        const savedTime = parseInt(localStorage.getItem('admin_auth_token_time') || '0', 10);
+        if (token && savedTime && (Date.now() - savedTime < TWENTY_FOUR_HOURS)) {
+            return token;
+        }
+        localStorage.removeItem('admin_auth_token');
+        localStorage.removeItem('admin_auth_token_time');
+        return '';
+    }
+
+    let authToken = getValidAuthToken();
 
     const loginView = document.getElementById('login-view');
     const appView = document.getElementById('app-view');
@@ -156,7 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await apiRequest('/login', 'POST', { password: pwd });
         if (res && res.success) {
             localStorage.setItem('admin_auth_token', pwd);
-            showToast('Connexion réussie !', 'success');
+            localStorage.setItem('admin_auth_token_time', Date.now().toString());
+            showToast('Connexion réussie (Session 24h) !', 'success');
             initApp();
         } else {
             authToken = '';
@@ -167,6 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function logout() {
         authToken = '';
         localStorage.removeItem('admin_auth_token');
+        localStorage.removeItem('admin_auth_token_time');
         appView.style.display = 'none';
         loginView.style.display = 'flex';
     }
@@ -1217,7 +1232,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await apiRequest('/settings/password', 'POST', { password: pass });
             if (res && res.success) {
                 authToken = pass;
-                localStorage.setItem('admin_token', pass);
+                localStorage.setItem('admin_auth_token', pass);
+                localStorage.setItem('admin_auth_token_time', Date.now().toString());
                 showToast('Mot de passe administrateur mis à jour avec succès !', 'success');
                 document.getElementById('setting-admin-password').value = '';
                 document.getElementById('setting-admin-password-confirm').value = '';
