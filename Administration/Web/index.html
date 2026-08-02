@@ -400,13 +400,20 @@
 
             <div id="tab-payments" class="tab-content" style="display: none;">
                 <div class="card-panel">
-                    <div class="card-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        <h2 class="card-panel-title">Historique des Rechargements (CB & Crypto)</h2>
-                        <select id="filter-payments-method" class="form-input" style="max-width: 200px; padding: 6px 12px; font-size: 13px;" onchange="filterPayments()">
-                            <option value="">Toutes les catégories</option>
-                            <option value="CB">Catégorie: CB</option>
-                            <option value="CRYPTO">Catégorie: Crypto</option>
-                        </select>
+                    <div class="card-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                        <h2 class="card-panel-title" style="margin: 0;">Historique des Rechargements (CB & Crypto)</h2>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="position: relative; width: 260px; display: flex; align-items: center;">
+                                <span style="position: absolute; left: 12px; color: var(--text-secondary); pointer-events: none; font-size: 13px;">🔍</span>
+                                <input type="text" id="payments-search-input" class="form-input" placeholder="Rechercher ID Telegram, Track ID..." style="width: 100%; padding-left: 36px; padding-right: 32px; height: 38px; font-size: 13px;">
+                                <button type="button" id="payments-search-clear" style="position: absolute; right: 10px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; display: none;" title="Effacer">✕</button>
+                            </div>
+                            <select id="filter-payments-method" class="form-input" style="max-width: 180px; height: 38px; padding: 6px 12px; font-size: 13px;">
+                                <option value="">Toutes les catégories</option>
+                                <option value="CB">Catégorie: CB</option>
+                                <option value="CRYPTO">Catégorie: Crypto</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="table-wrapper">
                         <table>
@@ -452,8 +459,13 @@
 
             <div id="tab-transactions" class="tab-content" style="display: none;">
                 <div class="card-panel">
-                    <div class="card-panel-header">
-                        <h2 class="card-panel-title">Historique Complet des Achats</h2>
+                    <div class="card-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                        <h2 class="card-panel-title" style="margin: 0;">Historique Complet des Achats</h2>
+                        <div style="position: relative; width: 280px; display: flex; align-items: center;">
+                            <span style="position: absolute; left: 12px; color: var(--text-secondary); pointer-events: none; font-size: 13px;">🔍</span>
+                            <input type="text" id="tx-search-input" class="form-input" placeholder="Rechercher ID Telegram, Marque, Code..." style="width: 100%; padding-left: 36px; padding-right: 32px; height: 38px; font-size: 13px;">
+                            <button type="button" id="tx-search-clear" style="position: absolute; right: 10px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; display: none;" title="Effacer">✕</button>
+                        </div>
                     </div>
                     <div class="table-wrapper">
                         <table>

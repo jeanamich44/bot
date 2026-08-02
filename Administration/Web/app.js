@@ -81,17 +81,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.filterTransactionsByUser = (userId) => {
         window.switchTab('transactions');
-        rawTransactionsData = rawTransactionsData.filter(t => String(t.userId) === String(userId));
-        transactionsCurrentPage = 1;
-        applyTransactionsPagination();
+        const searchInput = document.getElementById('tx-search-input');
+        if (searchInput) {
+            searchInput.value = String(userId);
+            searchInput.dispatchEvent(new Event('input'));
+        }
         showToast(`Transactions filtrées sur l'utilisateur ${userId}`, 'info');
     };
 
     window.filterPaymentsByUser = (userId) => {
         window.switchTab('payments');
-        rawPaymentsData = rawPaymentsData.filter(p => String(p.chatId) === String(userId));
-        paymentsCurrentPage = 1;
-        applyPaymentsPagination();
+        const searchInput = document.getElementById('payments-search-input');
+        if (searchInput) {
+            searchInput.value = String(userId);
+            searchInput.dispatchEvent(new Event('input'));
+        }
         showToast(`Rechargements filtrés sur l'utilisateur ${userId}`, 'info');
     };
 
@@ -945,7 +949,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyTransactionsPagination() {
-        const totalItems = rawTransactionsData.length;
+        const query = (document.getElementById('tx-search-input')?.value || '').trim().toLowerCase();
+        const clearBtn = document.getElementById('tx-search-clear');
+        if (clearBtn) clearBtn.style.display = query ? 'block' : 'none';
+
+        let filtered = rawTransactionsData;
+        if (query) {
+            filtered = rawTransactionsData.filter(t => 
+                String(t.userId || '').toLowerCase().includes(query) ||
+                String(t.brand || '').toLowerCase().includes(query) ||
+                String(t.code || '').toLowerCase().includes(query) ||
+                String(t.id || '').toLowerCase().includes(query)
+            );
+        }
+
+        const totalItems = filtered.length;
         let perPage = transactionsPerPage === 'all' ? totalItems : parseInt(transactionsPerPage) || 10;
         if (perPage <= 0) perPage = 10;
 
@@ -955,7 +973,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const startIdx = (transactionsCurrentPage - 1) * perPage;
         const endIdx = transactionsPerPage === 'all' ? totalItems : Math.min(startIdx + perPage, totalItems);
-        const pageItems = rawTransactionsData.slice(startIdx, endIdx);
+        const pageItems = filtered.slice(startIdx, endIdx);
 
         const infoElem = document.getElementById('transactions-pagination-info');
         if (infoElem) {
@@ -1010,6 +1028,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 ]);
             });
             tbody.appendChild(tr);
+        });
+    }
+
+    const txSearchInput = document.getElementById('tx-search-input');
+    if (txSearchInput) {
+        txSearchInput.addEventListener('input', () => {
+            transactionsCurrentPage = 1;
+            applyTransactionsPagination();
+        });
+    }
+    const txSearchClear = document.getElementById('tx-search-clear');
+    if (txSearchClear) {
+        txSearchClear.addEventListener('click', () => {
+            if (txSearchInput) txSearchInput.value = '';
+            transactionsCurrentPage = 1;
+            applyTransactionsPagination();
         });
     }
 
@@ -1075,10 +1109,24 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function applyPaymentsPagination() {
+        const query = (document.getElementById('payments-search-input')?.value || '').trim().toLowerCase();
         const filterValue = (document.getElementById('filter-payments-method')?.value || '').toUpperCase();
+        
+        const clearBtn = document.getElementById('payments-search-clear');
+        if (clearBtn) clearBtn.style.display = query ? 'block' : 'none';
+
         let filtered = rawPaymentsData;
         if (filterValue) {
-            filtered = rawPaymentsData.filter(p => (p.method || '').toUpperCase() === filterValue);
+            filtered = filtered.filter(p => (p.method || '').toUpperCase() === filterValue);
+        }
+        if (query) {
+            filtered = filtered.filter(p => 
+                String(p.chatId || '').toLowerCase().includes(query) ||
+                String(p.trackId || '').toLowerCase().includes(query) ||
+                String(p.method || '').toLowerCase().includes(query) ||
+                String(p.status || '').toLowerCase().includes(query) ||
+                String(p.id || '').toLowerCase().includes(query)
+            );
         }
 
         const totalItems = filtered.length;
@@ -1111,6 +1159,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btnNext) btnNext.disabled = paymentsCurrentPage >= totalPages;
 
         renderPaymentsTable(pageItems);
+    }
+
+    const pmSearchInput = document.getElementById('payments-search-input');
+    if (pmSearchInput) {
+        pmSearchInput.addEventListener('input', () => {
+            paymentsCurrentPage = 1;
+            applyPaymentsPagination();
+        });
+    }
+    const pmSearchClear = document.getElementById('payments-search-clear');
+    if (pmSearchClear) {
+        pmSearchClear.addEventListener('click', () => {
+            if (pmSearchInput) pmSearchInput.value = '';
+            paymentsCurrentPage = 1;
+            applyPaymentsPagination();
+        });
     }
 
     function renderPaymentsTable(payments) {
