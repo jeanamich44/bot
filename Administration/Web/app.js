@@ -66,6 +66,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    window.filterTransactionsByUser = (userId) => {
+        window.switchTab('transactions');
+        rawTransactionsData = rawTransactionsData.filter(t => String(t.userId) === String(userId));
+        transactionsCurrentPage = 1;
+        applyTransactionsPagination();
+        showToast(`Transactions filtrées sur l'utilisateur ${userId}`, 'info');
+    };
+
+    window.filterPaymentsByUser = (userId) => {
+        window.switchTab('payments');
+        rawPaymentsData = rawPaymentsData.filter(p => String(p.chatId) === String(userId));
+        paymentsCurrentPage = 1;
+        applyPaymentsPagination();
+        showToast(`Rechargements filtrés sur l'utilisateur ${userId}`, 'info');
+    };
+
     window.filterPayments = () => {
         const filterValue = document.getElementById('filter-payments-method').value.toUpperCase();
         const trs = document.querySelectorAll('#all-payments-table tr');
@@ -493,33 +509,71 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
             `;
 
-            tr.addEventListener('contextmenu', (e) => showContextMenu(e, user));
+            tr.addEventListener('contextmenu', (e) => {
+                showDynamicContextMenu(e, [
+                    { label: '💳 Modifier le Solde', action: () => btnEditSolde(user.id, user.solde) },
+                    { label: user.isBanned ? '🔓 Débannir l\'Utilisateur' : '🚫 Bannir l\'Utilisateur', action: () => user.isBanned ? btnDebanUser(user.id) : btnBanUser(user.id) },
+                    { divider: true },
+                    { label: '📋 Copier l\'ID Telegram', action: () => { navigator.clipboard.writeText(String(user.id)); showToast(`ID ${user.id} copié !`, 'info'); } },
+                    { label: '💬 Copier le Username', action: () => { if (user.username) { navigator.clipboard.writeText(user.username); showToast(`@${user.username} copié !`, 'info'); } else showToast('Aucun username à copier', 'warning'); } },
+                    { divider: true },
+                    { label: '🛒 Historique des Achats', action: () => window.filterTransactionsByUser(user.id) },
+                    { label: '💰 Historique des Rechargements', action: () => window.filterPaymentsByUser(user.id) },
+                    { divider: true },
+                    { label: '🗑️ Supprimer l\'Utilisateur', danger: true, action: () => btnDeleteUser(user.id) }
+                ]);
+            });
             tbody.appendChild(tr);
         });
     }
 
-    // Context Menu Logic
-    let selectedContextUser = null;
+    // [ DYNAMIC CONTEXT MENU SYSTEM ] ========================================
     const ctxMenu = document.getElementById('custom-context-menu');
 
-    function showContextMenu(e, user) {
+    function showDynamicContextMenu(e, items) {
         e.preventDefault();
-        selectedContextUser = user;
+        e.stopPropagation();
         if (!ctxMenu) return;
 
-        ctxMenu.style.display = 'block';
-        ctxMenu.style.left = `${e.pageX}px`;
-        ctxMenu.style.top = `${e.pageY}px`;
+        ctxMenu.innerHTML = '';
+        items.forEach(item => {
+            if (item.divider) {
+                const div = document.createElement('div');
+                div.className = 'context-menu-divider';
+                ctxMenu.appendChild(div);
+            } else {
+                const div = document.createElement('div');
+                div.className = `context-menu-item ${item.danger ? 'danger' : ''}`;
+                div.innerHTML = item.label;
+                div.addEventListener('click', (evt) => {
+                    evt.stopPropagation();
+                    hideContextMenu();
+                    if (item.action) item.action();
+                });
+                ctxMenu.appendChild(div);
+            }
+        });
 
-        const toggleBanElem = document.getElementById('ctx-toggle-ban');
-        if (toggleBanElem) {
-            toggleBanElem.innerText = user.isBanned ? '🔓 Débannir l\'Utilisateur' : '🚫 Bannir l\'Utilisateur';
+        ctxMenu.style.display = 'block';
+
+        let x = e.pageX;
+        let y = e.pageY;
+        const menuWidth = 240;
+        const menuHeight = ctxMenu.offsetHeight || 260;
+
+        if (x + menuWidth > window.innerWidth + window.scrollX) {
+            x = window.innerWidth + window.scrollX - menuWidth - 10;
         }
+        if (y + menuHeight > window.innerHeight + window.scrollY) {
+            y = window.innerHeight + window.scrollY - menuHeight - 10;
+        }
+
+        ctxMenu.style.left = `${Math.max(10, x)}px`;
+        ctxMenu.style.top = `${Math.max(10, y)}px`;
     }
 
     function hideContextMenu() {
         if (ctxMenu) ctxMenu.style.display = 'none';
-        selectedContextUser = null;
     }
 
     document.addEventListener('click', hideContextMenu);
@@ -527,69 +581,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') hideContextMenu();
     });
-
-    const ctxEditSolde = document.getElementById('ctx-edit-solde');
-    if (ctxEditSolde) {
-        ctxEditSolde.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (selectedContextUser) {
-                btnEditSolde(selectedContextUser.id, selectedContextUser.solde);
-            }
-            hideContextMenu();
-        });
-    }
-
-    const ctxToggleBan = document.getElementById('ctx-toggle-ban');
-    if (ctxToggleBan) {
-        ctxToggleBan.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (selectedContextUser) {
-                if (selectedContextUser.isBanned) {
-                    btnDebanUser(selectedContextUser.id);
-                } else {
-                    btnBanUser(selectedContextUser.id);
-                }
-            }
-            hideContextMenu();
-        });
-    }
-
-    const ctxCopyId = document.getElementById('ctx-copy-id');
-    if (ctxCopyId) {
-        ctxCopyId.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (selectedContextUser) {
-                navigator.clipboard.writeText(String(selectedContextUser.id));
-                showToast(`ID Telegram ${selectedContextUser.id} copié !`, 'info');
-            }
-            hideContextMenu();
-        });
-    }
-
-    const ctxCopyUsername = document.getElementById('ctx-copy-username');
-    if (ctxCopyUsername) {
-        ctxCopyUsername.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (selectedContextUser && selectedContextUser.username) {
-                navigator.clipboard.writeText(selectedContextUser.username);
-                showToast(`Username ${selectedContextUser.username} copié !`, 'info');
-            } else {
-                showToast('Aucun username à copier', 'warning');
-            }
-            hideContextMenu();
-        });
-    }
-
-    const ctxDeleteUser = document.getElementById('ctx-delete-user');
-    if (ctxDeleteUser) {
-        ctxDeleteUser.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (selectedContextUser) {
-                btnDeleteUser(selectedContextUser.id);
-            }
-            hideContextMenu();
-        });
-    }
 
     // Attach Event Listeners for Search, Clear, Sorting & Pagination
     const searchInputElem = document.getElementById('user-search-input');
@@ -792,6 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         items.forEach(item => {
             const tr = document.createElement('tr');
+            tr.style.cursor = 'context-menu';
             const valDisplay = (item.value != null && item.value > 0) ? `${item.value} €` : '-';
             tr.innerHTML = `
                 <td>#${item.id}</td>
@@ -802,6 +794,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="action-btn action-btn-danger" onclick="btnDeleteStock(${item.id})">Supprimer</button>
                 </td>
             `;
+            tr.addEventListener('contextmenu', (e) => {
+                showDynamicContextMenu(e, [
+                    { label: '📋 Copier le Code Carte', action: () => { navigator.clipboard.writeText(item.code); showToast(`Code ${item.code} copié !`, 'info'); } },
+                    { label: '📌 Copier Ligne Complète (Code|Solde|Prix)', action: () => {
+                        const line = item.pin ? `${item.code}|${item.pin}|${item.value || 0}|${item.price || 0}` : `${item.code}|${item.value || 0}|${item.price || 0}`;
+                        navigator.clipboard.writeText(line);
+                        showToast('Ligne complète copiée !', 'info');
+                    } },
+                    { divider: true },
+                    { label: `💶 Solde Carte: ${valDisplay}`, action: () => {} },
+                    { label: `💰 Prix Vente: ${item.price} €`, action: () => {} },
+                    { divider: true },
+                    { label: '🗑️ Supprimer cette Carte', danger: true, action: () => btnDeleteStock(item.id) }
+                ]);
+            });
             tbody.appendChild(tr);
         });
     }
@@ -962,6 +969,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         transactions.forEach(tx => {
             const tr = document.createElement('tr');
+            tr.style.cursor = 'context-menu';
             const isIptv = (tx.brand || '').toLowerCase() === 'iptv';
             const valueFormatted = (!isIptv && tx.value != null && tx.value > 0) ? `${tx.value} €` : '-';
             tr.innerHTML = `
@@ -973,6 +981,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><strong>${tx.price} €</strong></td>
                 <td>${formatParisDate(tx.createdAt)}</td>
             `;
+            tr.addEventListener('contextmenu', (e) => {
+                showDynamicContextMenu(e, [
+                    { label: '👤 Inspecter cet Utilisateur', action: () => window.redirectToUser(tx.userId) },
+                    { label: '💰 Voir ses Rechargements', action: () => window.filterPaymentsByUser(tx.userId) },
+                    { divider: true },
+                    { label: '📦 Copier Code / Info', action: () => { navigator.clipboard.writeText(tx.code); showToast(`Code ${tx.code} copié !`, 'info'); } },
+                    { label: '🏷️ Copier la Marque', action: () => { navigator.clipboard.writeText(tx.brand); showToast(`Marque ${tx.brand} copiée !`, 'info'); } },
+                    { label: '📋 Copier ID Telegram', action: () => { navigator.clipboard.writeText(String(tx.userId)); showToast(`ID ${tx.userId} copié !`, 'info'); } }
+                ]);
+            });
             tbody.appendChild(tr);
         });
     }
@@ -1087,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         payments.forEach(p => {
             const tr = document.createElement('tr');
-            
+            tr.style.cursor = 'context-menu';
             const statusStr = p.status ? p.status.toUpperCase() : 'INCONNU';
             let statusBadge = `<span class="badge badge-warning">${p.status || 'INCONNU'}</span>`;
             if (statusStr === 'PAID') statusBadge = `<span class="badge badge-success">PAYÉ</span>`;
@@ -1105,6 +1123,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><code>${p.trackId || 'N/A'}</code></td>
                 <td>${p.createdAt ? formatParisDate(p.createdAt) : 'N/A'}</td>
             `;
+            tr.addEventListener('contextmenu', (e) => {
+                showDynamicContextMenu(e, [
+                    { label: '👤 Inspecter cet Utilisateur', action: () => window.redirectToUser(p.chatId) },
+                    { label: '🛒 Voir ses Achats', action: () => window.filterTransactionsByUser(p.chatId) },
+                    { divider: true },
+                    { label: '📋 Copier ID Telegram', action: () => { if (p.chatId) { navigator.clipboard.writeText(String(p.chatId)); showToast(`ID ${p.chatId} copié !`, 'info'); } } },
+                    { label: '💳 Copier le Track ID', action: () => { if (p.trackId) { navigator.clipboard.writeText(p.trackId); showToast(`Track ID ${p.trackId} copié !`, 'info'); } } },
+                    { label: '💰 Copier le Montant', action: () => { navigator.clipboard.writeText(`${amountSafe} €`); showToast(`Montant ${amountSafe} € copié !`, 'info'); } }
+                ]);
+            });
             tbody.appendChild(tr);
         });
     }
