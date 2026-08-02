@@ -369,6 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const metricsHistory = {
         labels: [],
+        totalTraffic: [],
         tgRec: [],
         tgSent: [],
         cmdExec: [],
@@ -377,6 +378,40 @@ document.addEventListener('DOMContentLoaded', () => {
         errors: []
     };
     const MAX_HISTORY_POINTS = 15;
+
+    function initMetricsViewMode() {
+        const btnCards = document.getElementById('btn-mode-cards');
+        const btnCharts = document.getElementById('btn-mode-charts');
+        const cardsView = document.getElementById('metrics-cards-view');
+        const chartsView = document.getElementById('metrics-charts-view');
+
+        if (!btnCards || !btnCharts || !cardsView || !chartsView) return;
+
+        function setViewMode(mode) {
+            localStorage.setItem('metrics_view_mode', mode);
+            if (mode === 'cards') {
+                cardsView.style.display = 'block';
+                chartsView.style.display = 'none';
+                btnCards.style.background = 'var(--accent-primary)';
+                btnCards.style.color = '#ffffff';
+                btnCharts.style.background = 'transparent';
+                btnCharts.style.color = 'var(--text-secondary)';
+            } else {
+                cardsView.style.display = 'none';
+                chartsView.style.display = 'grid';
+                btnCharts.style.background = 'var(--accent-primary)';
+                btnCharts.style.color = '#ffffff';
+                btnCards.style.background = 'transparent';
+                btnCards.style.color = 'var(--text-secondary)';
+            }
+        }
+
+        btnCards.addEventListener('click', () => setViewMode('cards'));
+        btnCharts.addEventListener('click', () => setViewMode('charts'));
+
+        const savedMode = localStorage.getItem('metrics_view_mode') || 'charts';
+        setViewMode(savedMode);
+    }
 
     function initMetricsCharts() {
         if (typeof Chart === 'undefined') return;
@@ -391,11 +426,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 data: {
                     labels: metricsHistory.labels,
                     datasets: [
-                        { label: 'Telegram Reçus', data: metricsHistory.tgRec, borderColor: '#0088cc', backgroundColor: 'rgba(0, 136, 204, 0.15)', fill: true, tension: 0.35, borderWidth: 2 },
-                        { label: 'Telegram Envoyés', data: metricsHistory.tgSent, borderColor: '#a855f7', backgroundColor: 'rgba(168, 85, 247, 0.15)', fill: true, tension: 0.35, borderWidth: 2 },
-                        { label: 'Processus Traités', data: metricsHistory.cmdExec, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.15)', fill: true, tension: 0.35, borderWidth: 2 },
-                        { label: 'SumUp CB', data: metricsHistory.sumupRec, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.15)', fill: true, tension: 0.35, borderWidth: 2 },
-                        { label: 'Erreurs Système', data: metricsHistory.errors, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', fill: true, tension: 0.35, borderWidth: 2 }
+                        { 
+                            label: 'Volume Réseau Global Total', 
+                            data: metricsHistory.totalTraffic, 
+                            borderColor: '#6366f1', 
+                            backgroundColor: 'rgba(99, 102, 241, 0.18)', 
+                            fill: true, 
+                            tension: 0.35, 
+                            borderWidth: 3,
+                            pointBackgroundColor: '#818cf8',
+                            pointRadius: 4
+                        }
                     ]
                 },
                 options: {
@@ -485,13 +526,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function updateChartsWithMetrics(m) {
+    function updateChartsWithMetrics(m, totalTraffic) {
         initMetricsCharts();
+        initMetricsViewMode();
 
         const nowTime = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         
         if (metricsHistory.labels.length >= MAX_HISTORY_POINTS) {
             metricsHistory.labels.shift();
+            metricsHistory.totalTraffic.shift();
             metricsHistory.tgRec.shift();
             metricsHistory.tgSent.shift();
             metricsHistory.cmdExec.shift();
@@ -501,6 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         metricsHistory.labels.push(nowTime);
+        metricsHistory.totalTraffic.push(totalTraffic || 0);
         metricsHistory.tgRec.push(m.telegramReceived || 0);
         metricsHistory.tgSent.push(m.telegramSent || 0);
         metricsHistory.cmdExec.push(m.commandsExecuted || 0);
@@ -540,7 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalTraffic = (m.telegramReceived || 0) + (m.telegramSent || 0) + (m.sumupReceived || 0) + (m.sumupSent || 0) + (m.oxapayReceived || 0) + (m.oxapaySent || 0);
         updateCounter('metric-total-traffic', totalTraffic);
 
-        updateChartsWithMetrics(m);
+        updateChartsWithMetrics(m, totalTraffic);
     }
 
     const resetMetricsBtn = document.getElementById('reset-metrics-btn');
