@@ -604,7 +604,7 @@ namespace ChezRheyyBot
             lock (config.SettingsLock)
             {
                 string defaultKey = Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "";
-                if (string.IsNullOrWhiteSpace(defaultKey)) defaultKey = "7d825d543f4582de824e83046d0aa8fa";
+                if (string.IsNullOrWhiteSpace(defaultKey)) defaultKey = "16b9b89931169d6a4fd534c10e24ebad";
 
                 if (!config.CategorySettings.ContainsKey("iptv"))
                 {
@@ -624,7 +624,7 @@ namespace ChezRheyyBot
                 {
                     var iptvDict = config.CategorySettings["iptv"];
                     if (!iptvDict.ContainsKey("api_key") || string.IsNullOrWhiteSpace(iptvDict["api_key"])) iptvDict["api_key"] = defaultKey;
-                    if (!iptvDict.ContainsKey("api_url") || string.IsNullOrWhiteSpace(iptvDict["api_url"])) iptvDict["api_url"] = "https://4k.cms-only.ru/api/api.php";
+                    if (!iptvDict.ContainsKey("api_url") || string.IsNullOrWhiteSpace(iptvDict["api_url"]) || iptvDict["api_url"].Contains("business-cloud-neo.com")) iptvDict["api_url"] = "https://4k.cms-only.ru/api/api.php";
                     if (!iptvDict.ContainsKey("pack")) iptvDict["pack"] = "43551";
                     if (!iptvDict.ContainsKey("type")) iptvDict["type"] = "m3u";
                     if (!iptvDict.ContainsKey("price_1m")) iptvDict["price_1m"] = "5";
