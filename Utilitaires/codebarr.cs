@@ -18,32 +18,60 @@ class codebarre
                 return;
             }
 
-            var writer = new BarcodeWriterPixelData
+            string digitsOnly = System.Text.RegularExpressions.Regex.Replace(cleanContent, @"\s+", "");
+            string codeToEncode = string.IsNullOrWhiteSpace(digitsOnly) ? cleanContent : digitsOnly;
+
+            ZXing.Common.BitMatrix? matrix = null;
+            try
             {
-                Format = BarcodeFormat.CODE_128,
-                Options = new EncodingOptions
+                var writer = new ZXing.OneD.Code128Writer();
+                matrix = writer.encode(codeToEncode, BarcodeFormat.CODE_128, 480, 140, null);
+            }
+            catch
+            {
+                try
                 {
-                    Height = 130,
-                    Width = 450,
-                    Margin = 15,
-                    PureBarcode = false
+                    var multiWriter = new ZXing.MultiFormatWriter();
+                    matrix = multiWriter.encode(codeToEncode, BarcodeFormat.CODE_128, 480, 140, null);
                 }
-            };
+                catch (Exception exInner)
+                {
+                    Console.WriteLine($"[GenerateBarcode MultiWriter Error] {exInner.Message}");
+                }
+            }
 
-            var pixelData = writer.Write(cleanContent);
-            int width = pixelData.Width;
-            int height = pixelData.Height;
-            byte[] rawPixels = pixelData.Pixels;
+            if (matrix == null)
+            {
+                Console.WriteLine("[GenerateBarcode Error] Impossible de générer la matrice de code-barres.");
+                return;
+            }
 
-            var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
-            using var bitmap = new SKBitmap(info);
-            System.Runtime.InteropServices.Marshal.Copy(rawPixels, 0, bitmap.GetPixels(), rawPixels.Length);
+            int width = matrix.Width;
+            int height = matrix.Height;
+
+            using var bitmap = new SKBitmap(width, height);
+            using var canvas = new SKCanvas(bitmap);
+            canvas.Clear(SKColors.White);
+
+            using var blackPaint = new SKPaint { Color = SKColors.Black, Style = SKPaintStyle.Fill, IsAntialias = false };
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    if (matrix[x, y])
+                    {
+                        canvas.DrawRect(x, y, 1, 1, blackPaint);
+                    }
+                }
+            }
+            canvas.Flush();
 
             using var image = SKImage.FromBitmap(bitmap);
             using var data = image.Encode(SKEncodedImageFormat.Png, 100);
             using var fs = new FileStream(outputFile, FileMode.Create, FileAccess.Write, FileShare.None);
             data.SaveTo(fs);
             fs.Flush();
+            Console.WriteLine($"[GenerateBarcode Success] Image code-barres créée : {outputFile} ({new FileInfo(outputFile).Length} octets)");
         }
         catch (Exception ex)
         {
