@@ -1261,18 +1261,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 <select id="modal-solde-action" class="form-input">
                     <option value="add">Ajouter (+)</option>
                     <option value="remove">Retirer (-)</option>
+                    <option value="set">Définir un solde fixe (=)</option>
                 </select>
             </div>
             <div class="form-group">
                 <label class="form-label">Montant (€)</label>
                 <input type="number" step="0.1" id="modal-solde-amount" class="form-input" placeholder="Ex: 10" required>
             </div>
+            <div style="margin-top: 10px;">
+                <button type="button" style="width: 100%; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer;" onclick="document.getElementById('modal-solde-action').value='set'; document.getElementById('modal-solde-amount').value='0';">🗑️ Remettre le solde à 0€</button>
+            </div>
         `;
         openModal(`Gestion Solde ${userId}`, html, async () => {
             const act = document.getElementById('modal-solde-action').value;
             const amt = parseFloat(document.getElementById('modal-solde-amount').value);
-            if (isNaN(amt) || amt <= 0) {
-                showToast('Montant invalide', 'danger');
+            if (isNaN(amt) || amt < 0) {
+                showToast('Montant invalide (doit être supérieur ou égal à 0)', 'danger');
                 return;
             }
             const res = await apiRequest('/users/solde', 'POST', { userId, action: act, amount: amt });
