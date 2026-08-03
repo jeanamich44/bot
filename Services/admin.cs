@@ -10,7 +10,11 @@ namespace ChezRheyyBot
         public static List<string> command = new List<string>()
         {
             "/addMoney",
+            "/addmoney",
+            "/add",
             "/removeMoney",
+            "/removemoney",
+            "/remove",
             "/addstock",
             "/addStock",
             "/ban",
@@ -30,8 +34,10 @@ namespace ChezRheyyBot
 
         private static readonly Dictionary<string, (string description, string exemple, string usage)> HelpDetails = new(StringComparer.OrdinalIgnoreCase)
         {
-            { "addmoney", ("Ajoute du solde en euros à un utilisateur Telegram.", "/addMoney 123456789 25", "/addMoney <id> <montant>") },
-            { "removemoney", ("Retire du solde en euros à un utilisateur.", "/removeMoney 123456789 10", "/removeMoney <id> <montant>") },
+            { "addmoney", ("Ajoute du solde en euros à un utilisateur Telegram.", "/add 123456789 25", "/add <id> <montant>") },
+            { "add", ("Ajoute du solde en euros à un utilisateur Telegram.", "/add 123456789 25", "/add <id> <montant>") },
+            { "removemoney", ("Retire du solde en euros à un utilisateur.", "/remove 123456789 10", "/remove <id> <montant>") },
+            { "remove", ("Retire du solde en euros à un utilisateur.", "/remove 123456789 10", "/remove <id> <montant>") },
             { "addstock", ("Ajoute du stock en BDD depuis un fichier .txt joint (ex: CODE:PIN:VALEUR:PRIX).", "Envoyer un .txt avec la légende /addstock carr", "/addstock [marque]") },
             { "ban", ("Bannit un utilisateur avec une raison optionnelle.", "/ban 123456789 ou /ban 123456789 Spam / Arnaque", "/ban <id> [raison...]") },
             { "deban", ("Débannit un utilisateur préalablement banni.", "/deban 123456789", "/deban <id>") },
@@ -61,9 +67,11 @@ namespace ChezRheyyBot
                 switch (commandeTrouvee.ToLower())
                 {
                     case "/addmoney":
+                    case "/add":
                         await AjouterArgent(message, botClient, update, cancellationToken);
                         break;
                     case "/removemoney":
+                    case "/remove":
                         await RemoveMoney(message, botClient, update, cancellationToken);
                         break;
                     case "/addstock":
@@ -208,42 +216,36 @@ namespace ChezRheyyBot
         {
             try
             {
-                var msg = message.Split(' ');
-                if (msg.Length == 3 && long.TryParse(msg[1], out long userId) && double.TryParse(msg[2], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double mtn))
+                var msg = message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (msg.Length == 3 && long.TryParse(msg[1], out long userId) && double.TryParse(msg[2].Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double mtn))
                 {
                     int result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
-                    if (result != -1)
+                    if (result == -1)
                     {
-                        var ancienTuple = config.UserSave[result];
-                        double nouveauSolde = ancienTuple.Item3 + mtn;
-
-                        config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
-                        DataBase.SauvegarderUtilisateurIndividuel(userId);
-
-                        try
-                        {
-                            await botClient.SendTextMessageAsync(userId, $"💰 {mtn}€ reçus sur votre solde.", cancellationToken: cancellationToken);
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde ajouté à {userId}", cancellationToken: cancellationToken);
-                            foreach (var id in config.idAdmins)
-                            {
-                                await botClient.SendTextMessageAsync(id, $"Solde mis à {userId} montant {mtn}€", cancellationToken: cancellationToken);
-                            }
-                            return;
-                        }
-                        catch
-                        {
-                            Console.WriteLine("[-] Impossible d'envoyer le message de solde");
-                            return;
-                        }
+                        config.UserSave.Add(Tuple.Create(userId, 0, 0.0, false));
+                        result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
                     }
-                    else
+
+                    var ancienTuple = config.UserSave[result];
+                    double nouveauSolde = ancienTuple.Item3 + mtn;
+
+                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
+                    DataBase.SauvegarderUtilisateurIndividuel(userId);
+
+                    try
                     {
-                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"ID:{userId} introuvable.", cancellationToken: cancellationToken);
+                        await botClient.SendTextMessageAsync(userId, $"💰 {mtn}€ reçus sur votre solde.", cancellationToken: cancellationToken);
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde ajouté à {userId}. Nouveau solde : {nouveauSolde}€", cancellationToken: cancellationToken);
+                        return;
+                    }
+                    catch
+                    {
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde mis à jour pour {userId} ({nouveauSolde}€), mais notification utilisateur échouée.", cancellationToken: cancellationToken);
                         return;
                     }
                 }
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /addMoney <id> <montant>", cancellationToken: cancellationToken);
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /add <id> <montant>", cancellationToken: cancellationToken);
             }
             catch (Exception ex) { Console.WriteLine($"[Admin Erreur] {ex.Message}"); }
         }
@@ -252,35 +254,37 @@ namespace ChezRheyyBot
         {
             try
             {
-                var msg = message.Split(' ');
-                if (msg.Length == 3 && long.TryParse(msg[1], out long userId) && double.TryParse(msg[2], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double mtn))
+                var msg = message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (msg.Length == 3 && long.TryParse(msg[1], out long userId) && double.TryParse(msg[2].Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double mtn))
                 {
                     int result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
-                    if (result != -1)
+                    if (result == -1)
                     {
-                        var ancienTuple = config.UserSave[result];
-                        double nouveauSolde = ancienTuple.Item3 - mtn;
-                        if (nouveauSolde < 0) nouveauSolde = 0.0;
-
-                        config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
-                        DataBase.SauvegarderUtilisateurIndividuel(userId);
-
-                        try
-                        {
-                            await botClient.SendTextMessageAsync(userId, $"Solde déduit de {mtn}€.", cancellationToken: cancellationToken);
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde retiré à {userId}", cancellationToken: cancellationToken);
-                            return;
-                        }
-                        catch { return; }
+                        config.UserSave.Add(Tuple.Create(userId, 0, 0.0, false));
+                        result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
                     }
-                    else
+
+                    var ancienTuple = config.UserSave[result];
+                    double nouveauSolde = ancienTuple.Item3 - mtn;
+                    if (nouveauSolde < 0) nouveauSolde = 0.0;
+
+                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
+                    DataBase.SauvegarderUtilisateurIndividuel(userId);
+
+                    try
                     {
-                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"ID:{userId} introuvable.", cancellationToken: cancellationToken);
+                        await botClient.SendTextMessageAsync(userId, $"Solde déduit de {mtn}€.", cancellationToken: cancellationToken);
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde retiré à {userId}. Nouveau solde : {nouveauSolde}€", cancellationToken: cancellationToken);
+                        return;
+                    }
+                    catch
+                    {
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde mis à jour pour {userId} ({nouveauSolde}€), mais notification utilisateur échouée.", cancellationToken: cancellationToken);
                         return;
                     }
                 }
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /removeMoney <id> <montant>", cancellationToken: cancellationToken);
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /remove <id> <montant>", cancellationToken: cancellationToken);
             }
             catch (Exception ex) { Console.WriteLine($"[Admin Erreur] {ex.Message}"); }
         }

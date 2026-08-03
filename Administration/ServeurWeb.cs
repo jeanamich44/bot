@@ -327,23 +327,45 @@ namespace ChezRheyyBot
                 using var doc = JsonDocument.Parse(bodyStr);
                 var root = doc.RootElement;
 
-                long userId = long.Parse(root.GetProperty("userId").GetString() ?? "0");
-                string action = root.GetProperty("action").GetString() ?? "add";
-                double amount = root.GetProperty("amount").GetDouble();
-
-                int idx = config.UserSave.FindIndex(u => u.Item1 == userId);
-                if (idx != -1)
+                long userId = 0;
+                if (root.TryGetProperty("userId", out var uElem))
                 {
+                    if (uElem.ValueKind == JsonValueKind.Number) userId = uElem.GetInt64();
+                    else if (uElem.ValueKind == JsonValueKind.String) long.TryParse(uElem.GetString(), out userId);
+                }
+
+                string action = root.TryGetProperty("action", out var actElem) ? actElem.GetString() ?? "add" : "add";
+
+                double amount = 0;
+                if (root.TryGetProperty("amount", out var amtElem))
+                {
+                    if (amtElem.ValueKind == JsonValueKind.Number) amount = amtElem.GetDouble();
+                    else if (amtElem.ValueKind == JsonValueKind.String) double.TryParse(amtElem.GetString()?.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out amount);
+                }
+
+                if (userId > 0)
+                {
+                    int idx = config.UserSave.FindIndex(u => u.Item1 == userId);
+                    if (idx == -1)
+                    {
+                        config.UserSave.Add(Tuple.Create(userId, 0, 0.0, false));
+                        idx = config.UserSave.FindIndex(u => u.Item1 == userId);
+                    }
+
                     var old = config.UserSave[idx];
-                    double newSolde = action == "add" ? old.Item3 + amount : old.Item3 - amount;
+                    double newSolde = old.Item3;
+                    if (action.Equals("add", StringComparison.OrdinalIgnoreCase)) newSolde += amount;
+                    else if (action.Equals("remove", StringComparison.OrdinalIgnoreCase) || action.Equals("sub", StringComparison.OrdinalIgnoreCase)) newSolde -= amount;
+                    else if (action.Equals("set", StringComparison.OrdinalIgnoreCase)) newSolde = amount;
+
                     if (newSolde < 0) newSolde = 0.0;
                     config.UserSave[idx] = Tuple.Create(old.Item1, old.Item2, newSolde, old.Item4);
                     DataBase.SauvegarderUtilisateurIndividuel(userId);
-                    RepondreJson(response, 200, new { success = true });
+                    RepondreJson(response, 200, new { success = true, newSolde });
                 }
                 else
                 {
-                    RepondreJson(response, 404, new { success = false, message = "Utilisateur introuvable" });
+                    RepondreJson(response, 400, new { success = false, message = "ID utilisateur invalide" });
                 }
             }
             else if (path == "/api/admin/users/ban" && request.HttpMethod == "POST")
