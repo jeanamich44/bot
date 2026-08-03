@@ -32,7 +32,7 @@ namespace ChezRheyyBot
         }
 
         public static string apiKey => config.GetSetting("iptv", "api_key", "");
-        public static string apiUrl => config.GetSetting("iptv", "api_url", "http://cf.business-cloud-neo.com/api/api.php");
+        public static string apiUrl => config.GetSetting("iptv", "api_url", "http://cf.business-cloud-neo.com/api.php");
         public static string apiPack => config.GetSetting("iptv", "pack", "43551");
         public static string apiType => config.GetSetting("iptv", "type", "m3u");
 
@@ -40,8 +40,12 @@ namespace ChezRheyyBot
         {
             string key = apiKey;
             string baseApi = apiUrl.Trim();
-            string sep = baseApi.Contains("?") ? "&" : "?";
+            if (baseApi.Contains("/api/api.php"))
+            {
+                baseApi = baseApi.Replace("/api/api.php", "/api.php");
+            }
 
+            string sep = baseApi.Contains("?") ? "&" : "?";
             string url = $"{baseApi}{sep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&api_key={key}&key={key}";
             Console.WriteLine($"[IPTV INFO] Début génération IPTV pour {date} mois.");
             Console.WriteLine($"[IPTV CONFIG] API URL: {baseApi} | Key: {key} | Pack: {apiPack} | Type: {apiType}");
@@ -55,6 +59,15 @@ namespace ChezRheyyBot
 
                 HttpResponseMessage response = await client.GetAsync(url);
                 Console.WriteLine($"[IPTV HTTP STATUS] {(int)response.StatusCode} {response.ReasonPhrase}");
+
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound && baseApi.Contains("cf.business-cloud-neo.com"))
+                {
+                    string fallbackApi = "http://cf.business-cloud-neo.com/api.php";
+                    string fallbackUrl = $"{fallbackApi}{sep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&api_key={key}&key={key}";
+                    Console.WriteLine($"[IPTV RETRY 404] Tentative sur l'URL corrigée: {fallbackUrl}");
+                    response = await client.GetAsync(fallbackUrl);
+                    Console.WriteLine($"[IPTV HTTP STATUS RETRY] {(int)response.StatusCode} {response.ReasonPhrase}");
+                }
 
                 string content = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"[IPTV RESPONSE RAW] {content}");
