@@ -77,6 +77,12 @@ namespace ChezRheyyBot
 
                     string link = await iptv.GenerateIPTV(number.ToString());
 
+                    if (string.IsNullOrWhiteSpace(link) || !Uri.TryCreate(link, UriKind.Absolute, out Uri? uri))
+                    {
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, "❌ Une erreur est survenue lors de la génération IPTV. Aucun débit n'a été effectué.");
+                        return;
+                    }
+
                     double nouveauSolde = solde - prix;
                     config.UserSave[index] = Tuple.Create(
                         user.Item1,
@@ -95,16 +101,14 @@ namespace ChezRheyyBot
                     }
                     catch { }
 
-                    Uri uri = new Uri(link);
                     var query = HttpUtility.ParseQueryString(uri.Query);
-
                     string baseUrl = $"{uri.Scheme}://{uri.Host}";
-                    string username = query["username"];
-                    string password = query["password"];
+                    string username = query["username"] ?? "";
+                    string password = query["password"] ?? "";
                     await botClient.SendTextMessageAsync(config.CurrentChatId, $"*ChezRheyy IPTV*\n\nHost:{baseUrl}\nUsername:{username}\nPassword:{password}\n", parseMode: ParseMode.Markdown);
 
                     long.TryParse(config.CurrentChatId, out long userIdIptv);
-                    DataBase.EnregistrerTransaction(userIdIptv, "IPTV", $"{number} mois", username ?? "", null, prix);
+                    DataBase.EnregistrerTransaction(userIdIptv, "IPTV", $"{number} mois", username, null, prix);
                 }
                 else if (update.CallbackQuery.Data == "iHome")
                 {
@@ -192,7 +196,7 @@ namespace ChezRheyyBot
                     new List<InlineKeyboardButton>
                     {
                         InlineKeyboardButton.WithCallbackData("1 mois", "iiptv1mois"),
-                        InlineKeyboardButton.WithCallbackData("3 mois","iiptv3mois "),
+                        InlineKeyboardButton.WithCallbackData("3 mois", "iiptv3mois"),
                     },
                     new List<InlineKeyboardButton>
                     {

@@ -830,6 +830,43 @@ namespace ChezRheyyBot
             }
         }
 
+        public static PaymentRecord? ObtenirPaiementEnAttenteParChatIdBDD(string chatId)
+        {
+            try
+            {
+                using (var connexion = new NpgsqlConnection(GetConnectionString()))
+                {
+                    connexion.Open();
+                    string requete = "SELECT Id, ChatId, TrackId, Amount, PaymentMethod, Status, PaymentUrl, CreatedAt FROM payments WHERE ChatId = @chatId AND Status = 'PENDING' LIMIT 1";
+                    using (var cmd = new NpgsqlCommand(requete, connexion))
+                    {
+                        cmd.Parameters.AddWithValue("@chatId", chatId);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                return new PaymentRecord
+                                {
+                                    Id = reader.GetInt32(0),
+                                    ChatId = reader.GetString(1),
+                                    TrackId = reader.GetString(2),
+                                    Amount = reader.GetDouble(3),
+                                    PaymentMethod = reader.GetString(4),
+                                    Status = reader.GetString(5),
+                                    PaymentUrl = reader.IsDBNull(6) ? "" : reader.GetString(6),
+                                    CreatedAt = reader.IsDBNull(7) ? DateTime.UtcNow : reader.GetDateTime(7)
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+            return null;
+        }
+
         public static bool AnnulerPaiementEnAttenteBDD(string chatId)
         {
             try

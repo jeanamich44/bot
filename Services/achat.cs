@@ -70,7 +70,6 @@ namespace ChezRheyyBot
 
                         string formattedPrice = prixDouble.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
                         await EnregistrerLogsVendu(item.Code, item.Pin, item.Value, formattedPrice, config.CurrentChatId, item.Brand);
-                        await AvertirAchat(botClient, update, cancellationToken, formattedPrice, item.Brand);
 
                         bool okPhoto = await EnvoyerBarcodeDirect(fileName, chatid, botClient, update, cancellationToken, item.Code, item.Pin, item.Value);
                         if (!okPhoto)
@@ -93,6 +92,8 @@ namespace ChezRheyyBot
                                 replyMarkup: inlineKeyboard,
                                 cancellationToken: cancellationToken);
                         }
+
+                        _ = Task.Run(() => AvertirAchat(botClient, update, cancellationToken, formattedPrice, item.Brand));
                         return;
                     }
                 }

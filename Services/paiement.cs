@@ -113,6 +113,23 @@ namespace ChezRheyyBot
 
             Console.WriteLine($"[Paiement] Demande d'annulation de facture en attente pour ChatID: {chatId}");
 
+            var pendingRec = DataBase.ObtenirPaiementEnAttenteParChatIdBDD(chatId);
+            if (pendingRec != null && string.Equals(pendingRec.PaymentMethod, "CB", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(pendingRec.TrackId))
+            {
+                try
+                {
+                    string accessToken = await ObtenirSumUpAccessToken(cancellationToken);
+                    var deleteReq = new HttpRequestMessage(HttpMethod.Delete, $"https://api.sumup.com/v0.1/checkouts/{pendingRec.TrackId}");
+                    deleteReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                    config.IncSumUpSent();
+                    await _httpClient.SendAsync(deleteReq, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[AnnulerPaiement API Erreur] {ex.Message}");
+                }
+            }
+
             bool annule = DataBase.AnnulerPaiementEnAttenteBDD(chatId);
             if (annule)
             {
