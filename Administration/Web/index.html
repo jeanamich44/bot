@@ -775,9 +775,25 @@
 
                 <div class="card-panel">
                     <div class="card-panel-header">
-                        <h2 class="card-panel-title">Tarifs IPTV & Configs</h2>
+                        <h2 class="card-panel-title">Tarifs IPTV & Configuration API</h2>
                     </div>
                     <form id="settings-iptv-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label class="form-label">API Key Fournisseur</label>
+                            <input type="text" id="setting-iptv-key" class="form-input" placeholder="16b9b89931169d6a4fd534c10e24ebad">
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label class="form-label">API URL Fournisseur</label>
+                            <input type="url" id="setting-iptv-url" class="form-input" placeholder="http://cf.business-cloud-neo.com/api/api.php">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Pack ID</label>
+                            <input type="text" id="setting-iptv-pack" class="form-input" placeholder="43551">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Type Flux</label>
+                            <input type="text" id="setting-iptv-type" class="form-input" placeholder="m3u">
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Prix 1 Mois (€)</label>
                             <input type="number" id="setting-iptv-1m" class="form-input" required>
@@ -795,7 +811,7 @@
                             <input type="number" id="setting-iptv-12m" class="form-input" required>
                         </div>
                         <div style="grid-column: 1 / -1;">
-                            <button type="submit" class="btn-primary" style="width: auto; padding: 12px 28px;">Enregistrer les Tarifs</button>
+                            <button type="submit" class="btn-primary" style="width: auto; padding: 12px 28px;">Enregistrer la Configuration IPTV</button>
                         </div>
                     </form>
                 </div>

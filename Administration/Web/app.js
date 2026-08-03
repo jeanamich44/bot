@@ -1766,6 +1766,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!data) return;
 
         const iptv = data.iptv || {};
+        if (document.getElementById('setting-iptv-key')) document.getElementById('setting-iptv-key').value = iptv.api_key || '16b9b89931169d6a4fd534c10e24ebad';
+        if (document.getElementById('setting-iptv-url')) document.getElementById('setting-iptv-url').value = iptv.api_url || 'http://cf.business-cloud-neo.com/api/api.php';
+        if (document.getElementById('setting-iptv-pack')) document.getElementById('setting-iptv-pack').value = iptv.pack || '43551';
+        if (document.getElementById('setting-iptv-type')) document.getElementById('setting-iptv-type').value = iptv.type || 'm3u';
         document.getElementById('setting-iptv-1m').value = iptv.price_1m || '5';
         document.getElementById('setting-iptv-3m').value = iptv.price_3m || '10';
         document.getElementById('setting-iptv-6m').value = iptv.price_6m || '15';
@@ -2017,14 +2021,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('settings-iptv-form').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const key = document.getElementById('setting-iptv-key') ? document.getElementById('setting-iptv-key').value.trim() : '';
+        const url = document.getElementById('setting-iptv-url') ? document.getElementById('setting-iptv-url').value.trim() : '';
+        const pack = document.getElementById('setting-iptv-pack') ? document.getElementById('setting-iptv-pack').value.trim() : '';
+        const type = document.getElementById('setting-iptv-type') ? document.getElementById('setting-iptv-type').value.trim() : '';
         const p1 = document.getElementById('setting-iptv-1m').value.trim();
         const p3 = document.getElementById('setting-iptv-3m').value.trim();
         const p6 = document.getElementById('setting-iptv-6m').value.trim();
         const p12 = document.getElementById('setting-iptv-12m').value.trim();
 
-        const res = await apiRequest('/settings/iptv', 'POST', { price_1m: p1, price_3m: p3, price_6m: p6, price_12m: p12 });
+        const res = await apiRequest('/settings/iptv', 'POST', { api_key: key, api_url: url, pack: pack, type: type, price_1m: p1, price_3m: p3, price_6m: p6, price_12m: p12 });
         if (res && res.success) {
-            showToast('Tarifs IPTV enregistrés !', 'success');
+            showToast('Configuration et tarifs IPTV enregistrés !', 'success');
         }
     });
 

@@ -632,6 +632,10 @@ namespace ChezRheyyBot
                 using var doc = JsonDocument.Parse(bodyStr);
                 var root = doc.RootElement;
 
+                if (root.TryGetProperty("api_key", out var kElem)) config.SetSetting("iptv", "api_key", kElem.GetString() ?? "");
+                if (root.TryGetProperty("api_url", out var uElem)) config.SetSetting("iptv", "api_url", uElem.GetString() ?? "");
+                if (root.TryGetProperty("pack", out var pkElem)) config.SetSetting("iptv", "pack", pkElem.GetString() ?? "");
+                if (root.TryGetProperty("type", out var tElem)) config.SetSetting("iptv", "type", tElem.GetString() ?? "");
                 if (root.TryGetProperty("price_1m", out var p1)) config.SetSetting("iptv", "price_1m", p1.ValueKind == JsonValueKind.Number ? p1.GetRawText() : (p1.GetString() ?? "5"));
                 if (root.TryGetProperty("price_3m", out var p3)) config.SetSetting("iptv", "price_3m", p3.ValueKind == JsonValueKind.Number ? p3.GetRawText() : (p3.GetString() ?? "10"));
                 if (root.TryGetProperty("price_6m", out var p6)) config.SetSetting("iptv", "price_6m", p6.ValueKind == JsonValueKind.Number ? p6.GetRawText() : (p6.GetString() ?? "15"));

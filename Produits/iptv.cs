@@ -42,7 +42,7 @@ namespace ChezRheyyBot
             string baseApi = apiUrl.Trim();
             string sep = baseApi.Contains("?") ? "&" : "?";
 
-            string url = $"{baseApi}{sep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&api_key={key}";
+            string url = $"{baseApi}{sep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&api_key={key}&key={key}";
             Console.WriteLine($"[IPTV Request] {url}");
 
             try
