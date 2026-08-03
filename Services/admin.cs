@@ -227,14 +227,11 @@ namespace ChezRheyyBot
                     try
                     {
                         await botClient.SendTextMessageAsync(userId, $"💰 {mtn}€ reçus sur votre solde.", cancellationToken: cancellationToken);
-                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde ajouté à {userId}. Nouveau solde : {nouveauSolde}€", cancellationToken: cancellationToken);
-                        return;
                     }
-                    catch
-                    {
-                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde mis à jour pour {userId} ({nouveauSolde}€), mais notification utilisateur échouée.", cancellationToken: cancellationToken);
-                        return;
-                    }
+                    catch { }
+
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"✅ Solde ajouté à {userId}. Nouveau solde : {nouveauSolde}€", cancellationToken: cancellationToken);
+                    return;
                 }
 
                 await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /addMoney <id> <montant>", cancellationToken: cancellationToken);
@@ -266,14 +263,11 @@ namespace ChezRheyyBot
                     try
                     {
                         await botClient.SendTextMessageAsync(userId, $"Solde déduit de {mtn}€.", cancellationToken: cancellationToken);
-                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde retiré à {userId}. Nouveau solde : {nouveauSolde}€", cancellationToken: cancellationToken);
-                        return;
                     }
-                    catch
-                    {
-                        await botClient.SendTextMessageAsync(config.CurrentChatId, $"Solde mis à jour pour {userId} ({nouveauSolde}€), mais notification utilisateur échouée.", cancellationToken: cancellationToken);
-                        return;
-                    }
+                    catch { }
+
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"✅ Solde retiré à {userId}. Nouveau solde : {nouveauSolde}€", cancellationToken: cancellationToken);
+                    return;
                 }
 
                 await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /removeMoney <id> <montant>", cancellationToken: cancellationToken);
