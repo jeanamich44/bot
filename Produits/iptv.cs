@@ -64,24 +64,59 @@ namespace ChezRheyyBot
                 {
                     using var doc = JsonDocument.Parse(trimmed);
                     var root = doc.RootElement;
-
-                    if (root.TryGetProperty("url", out var urlElem) && urlElem.ValueKind == JsonValueKind.String)
-                    {
-                        string resUrl = urlElem.GetString() ?? "";
-                        if (!string.IsNullOrWhiteSpace(resUrl)) return resUrl;
-                    }
-
-                    if (root.TryGetProperty("link", out var linkElem) && linkElem.ValueKind == JsonValueKind.String)
-                    {
-                        string resLink = linkElem.GetString() ?? "";
-                        if (!string.IsNullOrWhiteSpace(resLink)) return resLink;
-                    }
+                    string extracted = ExtractUrlFromJson(root);
+                    if (!string.IsNullOrWhiteSpace(extracted)) return extracted;
                 }
                 catch { }
+
+                var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"https?://[^\s""'<>\\]+");
+                if (match.Success)
+                {
+                    return match.Value;
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Erreur IPTV: " + ex.Message);
+            }
+
+            return string.Empty;
+        }
+
+        private static string ExtractUrlFromJson(JsonElement element)
+        {
+            if (element.ValueKind == JsonValueKind.Object)
+            {
+                string[] urlKeys = new[] { "url", "link", "m3u_url", "playlist_url", "playlist", "download_link" };
+                foreach (var k in urlKeys)
+                {
+                    if (element.TryGetProperty(k, out var p) && p.ValueKind == JsonValueKind.String)
+                    {
+                        string val = p.GetString() ?? "";
+                        if (val.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || val.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                            return val;
+                    }
+                }
+
+                foreach (var prop in element.EnumerateObject())
+                {
+                    string childRes = ExtractUrlFromJson(prop.Value);
+                    if (!string.IsNullOrWhiteSpace(childRes)) return childRes;
+                }
+            }
+            else if (element.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in element.EnumerateArray())
+                {
+                    string childRes = ExtractUrlFromJson(item);
+                    if (!string.IsNullOrWhiteSpace(childRes)) return childRes;
+                }
+            }
+            else if (element.ValueKind == JsonValueKind.String)
+            {
+                string str = element.GetString() ?? "";
+                if (str.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || str.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                    return str;
             }
 
             return string.Empty;

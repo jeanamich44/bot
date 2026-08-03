@@ -92,20 +92,50 @@ namespace ChezRheyyBot
                     );
                     DataBase.SauvegarderUtilisateurIndividuel(user.Item1);
 
+                    var query = HttpUtility.ParseQueryString(uri.Query);
+                    string baseUrl = uri.GetLeftPart(UriPartial.Authority);
+                    string username = query["username"] ?? query["user"] ?? "";
+                    string password = query["password"] ?? query["pass"] ?? query["passwd"] ?? "";
+
+                    if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+                    {
+                        var pathSegments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                        if (pathSegments.Length >= 3)
+                        {
+                            if (string.IsNullOrWhiteSpace(username)) username = pathSegments[pathSegments.Length - 2];
+                            if (string.IsNullOrWhiteSpace(password)) password = pathSegments[pathSegments.Length - 1].Split('.')[0];
+                        }
+                    }
+
+                    string safeBaseUrl = System.Net.WebUtility.HtmlEncode(baseUrl);
+                    string safeUsername = System.Net.WebUtility.HtmlEncode(username);
+                    string safePassword = System.Net.WebUtility.HtmlEncode(password);
+                    string safeLink = System.Net.WebUtility.HtmlEncode(link);
+
+                    string iptvMessage = $"<b>📺 ChezRheyy IPTV</b>\n\n" +
+                                         $"🌐 <b>Host :</b> <code>{safeBaseUrl}</code>\n" +
+                                         $"👤 <b>Username :</b> <code>{safeUsername}</code>\n" +
+                                         $"🔑 <b>Password :</b> <code>{safePassword}</code>\n\n" +
+                                         $"🔗 <b>Lien M3U :</b>\n<code>{safeLink}</code>";
+
+                    try
+                    {
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, iptvMessage, parseMode: ParseMode.Html, cancellationToken: cancellationToken);
+                    }
+                    catch
+                    {
+                        string plainMessage = $"ChezRheyy IPTV\n\nHost: {baseUrl}\nUsername: {username}\nPassword: {password}\nLien M3U: {link}";
+                        await botClient.SendTextMessageAsync(config.CurrentChatId, plainMessage, cancellationToken: cancellationToken);
+                    }
+
                     try
                     {
                         foreach (var id in config.idAdmins)
                         {
-                            await botClient.SendTextMessageAsync(id, $"[+] Achat IPTV | Id:{config.CurrentChatId} | Montant:{prix}");
+                            await botClient.SendTextMessageAsync(id, $"📺 <b>[ACHAT IPTV]</b>\n<b>User</b>: <code>{config.CurrentChatId}</code>\n<b>Formule</b>: {number} mois ({prix}€)\n<b>Username</b>: <code>{safeUsername}</code>", parseMode: ParseMode.Html, cancellationToken: cancellationToken);
                         }
                     }
                     catch { }
-
-                    var query = HttpUtility.ParseQueryString(uri.Query);
-                    string baseUrl = $"{uri.Scheme}://{uri.Host}";
-                    string username = query["username"] ?? "";
-                    string password = query["password"] ?? "";
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"*ChezRheyy IPTV*\n\nHost:{baseUrl}\nUsername:{username}\nPassword:{password}\n", parseMode: ParseMode.Markdown);
 
                     long.TryParse(config.CurrentChatId, out long userIdIptv);
                     DataBase.EnregistrerTransaction(userIdIptv, "IPTV", $"{number} mois", username, null, prix);
