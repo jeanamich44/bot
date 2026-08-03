@@ -11,10 +11,8 @@ namespace ChezRheyyBot
         {
             "/addMoney",
             "/addmoney",
-            "/add",
             "/removeMoney",
             "/removemoney",
-            "/remove",
             "/addstock",
             "/addStock",
             "/ban",
@@ -34,10 +32,8 @@ namespace ChezRheyyBot
 
         private static readonly Dictionary<string, (string description, string exemple, string usage)> HelpDetails = new(StringComparer.OrdinalIgnoreCase)
         {
-            { "addmoney", ("Ajoute du solde en euros à un utilisateur Telegram.", "/add 123456789 25", "/add <id> <montant>") },
-            { "add", ("Ajoute du solde en euros à un utilisateur Telegram.", "/add 123456789 25", "/add <id> <montant>") },
-            { "removemoney", ("Retire du solde en euros à un utilisateur.", "/remove 123456789 10", "/remove <id> <montant>") },
-            { "remove", ("Retire du solde en euros à un utilisateur.", "/remove 123456789 10", "/remove <id> <montant>") },
+            { "addmoney", ("Ajoute du solde en euros à un utilisateur Telegram.", "/addMoney 123456789 25", "/addMoney <id> <montant>") },
+            { "removemoney", ("Retire du solde en euros à un utilisateur.", "/removeMoney 123456789 10", "/removeMoney <id> <montant>") },
             { "addstock", ("Ajoute du stock en BDD depuis un fichier .txt joint (ex: CODE:PIN:VALEUR:PRIX).", "Envoyer un .txt avec la légende /addstock carr", "/addstock [marque]") },
             { "ban", ("Bannit un utilisateur avec une raison optionnelle.", "/ban 123456789 ou /ban 123456789 Spam / Arnaque", "/ban <id> [raison...]") },
             { "deban", ("Débannit un utilisateur préalablement banni.", "/deban 123456789", "/deban <id>") },
@@ -67,11 +63,9 @@ namespace ChezRheyyBot
                 switch (commandeTrouvee.ToLower())
                 {
                     case "/addmoney":
-                    case "/add":
                         await AjouterArgent(message, botClient, update, cancellationToken);
                         break;
                     case "/removemoney":
-                    case "/remove":
                         await RemoveMoney(message, botClient, update, cancellationToken);
                         break;
                     case "/addstock":
@@ -245,7 +239,7 @@ namespace ChezRheyyBot
                     }
                 }
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /add <id> <montant>", cancellationToken: cancellationToken);
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /addMoney <id> <montant>", cancellationToken: cancellationToken);
             }
             catch (Exception ex) { Console.WriteLine($"[Admin Erreur] {ex.Message}"); }
         }
@@ -284,7 +278,7 @@ namespace ChezRheyyBot
                     }
                 }
 
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /remove <id> <montant>", cancellationToken: cancellationToken);
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Mauvais format ex: /removeMoney <id> <montant>", cancellationToken: cancellationToken);
             }
             catch (Exception ex) { Console.WriteLine($"[Admin Erreur] {ex.Message}"); }
         }
