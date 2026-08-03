@@ -9,12 +9,9 @@ namespace ChezRheyyBot
     {
         public static List<string> command = new List<string>()
         {
-            "/addMoney",
             "/addmoney",
-            "/removeMoney",
             "/removemoney",
             "/addstock",
-            "/addStock",
             "/ban",
             "/deban",
             "/unlock",
