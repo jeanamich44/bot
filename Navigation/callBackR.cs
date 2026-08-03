@@ -96,7 +96,7 @@ namespace ChezRheyyBot
                     DataBase.SauvegarderUtilisateurIndividuel(user.Item1);
 
                     var query = HttpUtility.ParseQueryString(uri.Query);
-                    string baseUrl = uri.GetLeftPart(UriPartial.Authority);
+                    string baseUrl = "http://cf.business-cloud-neo.com";
                     string username = query["username"] ?? query["user"] ?? "";
                     string password = query["password"] ?? query["pass"] ?? query["passwd"] ?? "";
 
