@@ -11,37 +11,39 @@ class codebarre
     {
         try
         {
+            string cleanContent = System.Text.RegularExpressions.Regex.Replace(content ?? "", @"[^\x20-\x7E]", "").Trim();
+            if (string.IsNullOrWhiteSpace(cleanContent))
+            {
+                Console.WriteLine("[GenerateBarcode Warning] Code vide ou invalide pour génération.");
+                return;
+            }
+
             var writer = new BarcodeWriterPixelData
             {
                 Format = BarcodeFormat.CODE_128,
                 Options = new EncodingOptions
                 {
-                    Height = 120,
-                    Width = 400,
-                    Margin = 15
+                    Height = 130,
+                    Width = 450,
+                    Margin = 15,
+                    PureBarcode = false
                 }
             };
 
-            var pixelData = writer.Write(content);
+            var pixelData = writer.Write(cleanContent);
             int width = pixelData.Width;
             int height = pixelData.Height;
-            byte[] bgraPixels = pixelData.Pixels;
+            byte[] rawPixels = pixelData.Pixels;
 
-            var info = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
-            var handle = GCHandle.Alloc(bgraPixels, GCHandleType.Pinned);
-            try
-            {
-                using var bitmap = new SKBitmap();
-                bitmap.InstallPixels(info, handle.AddrOfPinnedObject(), info.RowBytes);
-                using var image = SKImage.FromBitmap(bitmap);
-                using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-                using var fs = new FileStream(outputFile, FileMode.Create, FileAccess.Write);
-                data.SaveTo(fs);
-            }
-            finally
-            {
-                if (handle.IsAllocated) handle.Free();
-            }
+            var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
+            using var bitmap = new SKBitmap(info);
+            System.Runtime.InteropServices.Marshal.Copy(rawPixels, 0, bitmap.GetPixels(), rawPixels.Length);
+
+            using var image = SKImage.FromBitmap(bitmap);
+            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            using var fs = new FileStream(outputFile, FileMode.Create, FileAccess.Write, FileShare.None);
+            data.SaveTo(fs);
+            fs.Flush();
         }
         catch (Exception ex)
         {

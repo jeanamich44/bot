@@ -81,9 +81,13 @@ namespace ChezRheyyBot
                                     InlineKeyboardButton.WithCallbackData("🏠 Accueil", "iHome")
                                 }
                             });
-                            string valText = string.IsNullOrWhiteSpace(item.Value) ? "" : $"💰 Solde : <b>{item.Value}€</b>\n";
-                            string pinText = string.IsNullOrWhiteSpace(item.Pin) ? "" : $"\n🔑 PIN : <code>{item.Pin}</code>";
-                            string caption = $"✅ <b>Merci pour votre achat !</b>\n\n{valText}💳 Carte Carrefour : <code>{item.Code}</code>{pinText}";
+                            string safeVal = System.Net.WebUtility.HtmlEncode(item.Value ?? "");
+                            string safeCarte = System.Net.WebUtility.HtmlEncode(item.Code ?? "");
+                            string safePin = System.Net.WebUtility.HtmlEncode(item.Pin ?? "");
+
+                            string valText = string.IsNullOrWhiteSpace(safeVal) ? "" : $"💰 Solde : <b>{safeVal}€</b>\n";
+                            string pinText = string.IsNullOrWhiteSpace(safePin) ? "" : $"\n🔑 PIN : <code>{safePin}</code>";
+                            string caption = $"✅ <b>Merci pour votre achat !</b>\n\n{valText}💳 Carte Carrefour : <code>{safeCarte}</code>{pinText}";
 
                             await botClient.SendTextMessageAsync(
                                 chatId: chatid,
@@ -126,14 +130,19 @@ namespace ChezRheyyBot
                     }
                 });
 
-                if (System.IO.File.Exists(fileName))
+                var fileInfo = new FileInfo(fileName);
+                if (fileInfo.Exists && fileInfo.Length > 0)
                 {
-                    using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read))
+                    using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
                         var photo = new InputOnlineFile(stream, Path.GetFileName(fileName));
-                        string valText = string.IsNullOrWhiteSpace(val) ? "" : $"💰 Solde : <b>{val}€</b>\n";
-                        string pinText = string.IsNullOrWhiteSpace(pin) ? "" : $"\n🔑 PIN : <code>{pin}</code>";
-                        string caption = $"✅ <b>Merci pour votre achat !</b>\n\n{valText}💳 Carte Carrefour : <code>{carte}</code>{pinText}";
+                        string safeVal = System.Net.WebUtility.HtmlEncode(val ?? "");
+                        string safeCarte = System.Net.WebUtility.HtmlEncode(carte ?? "");
+                        string safePin = System.Net.WebUtility.HtmlEncode(pin ?? "");
+
+                        string valText = string.IsNullOrWhiteSpace(safeVal) ? "" : $"💰 Solde : <b>{safeVal}€</b>\n";
+                        string pinText = string.IsNullOrWhiteSpace(safePin) ? "" : $"\n🔑 PIN : <code>{safePin}</code>";
+                        string caption = $"✅ <b>Merci pour votre achat !</b>\n\n{valText}💳 Carte Carrefour : <code>{safeCarte}</code>{pinText}";
 
                         await botClient.SendPhotoAsync(
                             chatId: clientId,
