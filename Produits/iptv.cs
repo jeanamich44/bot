@@ -31,17 +31,14 @@ namespace ChezRheyyBot
             public string Url { get; set; }
         }
 
-        public static string apiKey => config.GetSetting("iptv", "api_key", "16b9b89931169d6a4fd534c10e24ebad");
+        public static string apiKey => config.GetSetting("iptv", "api_key", "");
         public static string apiUrl => config.GetSetting("iptv", "api_url", "http://cf.business-cloud-neo.com/api/api.php");
         public static string apiPack => config.GetSetting("iptv", "pack", "43551");
         public static string apiType => config.GetSetting("iptv", "type", "m3u");
 
         public static async Task<string> GenerateIPTV(string date)
         {
-            string currentKey = apiKey;
-            if (string.IsNullOrWhiteSpace(currentKey)) currentKey = "16b9b89931169d6a4fd534c10e24ebad";
-
-            string url = $"{apiUrl}?action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&api_key={currentKey}";
+            string url = $"{apiUrl}?action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&api_key={apiKey}";
             Console.WriteLine($"[IPTV Request] {url}");
 
             try
