@@ -455,31 +455,28 @@ class Program
         {
             if (update.Type == UpdateType.CallbackQuery)
             {
-                if (update.CallbackQuery.From.Username == null)
+                string uname = update.CallbackQuery.From.Username ?? update.CallbackQuery.From.FirstName ?? "User";
+                if (long.TryParse(config.CurrentChatId, out long uId))
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Merci de configuerer un username avant d'utiliser ce bot");
-                    return false;
+                    config.Usernames[uId] = uname.StartsWith("@") ? uname : uname;
                 }
-
                 return true;
             }
-            if (update.Type == UpdateType.Message)
+            if (update.Type == UpdateType.Message && update.Message != null)
             {
-                if (update.Message.From.Username == null)
+                string uname = update.Message.From?.Username ?? update.Message.From?.FirstName ?? "User";
+                if (long.TryParse(config.CurrentChatId, out long uId))
                 {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "Merci de configuerer un username avant d'utiliser ce bot");
-                    return false;
+                    config.Usernames[uId] = uname.StartsWith("@") ? uname : uname;
                 }
                 return true;
             }
         }
         catch
         {
-            Console.WriteLine($"Impossible de Verifier si {config.CurrentChatId} a un [username] de configurer");
-            await botClient.SendTextMessageAsync(config.CurrentChatId, "Erreur: Impossible de verifier votres requete");
-            return false;
+            return true;
         }
 
-        return false;
+        return true;
     }
 }

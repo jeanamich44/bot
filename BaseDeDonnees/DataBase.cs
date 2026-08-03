@@ -316,6 +316,27 @@ namespace ChezRheyyBot
                                 config.idAdmins.Add(id.ToString());
                             }
                         }
+
+                        string[] defaultAdmins = new[] { "6298536933", "8740419947", "8676919760", "5883885733" };
+                        foreach (var adminId in defaultAdmins)
+                        {
+                            if (!config.idAdmins.Contains(adminId)) config.idAdmins.Add(adminId);
+                        }
+
+                        string envAdmins = Environment.GetEnvironmentVariable("ADMIN_IDS") 
+                            ?? Environment.GetEnvironmentVariable("TELEGRAM_ADMIN_IDS") 
+                            ?? config.GetSetting("admin", "ids", "");
+                        if (!string.IsNullOrWhiteSpace(envAdmins))
+                        {
+                            foreach (var item in envAdmins.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+                            {
+                                string clean = item.Trim();
+                                if (!string.IsNullOrEmpty(clean) && !config.idAdmins.Contains(clean))
+                                {
+                                    config.idAdmins.Add(clean);
+                                }
+                            }
+                        }
                     }
                 }
             }

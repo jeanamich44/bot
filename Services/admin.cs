@@ -56,6 +56,7 @@ namespace ChezRheyyBot
             if (string.IsNullOrWhiteSpace(message)) return false;
 
             string firstWord = message.Split(' ')[0].Trim();
+            if (firstWord.Contains("@")) firstWord = firstWord.Split('@')[0].Trim();
             string? commandeTrouvee = command.FirstOrDefault(cmd => cmd.Equals(firstWord, StringComparison.OrdinalIgnoreCase));
 
             if (commandeTrouvee != null)
