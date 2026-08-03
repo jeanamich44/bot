@@ -356,9 +356,9 @@ namespace ChezRheyyBot
                     foreach (var item in config.UserSave)
                     {
                         string requete = @"
-                        INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason, UserNumber, Username)
-                        VALUES (@id, @achat, @solde, @banned, @reason, @usernum, @username)
-                        ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason, UserNumber = EXCLUDED.UserNumber, Username = EXCLUDED.Username;";
+                        INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason, UserNumber, Username, IsAdmin)
+                        VALUES (@id, @achat, @solde, @banned, @reason, @usernum, @username, @isadmin)
+                        ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason, UserNumber = EXCLUDED.UserNumber, Username = EXCLUDED.Username, IsAdmin = EXCLUDED.IsAdmin;";
 
                         using (var cmd = new NpgsqlCommand(requete, connexion))
                         {
@@ -369,6 +369,7 @@ namespace ChezRheyyBot
                             cmd.Parameters.AddWithValue("@reason", config.BanReasons.TryGetValue(item.Item1, out string? r) ? (object)r : DBNull.Value);
                             cmd.Parameters.AddWithValue("@usernum", config.ObtenirOuCreerNumeroUtilisateur(item.Item1));
                             cmd.Parameters.AddWithValue("@username", config.Usernames.TryGetValue(item.Item1, out string? u) && !string.IsNullOrWhiteSpace(u) ? (object)u : DBNull.Value);
+                            cmd.Parameters.AddWithValue("@isadmin", config.idAdmins.Contains(item.Item1.ToString()));
                             cmd.ExecuteNonQuery();
                         }
                     }
@@ -392,9 +393,9 @@ namespace ChezRheyyBot
                 {
                     connexion.Open();
                     string requete = @"
-                    INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason, UserNumber, Username)
-                    VALUES (@id, @achat, @solde, @banned, @reason, @usernum, @username)
-                    ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason, UserNumber = EXCLUDED.UserNumber, Username = EXCLUDED.Username;";
+                    INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason, UserNumber, Username, IsAdmin)
+                    VALUES (@id, @achat, @solde, @banned, @reason, @usernum, @username, @isadmin)
+                    ON CONFLICT (Id) DO UPDATE SET Achat = EXCLUDED.Achat, Solde = EXCLUDED.Solde, IsBanned = EXCLUDED.IsBanned, BanReason = EXCLUDED.BanReason, UserNumber = EXCLUDED.UserNumber, Username = EXCLUDED.Username, IsAdmin = EXCLUDED.IsAdmin;";
 
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     {
@@ -405,6 +406,7 @@ namespace ChezRheyyBot
                         cmd.Parameters.AddWithValue("@reason", config.BanReasons.TryGetValue(item.Item1, out string? r) ? (object)r : DBNull.Value);
                         cmd.Parameters.AddWithValue("@usernum", config.ObtenirOuCreerNumeroUtilisateur(item.Item1));
                         cmd.Parameters.AddWithValue("@username", config.Usernames.TryGetValue(item.Item1, out string? u) && !string.IsNullOrWhiteSpace(u) ? (object)u : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@isadmin", config.idAdmins.Contains(item.Item1.ToString()));
                         cmd.ExecuteNonQuery();
                     }
                 }
@@ -726,7 +728,7 @@ namespace ChezRheyyBot
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
-                    string requete = "SELECT Id, ChatId, TrackId, Amount, PaymentMethod, Status, PaymentUrl, CreatedAt FROM payments WHERE PaymentMethod = @method AND (Status = 'PENDING' OR (Status = 'FAILED' AND CreatedAt > NOW() - INTERVAL '20 minutes') OR (Status = 'EXPIRED' AND CreatedAt > NOW() - INTERVAL '2 hours'))";
+                    string requete = "SELECT Id, ChatId, TrackId, Amount, PaymentMethod, Status, PaymentUrl, CreatedAt FROM payments WHERE PaymentMethod = @method AND (Status = 'PENDING' OR (Status = 'FAILED' AND CreatedAt > NOW() - INTERVAL '20 minutes') OR (Status = 'EXPIRED' AND CreatedAt > NOW() - INTERVAL '2 hours') OR (Status = 'CANCELED' AND CreatedAt > NOW() - INTERVAL '35 minutes'))";
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     {
                         cmd.Parameters.AddWithValue("@method", paymentMethod);
@@ -842,7 +844,8 @@ namespace ChezRheyyBot
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     {
                         cmd.Parameters.AddWithValue("@chatId", chatId);
-                        long count = (long)cmd.ExecuteScalar();
+                        var result = cmd.ExecuteScalar();
+                        long count = result != null && result != DBNull.Value ? Convert.ToInt64(result) : 0;
                         return count > 0;
                     }
                 }

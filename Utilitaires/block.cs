@@ -8,22 +8,18 @@ namespace ChezRheyyBot
     {
         public static async Task LancerActionDans24h(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
-            while (true)
+            await Task.Delay(TimeSpan.FromMinutes(20));
+
+            foreach (var id in config.banAPI)
             {
-                await Task.Delay(TimeSpan.FromMinutes(20));
-
-                foreach (var id in config.banAPI)
+                try
                 {
-                    try
-                    {
-                        await botClient.SendTextMessageAsync(id, $"Cooldown fini, vous pouvez désormais créer un nouveau lien de paiement");
-                    }
-                    catch { }
+                    await botClient.SendTextMessageAsync(id, $"Cooldown fini, vous pouvez désormais créer un nouveau lien de paiement");
                 }
-
-                config.banAPI.Clear();
-                return;
+                catch { }
             }
+
+            config.banAPI.Clear();
         }
     }
 }

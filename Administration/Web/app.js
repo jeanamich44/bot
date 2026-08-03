@@ -99,40 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(`Rechargements filtrés sur l'utilisateur ${userId}`, 'info');
     };
 
-    window.filterPayments = () => {
-        const filterValue = document.getElementById('filter-payments-method').value.toUpperCase();
-        const trs = document.querySelectorAll('#all-payments-table tr');
-        trs.forEach(tr => {
-            const methodCell = tr.cells[2].innerText.toUpperCase();
-            if (filterValue === '' || methodCell.includes(filterValue)) {
-                tr.style.display = '';
-            } else {
-                tr.style.display = 'none';
-            }
-        });
-    };
-
-    window.sortTable = (tableId, colIndex, isNumber = false) => {
-        const table = document.getElementById(tableId);
-        let rows = Array.from(table.rows);
-        let ascending = table.getAttribute('data-sort-asc') === 'true';
-        table.setAttribute('data-sort-asc', !ascending);
-        
-        rows.sort((a, b) => {
-            let cellA = a.cells[colIndex].innerText.trim().replace(/€/g, '').replace(/#/g, '');
-            let cellB = b.cells[colIndex].innerText.trim().replace(/€/g, '').replace(/#/g, '');
-            
-            if (isNumber) {
-                return ascending ? parseFloat(cellA) - parseFloat(cellB) : parseFloat(cellB) - parseFloat(cellA);
-            } else {
-                return ascending ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-            }
-        });
-        
-        table.innerHTML = '';
-        rows.forEach(row => table.appendChild(row));
-    };
-
     modalCloseBtn.addEventListener('click', closeModal);
     modalCancelBtn.addEventListener('click', closeModal);
     modalConfirmBtn.addEventListener('click', async () => {
@@ -887,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         metricsHistory.cmdExec.length = 0;
                         metricsHistory.sumupRec.length = 0;
                         metricsHistory.oxapaySent.length = 0;
-                        metricsHistory.errors.length = 0;
+                        metricsHistory.errorsCount.length = 0;
                         await loadMetricsData();
                     } else {
                         showToast('Erreur lors de la réinitialisation', 'error');
@@ -1164,8 +1130,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSyncElem = document.getElementById('btn-sync-usernames');
     if (btnSyncElem) {
         btnSyncElem.addEventListener('click', async () => {
-            const listToSync = (usersRawData || []).filter(u => !u.username || u.username.trim() === '' || u.username === 'N/A');
-            const targetList = listToSync.length > 0 ? listToSync : (usersRawData || []);
+            const listToSync = (allUsers || []).filter(u => !u.username || u.username.trim() === '' || u.username === 'N/A');
+            const targetList = listToSync.length > 0 ? listToSync : (allUsers || []);
 
             if (targetList.length === 0) {
                 showToast('Aucun utilisateur à synchroniser', 'info');
@@ -1952,6 +1918,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const pmFilterSelect = document.getElementById('filter-payments-method');
+    if (pmFilterSelect) {
+        pmFilterSelect.addEventListener('change', () => {
+            paymentsCurrentPage = 1;
+            applyPaymentsPagination();
+        });
+    }
+
     function renderPaymentsTable(payments) {
         const tbody = document.getElementById('all-payments-table');
         tbody.innerHTML = '';
@@ -2036,10 +2010,8 @@ document.addEventListener('DOMContentLoaded', () => {
         sumupModeForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const mode = document.getElementById('setting-sumup-mode').value;
-            const res = await apiRequest('/settings/sumup/mode', 'POST', { mode });
-            if (res && res.success) {
-                showToast(`Mode SumUp basculé sur ${res.mode === 'webhook' ? 'Webhook ⚡' : 'Long Polling 🔄'} avec succès !`, 'success');
-            }
+            console.error("Endpoint /settings/sumup/mode n'existe pas sur le serveur.");
+            showToast("Fonctionnalité désactivée temporairement.", "danger");
         });
     }
 

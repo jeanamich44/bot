@@ -342,17 +342,19 @@ namespace ChezRheyyBot
                             DataBase.SauvegarderUtilisateurIndividuel(long.Parse(item.ChatId));
 
                             bool etaitExpire = string.Equals(item.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase);
+                            bool etaitAnnule = string.Equals(item.Status, "CANCELED", StringComparison.OrdinalIgnoreCase);
 
-                            if (etaitExpire)
+                            if (etaitExpire || etaitAnnule)
                             {
                                 DataBase.MettreAJourPaiementStatutBDD(item.TrackId, "PAID");
-                                Console.WriteLine($"[Paiement Tardif Reçu] Facture expirée {item.TrackId} payée tardivement ({montantReçu}€).");
+                                string typeLabel = etaitAnnule ? "ANNULÉ" : "EXPIRÉ";
+                                Console.WriteLine($"[Paiement Tardif Reçu] Facture {typeLabel} {item.TrackId} payée tardivement ({montantReçu}€).");
                                 try
                                 {
-                                    await botClient.SendTextMessageAsync(item.ChatId, $"✅ Votre paiement tardif de {montantReçu}€ a été détecté et crédité sur votre solde !");
+                                    await botClient.SendTextMessageAsync(item.ChatId, $"✅ Votre paiement de {montantReçu}€ a été détecté et crédité sur votre solde !");
                                     foreach (var idAdmin in config.idAdmins)
                                     {
-                                        await botClient.SendTextMessageAsync(idAdmin, $"[PAIEMENT TARDIF] ChatID: {item.ChatId} | TrackID: {item.TrackId} | Montant: {montantReçu}€");
+                                        await botClient.SendTextMessageAsync(idAdmin, $"[PAIEMENT POST-{typeLabel}] ChatID: {item.ChatId} | TrackID: {item.TrackId} | Montant: {montantReçu}€");
                                     }
                                 }
                                 catch { }

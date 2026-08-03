@@ -85,7 +85,7 @@ namespace ChezRheyyBot
                         await SendPanelUrl(botClient, update, cancellationToken);
                         break;
                     case "/info":
-                        await GetInFoUser(botClient, update, cancellationToken);
+                        await GetInfoUser(botClient, update, cancellationToken);
                         break;
                     case "/stock":
                         await ConnaitreNombreDeStock(message, botClient, update, cancellationToken);
@@ -262,7 +262,7 @@ namespace ChezRheyyBot
 
                     try
                     {
-                        await botClient.SendTextMessageAsync(userId, $"Solde déduit de {mtn}€.", cancellationToken: cancellationToken);
+                        await botClient.SendTextMessageAsync(userId, $"📉 {mtn}€ retirés de votre solde. Nouveau solde : {nouveauSolde}€.", cancellationToken: cancellationToken);
                     }
                     catch { }
 
@@ -369,10 +369,10 @@ namespace ChezRheyyBot
                     await botClient.SendTextMessageAsync(id, $"DEBAN USER: {msg[1]}", cancellationToken: cancellationToken);
                 }
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Erreur Admin] {ex.Message}"); }
         }
 
-        private static async Task GetInFoUser(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        private static async Task GetInfoUser(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             try
             {
@@ -393,7 +393,7 @@ namespace ChezRheyyBot
                     await botClient.SendTextMessageAsync(config.CurrentChatId, $"Info de {msg[1]}\n\nAchat: {ancienTuple.Item2}\nSolde: {ancienTuple.Item3}€\nBanni: {ancienTuple.Item4}{reasonLine}", cancellationToken: cancellationToken);
                 }
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Erreur Admin] {ex.Message}"); }
         }
 
         private static async Task ConnaitreNombreDeStock(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -412,7 +412,7 @@ namespace ChezRheyyBot
 
                 await botClient.SendTextMessageAsync(config.CurrentChatId, $"📦 Le stock pour <b>{brand.ToUpper()}</b> est de <b>{connaitre.Count}</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Erreur Admin] {ex.Message}"); }
         }
 
         private static async Task RecupererAchatId(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -585,7 +585,7 @@ namespace ChezRheyyBot
                     await botClient.SendTextMessageAsync(config.CurrentChatId, $"❌ Commande `/{arg}` inconnue. Tapez `/help` pour la liste des commandes.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown, cancellationToken: cancellationToken);
                 }
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Erreur Admin] {ex.Message}"); }
         }
 
         private static async Task GetInfoDePaiementId(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -624,7 +624,7 @@ namespace ChezRheyyBot
                     await botClient.SendTextMessageAsync(config.CurrentChatId, $"Transaction {id[1]} [Montant={montant}€ | Status={status}]", cancellationToken: cancellationToken);
                 }
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Erreur Admin] {ex.Message}"); }
         }
 
         private static async Task ToggleMaintenance(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -678,7 +678,7 @@ namespace ChezRheyyBot
 
                 await botClient.SendTextMessageAsync(config.CurrentChatId, $"🔑 <b>URL d'Accès au Panel Admin Web :</b>\n\n<code>{fullUrl}</code>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Erreur Admin] {ex.Message}"); }
         }
 
         private static async Task AddStockFromFile(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)

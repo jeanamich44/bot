@@ -377,9 +377,9 @@ class Program
                 return;
             }
         }
-        catch
+        catch (Exception ex)
         {
-
+            Console.WriteLine($"[Erreur Globale] {ex.Message}");
         }
 
     }

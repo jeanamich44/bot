@@ -331,8 +331,7 @@ namespace ChezRheyyBot
                 long userId = 0;
                 if (root.TryGetProperty("userId", out var uElem))
                 {
-                    if (uElem.ValueKind == JsonValueKind.Number) userId = uElem.GetInt64();
-                    else if (uElem.ValueKind == JsonValueKind.String) long.TryParse(uElem.GetString(), out userId);
+                    long.TryParse(GetJsonStringOrNumber(uElem), out userId);
                 }
 
                 string action = root.TryGetProperty("action", out var actElem) ? actElem.GetString() ?? "add" : "add";
@@ -340,8 +339,7 @@ namespace ChezRheyyBot
                 double amount = 0;
                 if (root.TryGetProperty("amount", out var amtElem))
                 {
-                    if (amtElem.ValueKind == JsonValueKind.Number) amount = amtElem.GetDouble();
-                    else if (amtElem.ValueKind == JsonValueKind.String) double.TryParse(amtElem.GetString()?.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out amount);
+                    double.TryParse(GetJsonStringOrNumber(amtElem).Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out amount);
                 }
 
                 if (userId > 0)
@@ -376,7 +374,7 @@ namespace ChezRheyyBot
                 using var doc = JsonDocument.Parse(bodyStr);
                 var root = doc.RootElement;
 
-                long userId = long.Parse(root.GetProperty("userId").GetString() ?? "0");
+                long userId = long.Parse(GetJsonStringOrNumber(root.GetProperty("userId")));
                 bool ban = root.GetProperty("ban").GetBoolean();
                 string reason = root.TryGetProperty("reason", out var rElem) ? rElem.GetString() ?? "" : "";
 
@@ -412,7 +410,7 @@ namespace ChezRheyyBot
                 string bodyStr = await reader.ReadToEndAsync();
                 using var doc = JsonDocument.Parse(bodyStr);
 
-                long userId = doc.RootElement.GetProperty("userId").GetInt64();
+                long userId = long.Parse(GetJsonStringOrNumber(doc.RootElement.GetProperty("userId")));
                 bool deleted = DataBase.SupprimerUtilisateurCompletBDD(userId);
                 RepondreJson(response, 200, new { success = deleted });
             }
@@ -426,8 +424,7 @@ namespace ChezRheyyBot
                 long userId = 0;
                 if (root.TryGetProperty("userId", out var uElem))
                 {
-                    if (uElem.ValueKind == JsonValueKind.Number) userId = uElem.GetInt64();
-                    else if (uElem.ValueKind == JsonValueKind.String) long.TryParse(uElem.GetString(), out userId);
+                    long.TryParse(GetJsonStringOrNumber(uElem), out userId);
                 }
 
                 if (userId > 0)
@@ -512,8 +509,8 @@ namespace ChezRheyyBot
                         string b = elem.TryGetProperty("brand", out var bE) ? bE.GetString() ?? "carr" : "carr";
                         string c = elem.TryGetProperty("code", out var cE) ? cE.GetString() ?? "" : "";
                         string p = elem.TryGetProperty("pin", out var pE) ? pE.GetString() ?? "" : "";
-                        int v = elem.TryGetProperty("value", out var vE) ? (vE.ValueKind == JsonValueKind.Number ? vE.GetInt32() : (int.TryParse(vE.GetString(), out int parsedV) ? parsedV : 0)) : 0;
-                        double pr = elem.TryGetProperty("price", out var prE) ? (prE.ValueKind == JsonValueKind.Number ? prE.GetDouble() : (double.TryParse(prE.GetString(), out double parsedP) ? parsedP : 0.0)) : 0.0;
+                        int.TryParse(elem.TryGetProperty("value", out var vE) ? GetJsonStringOrNumber(vE) : "0", out int v);
+                        double.TryParse(elem.TryGetProperty("price", out var prE) ? GetJsonStringOrNumber(prE).Replace(',', '.') : "0", System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double pr);
 
                         if (!string.IsNullOrWhiteSpace(c))
                         {
@@ -536,8 +533,8 @@ namespace ChezRheyyBot
                     string brand = root.GetProperty("brand").GetString() ?? "carr";
                     string code = root.GetProperty("code").GetString() ?? "";
                     string pin = root.TryGetProperty("pin", out var pElem) ? pElem.GetString() ?? "" : "";
-                    int value = root.GetProperty("value").GetInt32();
-                    double price = root.GetProperty("price").GetDouble();
+                    int value = int.Parse(GetJsonStringOrNumber(root.GetProperty("value")));
+                    double price = double.Parse(GetJsonStringOrNumber(root.GetProperty("price")).Replace(',', '.'), System.Globalization.CultureInfo.InvariantCulture);
 
                     DataBase.InsererDansStock(brand, code, pin, value, price);
                     RepondreJson(response, 200, new { success = true, count = 1 });
@@ -548,7 +545,7 @@ namespace ChezRheyyBot
                 using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
                 string bodyStr = await reader.ReadToEndAsync();
                 using var doc = JsonDocument.Parse(bodyStr);
-                int id = doc.RootElement.GetProperty("id").GetInt32();
+                int id = int.Parse(GetJsonStringOrNumber(doc.RootElement.GetProperty("id")));
 
                 bool deleted = DataBase.SupprimerStockParId(id);
                 RepondreJson(response, 200, new { success = deleted });
@@ -720,5 +717,7 @@ namespace ChezRheyyBot
             }
             catch { }
         }
+
+        static string GetJsonStringOrNumber(JsonElement el) => el.ValueKind == JsonValueKind.String ? el.GetString() ?? "" : el.GetRawText();
     }
 }
