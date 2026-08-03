@@ -43,20 +43,26 @@ namespace ChezRheyyBot
             string sep = baseApi.Contains("?") ? "&" : "?";
 
             string url = $"{baseApi}{sep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&api_key={key}&key={key}";
-            Console.WriteLine($"[IPTV Request] {url}");
+            Console.WriteLine($"[IPTV INFO] Début génération IPTV pour {date} mois.");
+            Console.WriteLine($"[IPTV CONFIG] API URL: {baseApi} | Key: {key} | Pack: {apiPack} | Type: {apiType}");
+            Console.WriteLine($"[IPTV REQUEST] {url}");
 
             try
             {
                 using HttpClient client = new HttpClient();
+                client.Timeout = TimeSpan.FromSeconds(30);
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
 
                 HttpResponseMessage response = await client.GetAsync(url);
+                Console.WriteLine($"[IPTV HTTP STATUS] {(int)response.StatusCode} {response.ReasonPhrase}");
+
                 string content = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"[IPTV Response] {content}");
+                Console.WriteLine($"[IPTV RESPONSE RAW] {content}");
 
                 string trimmed = content.Trim();
                 if (trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                 {
+                    Console.WriteLine($"[IPTV PARSED DIRECT] {trimmed}");
                     return trimmed;
                 }
 
@@ -65,19 +71,29 @@ namespace ChezRheyyBot
                     using var doc = JsonDocument.Parse(trimmed);
                     var root = doc.RootElement;
                     string extracted = ExtractUrlFromJson(root);
-                    if (!string.IsNullOrWhiteSpace(extracted)) return extracted;
+                    if (!string.IsNullOrWhiteSpace(extracted))
+                    {
+                        Console.WriteLine($"[IPTV PARSED JSON] {extracted}");
+                        return extracted;
+                    }
                 }
-                catch { }
+                catch (Exception jsonEx)
+                {
+                    Console.WriteLine($"[IPTV JSON PARSE EXCEPTION] {jsonEx.Message}");
+                }
 
                 var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"https?://[^\s""'<>\\]+");
                 if (match.Success)
                 {
+                    Console.WriteLine($"[IPTV PARSED REGEX] {match.Value}");
                     return match.Value;
                 }
+
+                Console.WriteLine("[IPTV ERROR] Aucune URL n'a pu être extraite de la réponse du serveur.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Erreur IPTV: " + ex.Message);
+                Console.WriteLine($"[IPTV EXCEPTION] {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
             }
 
             return string.Empty;

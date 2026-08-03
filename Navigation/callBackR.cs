@@ -75,10 +75,13 @@ namespace ChezRheyyBot
                         return;
                     }
 
+                    Console.WriteLine($"[IPTV BUY] User: {config.CurrentChatId} | Formule: {number} mois | Prix: {prix}€ | Solde actuel: {solde}€");
                     string link = await iptv.GenerateIPTV(number.ToString());
+                    Console.WriteLine($"[IPTV BUY RESULT] Link généré: '{link}'");
 
                     if (string.IsNullOrWhiteSpace(link) || !Uri.TryCreate(link, UriKind.Absolute, out Uri? uri))
                     {
+                        Console.WriteLine($"[IPTV BUY ERROR] Lien nul ou URI invalide : '{link}'");
                         await botClient.SendTextMessageAsync(config.CurrentChatId, "❌ Une erreur est survenue lors de la génération IPTV. Aucun débit n'a été effectué.");
                         return;
                     }
