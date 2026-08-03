@@ -31,19 +31,18 @@ namespace ChezRheyyBot
             public string Url { get; set; }
         }
 
-        public static string apiKey => config.GetSetting("iptv", "api_key", "");
-        public static string apiUrl => config.GetSetting("iptv", "api_url", "http://cf.business-cloud-neo.com/api.php");
+        public static string apiKey => config.GetSetting("iptv", "api_key", "7d825d543f4582de824e83046d0aa8fa");
+        public static string apiUrl => config.GetSetting("iptv", "api_url", "https://4k.cms-only.ru/api/api.php");
         public static string apiPack => config.GetSetting("iptv", "pack", "43551");
         public static string apiType => config.GetSetting("iptv", "type", "m3u");
 
         public static async Task<string> GenerateIPTV(string date)
         {
             string key = apiKey;
+            if (string.IsNullOrWhiteSpace(key)) key = "7d825d543f4582de824e83046d0aa8fa";
+
             string baseApi = apiUrl.Trim();
-            if (baseApi.Contains("/api/api.php"))
-            {
-                baseApi = baseApi.Replace("/api/api.php", "/api.php");
-            }
+            if (string.IsNullOrWhiteSpace(baseApi)) baseApi = "https://4k.cms-only.ru/api/api.php";
 
             string sep = baseApi.Contains("?") ? "&" : "?";
             string url = $"{baseApi}{sep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&api_key={key}";
@@ -63,12 +62,29 @@ namespace ChezRheyyBot
                 HttpResponseMessage response = await client.GetAsync(url);
                 Console.WriteLine($"[IPTV HTTP STATUS] {(int)response.StatusCode} {response.ReasonPhrase}");
 
-                if ((int)response.StatusCode == 511 || response.StatusCode == System.Net.HttpStatusCode.Forbidden || response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 {
-                    string altUrl = $"{baseApi}{sep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&key={key}";
-                    Console.WriteLine($"[IPTV RETRY 511/403] Tentative avec clé 'key': {altUrl}");
-                    response = await client.GetAsync(altUrl);
-                    Console.WriteLine($"[IPTV HTTP STATUS RETRY] {(int)response.StatusCode} {response.ReasonPhrase}");
+                    string[] fallbackUrls = new[]
+                    {
+                        "https://4k.cms-only.ru/api/api.php",
+                        "https://cms-4k.com/api/api.php",
+                        "http://cf.business-cloud-neo.com/api.php"
+                    };
+
+                    foreach (var fb in fallbackUrls)
+                    {
+                        if (fb.Equals(baseApi, StringComparison.OrdinalIgnoreCase)) continue;
+                        string fbSep = fb.Contains("?") ? "&" : "?";
+                        string fbUrl = $"{fb}{fbSep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&api_key={key}";
+                        Console.WriteLine($"[IPTV RETRY FALLBACK] Tentative sur URL de secours: {fbUrl}");
+                        var fbResponse = await client.GetAsync(fbUrl);
+                        Console.WriteLine($"[IPTV HTTP STATUS FALLBACK] {(int)fbResponse.StatusCode} {fbResponse.ReasonPhrase}");
+                        if (fbResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                        {
+                            response = fbResponse;
+                            break;
+                        }
+                    }
                 }
 
                 string content = await response.Content.ReadAsStringAsync();
