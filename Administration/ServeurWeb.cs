@@ -360,6 +360,16 @@ namespace ChezRheyyBot
                     if (newSolde < 0) newSolde = 0.0;
                     config.UserSave[idx] = Tuple.Create(old.Item1, old.Item2, newSolde, old.Item4);
                     DataBase.SauvegarderUtilisateurIndividuel(userId);
+
+                    foreach (var idAdmin in config.idAdmins)
+                    {
+                        try
+                        {
+                            await botClient.SendTextMessageAsync(idAdmin, $"💳 <b>[PANEL WEB ADMIN] Modification Solde</b>\n<b>User</b>: <code>{userId}</code>\n<b>Action</b>: {action} ({amount}€)\n<b>Nouveau Solde</b>: {newSolde}€", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                        }
+                        catch { }
+                    }
+
                     RepondreJson(response, 200, new { success = true, newSolde });
                 }
                 else
@@ -402,6 +412,16 @@ namespace ChezRheyyBot
                 }
 
                 DataBase.SauvegarderUtilisateurIndividuel(userId);
+
+                foreach (var idAdmin in config.idAdmins)
+                {
+                    try
+                    {
+                        await botClient.SendTextMessageAsync(idAdmin, $"🚫 <b>[PANEL WEB ADMIN] Statut Utilisateur</b>\n<b>User</b>: <code>{userId}</code>\n<b>Statut</b>: {(ban ? "BAN 🚫" : "DEBAN 🔓")}\n<b>Raison</b>: {(string.IsNullOrEmpty(reason) ? "Aucune" : reason)}", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                    }
+                    catch { }
+                }
+
                 RepondreJson(response, 200, new { success = true });
             }
             else if (path == "/api/admin/users/delete" && request.HttpMethod == "POST")
@@ -412,6 +432,19 @@ namespace ChezRheyyBot
 
                 long userId = long.Parse(GetJsonStringOrNumber(doc.RootElement.GetProperty("userId")));
                 bool deleted = DataBase.SupprimerUtilisateurCompletBDD(userId);
+
+                if (deleted)
+                {
+                    foreach (var idAdmin in config.idAdmins)
+                    {
+                        try
+                        {
+                            await botClient.SendTextMessageAsync(idAdmin, $"🗑️ <b>[PANEL WEB ADMIN] Suppression Utilisateur</b>\n<b>User</b>: <code>{userId}</code>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                        }
+                        catch { }
+                    }
+                }
+
                 RepondreJson(response, 200, new { success = deleted });
             }
             else if (path == "/api/admin/users/sync-user" && request.HttpMethod == "POST")

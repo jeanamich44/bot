@@ -230,7 +230,14 @@ namespace ChezRheyyBot
                     }
                     catch { }
 
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"✅ Solde ajouté à {userId}. Nouveau solde : {nouveauSolde}€", cancellationToken: cancellationToken);
+                    foreach (var idAdmin in config.idAdmins)
+                    {
+                        try
+                        {
+                            await botClient.SendTextMessageAsync(idAdmin, $"💰 <b>[ADMIN] Ajout de Solde</b>\n<b>User</b>: <code>{userId}</code>\n<b>Montant</b>: +{mtn}€\n<b>Nouveau Solde</b>: {nouveauSolde}€\n<b>Par</b>: @{config.CurrentPseudo} (<code>{config.CurrentChatId}</code>)", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                        }
+                        catch { }
+                    }
                     return;
                 }
 
@@ -266,7 +273,14 @@ namespace ChezRheyyBot
                     }
                     catch { }
 
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"✅ Solde retiré à {userId}. Nouveau solde : {nouveauSolde}€", cancellationToken: cancellationToken);
+                    foreach (var idAdmin in config.idAdmins)
+                    {
+                        try
+                        {
+                            await botClient.SendTextMessageAsync(idAdmin, $"📉 <b>[ADMIN] Retrait de Solde</b>\n<b>User</b>: <code>{userId}</code>\n<b>Montant</b>: -{mtn}€\n<b>Nouveau Solde</b>: {nouveauSolde}€\n<b>Par</b>: @{config.CurrentPseudo} (<code>{config.CurrentChatId}</code>)", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                        }
+                        catch { }
+                    }
                     return;
                 }
 
