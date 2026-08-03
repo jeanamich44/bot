@@ -1,9 +1,7 @@
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using ZXing;
 using ZXing.Common;
-using SkiaSharp;
 
 class codebarre
 {
@@ -21,57 +19,52 @@ class codebarre
             string digitsOnly = System.Text.RegularExpressions.Regex.Replace(cleanContent, @"\s+", "");
             string codeToEncode = string.IsNullOrWhiteSpace(digitsOnly) ? cleanContent : digitsOnly;
 
-            ZXing.Common.BitMatrix? matrix = null;
-            try
+            var writer = new BarcodeWriterPixelData
             {
-                var writer = new ZXing.OneD.Code128Writer();
-                matrix = writer.encode(codeToEncode, BarcodeFormat.CODE_128, 480, 140, null);
-            }
-            catch
-            {
-                try
+                Format = BarcodeFormat.CODE_128,
+                Options = new EncodingOptions
                 {
-                    var multiWriter = new ZXing.MultiFormatWriter();
-                    matrix = multiWriter.encode(codeToEncode, BarcodeFormat.CODE_128, 480, 140, null);
+                    Height = 120,
+                    Width = 400,
+                    Margin = 15
                 }
-                catch (Exception exInner)
-                {
-                    Console.WriteLine($"[GenerateBarcode MultiWriter Error] {exInner.Message}");
-                }
-            }
+            };
 
-            if (matrix == null)
-            {
-                Console.WriteLine("[GenerateBarcode Error] Impossible de générer la matrice de code-barres.");
-                return;
-            }
+            var pixelData = writer.Write(codeToEncode);
+            int width = pixelData.Width;
+            int height = pixelData.Height;
+            byte[] bgraPixels = pixelData.Pixels;
 
-            int width = matrix.Width;
-            int height = matrix.Height;
-
-            using var bitmap = new SKBitmap(width, height);
-            using var canvas = new SKCanvas(bitmap);
-            canvas.Clear(SKColors.White);
-
-            using var blackPaint = new SKPaint { Color = SKColors.Black, Style = SKPaintStyle.Fill, IsAntialias = false };
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    if (matrix[x, y])
-                    {
-                        canvas.DrawRect(x, y, 1, 1, blackPaint);
-                    }
-                }
-            }
-            canvas.Flush();
-
-            using var image = SKImage.FromBitmap(bitmap);
-            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
             using var fs = new FileStream(outputFile, FileMode.Create, FileAccess.Write, FileShare.None);
-            data.SaveTo(fs);
+            using var bw = new BinaryWriter(fs);
+
+            int dataSize = bgraPixels.Length;
+            int fileSize = 54 + dataSize;
+
+            bw.Write((byte)'B');
+            bw.Write((byte)'M');
+            bw.Write(fileSize);
+            bw.Write((short)0);
+            bw.Write((short)0);
+            bw.Write(54);
+
+            bw.Write(40);
+            bw.Write(width);
+            bw.Write(-height);
+            bw.Write((short)1);
+            bw.Write((short)32);
+            bw.Write(0);
+            bw.Write(dataSize);
+            bw.Write(2835);
+            bw.Write(2835);
+            bw.Write(0);
+            bw.Write(0);
+
+            bw.Write(bgraPixels);
+            bw.Flush();
             fs.Flush();
-            Console.WriteLine($"[GenerateBarcode Success] Image code-barres créée : {outputFile} ({new FileInfo(outputFile).Length} octets)");
+
+            Console.WriteLine($"[GenerateBarcode Success] Image code-barres BMP créée : {outputFile} ({new FileInfo(outputFile).Length} octets)");
         }
         catch (Exception ex)
         {
