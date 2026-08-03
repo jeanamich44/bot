@@ -175,7 +175,7 @@ namespace ChezRheyyBot
         {
             lock (SettingsLock)
             {
-                if (CategorySettings.TryGetValue(category, out var dict) && dict.TryGetValue(key, out var val))
+                if (CategorySettings.TryGetValue(category, out var dict) && dict.TryGetValue(key, out var val) && !string.IsNullOrWhiteSpace(val))
                 {
                     return val;
                 }

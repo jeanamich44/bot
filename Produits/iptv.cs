@@ -38,42 +38,53 @@ namespace ChezRheyyBot
 
         public static async Task<string> GenerateIPTV(string date)
         {
-            string url = $"{apiUrl}" +
-                         $"?action=new" +
-                         $"&type={apiType}" +
-                         $"&sub={date}" +
-                         $"&pack={apiPack}" +
-                         $"&country=" +
-                         $"&notes=" +
-                         $"&api_key={apiKey}";
+            string currentKey = apiKey;
+            if (string.IsNullOrWhiteSpace(currentKey)) currentKey = "16b9b89931169d6a4fd534c10e24ebad";
+
+            string url = $"{apiUrl}?action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&api_key={currentKey}";
+            Console.WriteLine($"[IPTV Request] {url}");
 
             try
             {
                 using HttpClient client = new HttpClient();
                 HttpResponseMessage response = await client.GetAsync(url);
-                response.EnsureSuccessStatusCode();
-
                 string jsonResult = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[IPTV Response] {jsonResult}");
 
-                ApiResponse data = JsonSerializer.Deserialize<ApiResponse>(jsonResult);
+                using var doc = JsonDocument.Parse(jsonResult);
+                var root = doc.RootElement;
 
-                if (data != null && data.Status == "true")
+                string status = "";
+                if (root.TryGetProperty("status", out var stElem))
                 {
-                    Console.WriteLine("URL IPTV : " + data.Url);
-                    return data.Url;
+                    if (stElem.ValueKind == JsonValueKind.True) status = "true";
+                    else if (stElem.ValueKind == JsonValueKind.String) status = stElem.GetString() ?? "";
+                }
+
+                string resUrl = "";
+                if (root.TryGetProperty("url", out var urlElem) && urlElem.ValueKind == JsonValueKind.String)
+                {
+                    resUrl = urlElem.GetString() ?? "";
+                }
+
+                if ((status.ToLower() == "true" || status == "1") && !string.IsNullOrWhiteSpace(resUrl))
+                {
+                    Console.WriteLine("URL IPTV : " + resUrl);
+                    return resUrl;
+                }
+                else if (!string.IsNullOrWhiteSpace(resUrl))
+                {
+                    return resUrl;
                 }
                 else
                 {
-                    Console.WriteLine("Erreur API : " + data?.Message);
+                    string msg = root.TryGetProperty("message", out var msgElem) ? msgElem.GetString() ?? "" : "";
+                    Console.WriteLine("Erreur API IPTV: " + msg);
                 }
-            }
-            catch (HttpRequestException ex)
-            {
-                Console.WriteLine("Erreur HTTP : " + ex.Message);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Erreur : " + ex.Message);
+                Console.WriteLine("Erreur IPTV: " + ex.Message);
             }
 
             return string.Empty;
