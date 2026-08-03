@@ -415,6 +415,69 @@ namespace ChezRheyyBot
                 bool deleted = DataBase.SupprimerUtilisateurCompletBDD(userId);
                 RepondreJson(response, 200, new { success = deleted });
             }
+            else if (path == "/api/admin/users/sync-user" && request.HttpMethod == "POST")
+            {
+                using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+                string bodyStr = await reader.ReadToEndAsync();
+                using var doc = JsonDocument.Parse(bodyStr);
+                var root = doc.RootElement;
+
+                long userId = 0;
+                if (root.TryGetProperty("userId", out var uElem))
+                {
+                    if (uElem.ValueKind == JsonValueKind.Number) userId = uElem.GetInt64();
+                    else if (uElem.ValueKind == JsonValueKind.String) long.TryParse(uElem.GetString(), out userId);
+                }
+
+                if (userId > 0)
+                {
+                    string username = "";
+                    string statusMsg = "";
+                    try
+                    {
+                        var chat = await botClient.GetChatAsync(new Telegram.Bot.Types.ChatId(userId));
+                        if (chat != null)
+                        {
+                            if (!string.IsNullOrWhiteSpace(chat.Username))
+                            {
+                                username = chat.Username.StartsWith("@") ? chat.Username : "@" + chat.Username;
+                                statusMsg = "Pseudo trouvé";
+                            }
+                            else
+                            {
+                                string fullName = $"{chat.FirstName} {chat.LastName}".Trim();
+                                if (!string.IsNullOrWhiteSpace(fullName))
+                                {
+                                    username = fullName;
+                                    statusMsg = "Nom sans @ trouvé";
+                                }
+                                else
+                                {
+                                    username = "N/A";
+                                    statusMsg = "Aucun pseudo configuré";
+                                }
+                            }
+
+                            config.Usernames[userId] = username;
+                            DataBase.SauvegarderUtilisateurIndividuel(userId);
+                        }
+                        else
+                        {
+                            statusMsg = "Chat non accessible";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        statusMsg = $"Non accessible (Bot non démarré) : {ex.Message}";
+                    }
+
+                    RepondreJson(response, 200, new { success = true, userId, username, message = statusMsg });
+                }
+                else
+                {
+                    RepondreJson(response, 400, new { success = false, message = "ID utilisateur invalide" });
+                }
+            }
             else if (path == "/api/admin/users/sync-usernames" && request.HttpMethod == "POST")
             {
                 await DataBase.SynchroniserUsernamesTelegram(botClient);

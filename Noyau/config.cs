@@ -24,8 +24,7 @@ namespace ChezRheyyBot
         {
             if (Usernames.TryGetValue(userId, out string? username) && !string.IsNullOrWhiteSpace(username))
             {
-                string clean = username.Trim();
-                return clean.StartsWith("@") ? clean : "@" + clean;
+                return username.Trim();
             }
             return "";
         }

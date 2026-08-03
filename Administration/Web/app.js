@@ -1160,16 +1160,83 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSyncElem = document.getElementById('btn-sync-usernames');
     if (btnSyncElem) {
         btnSyncElem.addEventListener('click', async () => {
-            btnSyncElem.disabled = true;
-            btnSyncElem.innerHTML = '<span>🔄</span> Synchro en cours...';
-            const res = await apiRequest('/users/sync-usernames', 'POST', {});
-            btnSyncElem.disabled = false;
-            btnSyncElem.innerHTML = '<span>🔄</span> Synchro Pseudos Telegram';
-            if (res && res.success) {
-                showToast('Pseudos Telegram synchronisés en direct !', 'success');
-                loadUsersData();
-            } else {
-                showToast('Erreur lors de la synchronisation', 'danger');
+            const listToSync = (usersRawData || []).filter(u => !u.username || u.username.trim() === '' || u.username === 'N/A');
+            const targetList = listToSync.length > 0 ? listToSync : (usersRawData || []);
+
+            if (targetList.length === 0) {
+                showToast('Aucun utilisateur à synchroniser', 'info');
+                return;
+            }
+
+            const modalHtml = `
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; font-weight: 600;">
+                        <span>Progression de la synchronisation</span>
+                        <span id="sync-progress-text">0 / ${targetList.length} (0%)</span>
+                    </div>
+                    <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden;">
+                        <div id="sync-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: width 0.2s ease;"></div>
+                    </div>
+                </div>
+                <div id="sync-log-box" style="background: #090d16; border: 1px solid rgba(255,255,255,0.1); font-family: monospace; font-size: 12px; color: #10b981; padding: 12px; height: 220px; overflow-y: auto; border-radius: 8px; line-height: 1.5; white-space: pre-wrap;">
+                </div>
+            `;
+
+            openModal('Synchronisation des Pseudos Telegram', modalHtml, null);
+
+            const modalCancelBtn = document.getElementById('modal-cancel-btn');
+            if (modalCancelBtn) modalCancelBtn.style.display = 'none';
+
+            const logBox = document.getElementById('sync-log-box');
+            const progressBar = document.getElementById('sync-progress-bar');
+            const progressText = document.getElementById('sync-progress-text');
+
+            const addLog = (msg, color = '#10b981') => {
+                if (!logBox) return;
+                const time = new Date().toLocaleTimeString();
+                const div = document.createElement('div');
+                div.style.color = color;
+                div.textContent = `[${time}] ${msg}`;
+                logBox.appendChild(div);
+                logBox.scrollTop = logBox.scrollHeight;
+            };
+
+            addLog(`Démarrage de la synchronisation pour ${targetList.length} utilisateur(s)...`, '#3b82f6');
+
+            let processed = 0;
+            let successCount = 0;
+
+            for (const user of targetList) {
+                try {
+                    const res = await apiRequest('/users/sync-user', 'POST', { userId: user.id });
+                    processed++;
+                    const pct = Math.round((processed / targetList.length) * 100);
+                    if (progressBar) progressBar.style.width = `${pct}%`;
+                    if (progressText) progressText.textContent = `${processed} / ${targetList.length} (${pct}%)`;
+
+                    if (res && res.success) {
+                        if (res.username && res.username !== 'N/A') {
+                            successCount++;
+                            addLog(`User ${user.id} -> ${res.username} (${res.message})`, '#10b981');
+                        } else {
+                            addLog(`User ${user.id} -> ${res.message}`, '#f59e0b');
+                        }
+                    } else {
+                        addLog(`User ${user.id} -> Échec (${res ? res.message : 'Erreur réseau'})`, '#ef4444');
+                    }
+                } catch (err) {
+                    processed++;
+                    addLog(`User ${user.id} -> Erreur: ${err.message}`, '#ef4444');
+                }
+            }
+
+            addLog(`Synchronisation terminée ! ${successCount} pseudo(s) récupéré(s).`, '#3b82f6');
+            showToast('Synchronisation terminée', 'success');
+            loadUsersData();
+
+            if (modalCancelBtn) {
+                modalCancelBtn.style.display = 'inline-block';
+                modalCancelBtn.textContent = 'Fermer';
             }
         });
     }
