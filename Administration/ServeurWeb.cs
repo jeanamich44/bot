@@ -315,6 +315,7 @@ namespace ChezRheyyBot
                     achats = u.Item2,
                     solde = u.Item3,
                     isBanned = u.Item4,
+                    isAdmin = config.idAdmins.Contains(u.Item1.ToString()),
                     banReason = config.BanReasons.TryGetValue(u.Item1, out var r) ? r : ""
                 }).OrderBy(u => u.userNumber).ToList();
 

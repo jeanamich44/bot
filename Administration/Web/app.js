@@ -1009,9 +1009,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `<span style="color: #6366f1; font-weight: 600;">${escapeHtml(user.username)}</span>` 
                 : `<span style="color: var(--text-secondary); font-style: italic; opacity: 0.6;">-</span>`;
 
+            const idHtml = user.isAdmin 
+                ? `<code style="color: #ef4444; font-weight: 700; background: rgba(239, 68, 68, 0.18); border: 1px solid rgba(239, 68, 68, 0.4); padding: 2px 8px; border-radius: 4px;">${user.id} 👑 ADMIN</code>` 
+                : `<code>${user.id}</code>`;
+
             tr.innerHTML = `
                 <td><span class="badge badge-info" style="font-weight: 700; background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">#${user.userNumber || '?'}</span></td>
-                <td><code>${user.id}</code></td>
+                <td>${idHtml}</td>
                 <td>${unameBadge}</td>
                 <td><strong>${user.solde.toFixed(2)} €</strong></td>
                 <td>${user.achats}</td>
