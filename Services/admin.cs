@@ -24,6 +24,8 @@ namespace ChezRheyyBot
             "/message",
             "/maintenance",
             "/panel",
+            "/bank",
+            "/sumupbank",
             "/help"
         };
 
@@ -44,6 +46,8 @@ namespace ChezRheyyBot
             { "message", ("Envoie un message de diffusion (broadcast) à tous les utilisateurs du bot.", "/message - Bonjour à tous !", "/message - <texte>") },
             { "maintenance", ("Active ou désactive le mode maintenance du bot.", "/maintenance on ou /maintenance off", "/maintenance [on|off]") },
             { "panel", ("Affiche l'URL secrète d'accès au Panel d'Administration Web.", "/panel", "/panel") },
+            { "bank", ("Affiche ou modifie la banque active pour les paiements SumUp.", "/bank 1 ou /bank 2", "/bank [1|2]") },
+            { "sumupbank", ("Affiche ou modifie la banque active pour les paiements SumUp.", "/sumupbank 1 ou /sumupbank 2", "/sumupbank [1|2]") },
             { "help", ("Affiche l'aide des commandes administration.", "/help ou /help stock ou /help all", "/help [commande|all]") }
         };
 
@@ -95,6 +99,10 @@ namespace ChezRheyyBot
                         break;
                     case "/commandes":
                         await RecupererAchatId(botClient, update, cancellationToken);
+                        break;
+                    case "/bank":
+                    case "/sumupbank":
+                        await BasculerBanqueSumUp(message, botClient, update, cancellationToken);
                         break;
                     case "/help":
                         await HelpCommande(botClient, update, cancellationToken);
@@ -901,6 +909,44 @@ namespace ChezRheyyBot
                     parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
                     cancellationToken: cancellationToken
                 );
+            }
+        }
+
+        public static async Task BasculerBanqueSumUp(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            string[] parts = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string activeCat = config.SumUpActiveCategory;
+            string email1 = config.GetSetting("sumup", "pay_to_email", "gustave.pro@outlook.fr");
+            string email2 = config.GetSetting("sumup_bank2", "pay_to_email", "kevin.ebpro@outlook.fr");
+
+            if (parts.Length < 2)
+            {
+                string bankName = activeCat == "sumup_bank2" ? "Bank 2 (Kevin)" : "Bank 1 (Gustave)";
+                string email = activeCat == "sumup_bank2" ? email2 : email1;
+                string txt = $"🏦 <b>BANQUE SUMUP ACTUELLE</b>\n\n" +
+                             $"• Banque active : <b>{bankName}</b>\n" +
+                             $"• E-mail associé : <code>{email}</code>\n\n" +
+                             $"<b>Changer de banque :</b>\n" +
+                             $"• <code>/bank 1</code> : Activer Banque 1 (Gustave)\n" +
+                             $"• <code>/bank 2</code> : Activer Banque 2 (Kevin)";
+                await botClient.SendTextMessageAsync(config.CurrentChatId, txt, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                return;
+            }
+
+            string choice = parts[1].Trim().ToLower();
+            if (choice == "1" || choice == "bank1" || choice == "gustave" || choice == "sumup")
+            {
+                config.SumUpActiveBank = "sumup";
+                await botClient.SendTextMessageAsync(config.CurrentChatId, $"✅ <b>Banque SumUp modifiée !</b>\n\nCompte actif : <b>Bank 1 (Gustave)</b>\nE-mail : <code>{email1}</code>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+            }
+            else if (choice == "2" || choice == "bank2" || choice == "kevin" || choice == "sumup_bank2")
+            {
+                config.SumUpActiveBank = "sumup_bank2";
+                await botClient.SendTextMessageAsync(config.CurrentChatId, $"✅ <b>Banque SumUp modifiée !</b>\n\nCompte actif : <b>Bank 2 (Kevin)</b>\nE-mail : <code>{email2}</code>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+            }
+            else
+            {
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "❌ Choix invalide. Utilisez <code>/bank 1</code> ou <code>/bank 2</code>.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
             }
         }
 

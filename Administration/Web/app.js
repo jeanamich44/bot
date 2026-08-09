@@ -1781,6 +1781,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.sumupMode) {
             document.getElementById('setting-sumup-mode').value = data.sumupMode;
         }
+        if (data.sumupActiveBank) {
+            const bankSelect = document.getElementById('setting-sumup-bank');
+            if (bankSelect) bankSelect.value = data.sumupActiveBank;
+        }
     }
 
     // [ PAYMENTS PAGINATION LOGIC ] ==========================================
@@ -2016,6 +2020,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const mode = document.getElementById('setting-sumup-mode').value;
             console.error("Endpoint /settings/sumup/mode n'existe pas sur le serveur.");
             showToast("Fonctionnalité désactivée temporairement.", "danger");
+        });
+    }
+
+    const sumupBankForm = document.getElementById('settings-sumup-bank-form');
+    if (sumupBankForm) {
+        sumupBankForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const bank = document.getElementById('setting-sumup-bank').value;
+            const res = await apiRequest('/settings/sumup/bank', 'POST', { bank: bank });
+            if (res && res.success) {
+                showToast('Banque SumUp active enregistrée avec succès !', 'success');
+            }
         });
     }
 

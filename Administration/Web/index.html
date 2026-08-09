@@ -775,6 +775,23 @@
 
                 <div class="card-panel">
                     <div class="card-panel-header">
+                        <h2 class="card-panel-title">Banque SumUp Active</h2>
+                    </div>
+                    <form id="settings-sumup-bank-form" style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Compte / Banque de destination CB</label>
+                            <select id="setting-sumup-bank" class="form-input" style="max-width: 400px; cursor: pointer;">
+                                <option value="sumup">🏦 Banque 1 (Gustave - gustave.pro@outlook.fr)</option>
+                                <option value="sumup_bank2">🏦 Banque 2 (Kevin - kevin.ebpro@outlook.fr)</option>
+                            </select>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 8px;">*Détermine le compte bancaire recevant les règlements par carte bancaire.</span>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="max-width: 200px;">Changer de Banque</button>
+                    </form>
+                </div>
+
+                <div class="card-panel">
+                    <div class="card-panel-header">
                         <h2 class="card-panel-title">Tarifs IPTV & Configuration API</h2>
                     </div>
                     <form id="settings-iptv-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">

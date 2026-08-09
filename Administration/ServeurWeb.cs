@@ -613,7 +613,10 @@ namespace ChezRheyyBot
                 var iptv = config.CategorySettings.TryGetValue("iptv", out var dict) ? dict : new Dictionary<string, string>();
                 string telegramMode = config.ModeTelegram;
                 string sumupMode = config.ModeSumUp;
-                RepondreJson(response, 200, new { iptv, telegramMode, sumupMode });
+                string sumupActiveBank = config.SumUpActiveCategory;
+                string sumupBank1Email = config.GetSetting("sumup", "pay_to_email", "gustave.pro@outlook.fr");
+                string sumupBank2Email = config.GetSetting("sumup_bank2", "pay_to_email", "kevin.ebpro@outlook.fr");
+                RepondreJson(response, 200, new { iptv, telegramMode, sumupMode, sumupActiveBank, sumupBank1Email, sumupBank2Email });
             }
             else if (path == "/api/admin/settings/telegram" && request.HttpMethod == "POST")
             {
@@ -624,6 +627,19 @@ namespace ChezRheyyBot
 
                 await Program.AppliquerModeTelegram(botClient, mode);
                 RepondreJson(response, 200, new { success = true, mode = config.ModeTelegram });
+            }
+            else if (path == "/api/admin/settings/sumup/bank" && request.HttpMethod == "POST")
+            {
+                using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+                string bodyStr = await reader.ReadToEndAsync();
+                using var doc = JsonDocument.Parse(bodyStr);
+                string bank = doc.RootElement.TryGetProperty("bank", out var bElem) ? bElem.GetString() ?? "sumup" : "sumup";
+
+                if (bank == "1" || bank == "bank1" || bank == "sumup") bank = "sumup";
+                else if (bank == "2" || bank == "bank2" || bank == "sumup_bank2") bank = "sumup_bank2";
+
+                config.SumUpActiveBank = bank;
+                RepondreJson(response, 200, new { success = true, bank = config.SumUpActiveCategory });
             }
             else if (path == "/api/admin/settings/iptv" && request.HttpMethod == "POST")
             {

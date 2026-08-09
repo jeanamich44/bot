@@ -470,6 +470,12 @@ namespace ChezRheyyBot
         private static string? _sumUpAccessToken = null;
         private static DateTime _sumUpTokenExpiration = DateTime.MinValue;
 
+        public static void ReinitialiserAccessToken()
+        {
+            _sumUpAccessToken = null;
+            _sumUpTokenExpiration = DateTime.MinValue;
+        }
+
         private static async Task<string> ObtenirSumUpAccessToken(CancellationToken cancellationToken)
         {
             await _tokenSemaphore.WaitAsync();
@@ -480,9 +486,10 @@ namespace ChezRheyyBot
                     return _sumUpAccessToken;
                 }
 
-                string apiKey = config.GetSetting("sumup", "api_key", Environment.GetEnvironmentVariable("SUMUP_API_KEY") ?? "");
-                string clientId = config.GetSetting("sumup", "client_id", Environment.GetEnvironmentVariable("SUMUP_CLIENT_ID") ?? "");
-                string clientSecret = config.GetSetting("sumup", "client_secret", Environment.GetEnvironmentVariable("SUMUP_CLIENT_SECRET") ?? "");
+                string cat = config.SumUpActiveCategory;
+                string apiKey = config.GetSetting(cat, "api_key", Environment.GetEnvironmentVariable("SUMUP_API_KEY") ?? "");
+                string clientId = config.GetSetting(cat, "client_id", Environment.GetEnvironmentVariable("SUMUP_CLIENT_ID") ?? "");
+                string clientSecret = config.GetSetting(cat, "client_secret", Environment.GetEnvironmentVariable("SUMUP_CLIENT_SECRET") ?? "");
 
                 var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/token");
                 var postData = $"grant_type=client_credentials&client_id={clientId}&client_secret={clientSecret}";
@@ -536,7 +543,8 @@ namespace ChezRheyyBot
                     ? $"https://{domainEnv}/webhook/sumup/"
                     : "https://t.me/ChezRheyyBot";
 
-                string payToEmail = config.GetSetting("sumup", "pay_to_email", Environment.GetEnvironmentVariable("SUMUP_PAY_TO_EMAIL") ?? "");
+                string cat = config.SumUpActiveCategory;
+                string payToEmail = config.GetSetting(cat, "pay_to_email", Environment.GetEnvironmentVariable("SUMUP_PAY_TO_EMAIL") ?? "");
                 string accessToken = await ObtenirSumUpAccessToken(cancellationToken);
 
                 var secondRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/v0.1/checkouts");

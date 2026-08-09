@@ -80,6 +80,18 @@ namespace ChezRheyyBot
             set => SetSetting("general", "sumup_mode", value);
         }
 
+        public static string SumUpActiveBank
+        {
+            get => GetSetting("general", "sumup_active_bank", "sumup");
+            set
+            {
+                SetSetting("general", "sumup_active_bank", value);
+                paiement.ReinitialiserAccessToken();
+            }
+        }
+
+        public static string SumUpActiveCategory => SumUpActiveBank.Equals("sumup_bank2", StringComparison.OrdinalIgnoreCase) || SumUpActiveBank.Equals("bank2", StringComparison.OrdinalIgnoreCase) || SumUpActiveBank == "2" ? "sumup_bank2" : "sumup";
+
         public static string AdminSlug
         {
             get => GetSetting("admin", "slug", "espace-sec-x9k2m7");
