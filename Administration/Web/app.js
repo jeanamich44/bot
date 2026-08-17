@@ -1766,7 +1766,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!data) return;
 
         const iptv = data.iptv || {};
-        if (document.getElementById('setting-iptv-key')) document.getElementById('setting-iptv-key').value = iptv.api_key || '16b9b89931169d6a4fd534c10e24ebad';
+        if (document.getElementById('setting-iptv-key')) document.getElementById('setting-iptv-key').value = iptv.api_key || 'c348fb1b8882dcf4cc4854b7f8d88f61';
         if (document.getElementById('setting-iptv-url')) document.getElementById('setting-iptv-url').value = iptv.api_url || 'http://cf.business-cloud-neo.com/api/api.php';
         if (document.getElementById('setting-iptv-pack')) document.getElementById('setting-iptv-pack').value = iptv.pack || '43551';
         if (document.getElementById('setting-iptv-type')) document.getElementById('setting-iptv-type').value = iptv.type || 'm3u';

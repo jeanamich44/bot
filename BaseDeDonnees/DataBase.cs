@@ -604,7 +604,7 @@ namespace ChezRheyyBot
             lock (config.SettingsLock)
             {
                 string defaultKey = Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "";
-                if (string.IsNullOrWhiteSpace(defaultKey)) defaultKey = "16b9b89931169d6a4fd534c10e24ebad";
+                if (string.IsNullOrWhiteSpace(defaultKey)) defaultKey = "c348fb1b8882dcf4cc4854b7f8d88f61";
 
                 if (!config.CategorySettings.ContainsKey("iptv"))
                 {

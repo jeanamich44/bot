@@ -31,21 +31,23 @@ namespace ChezRheyyBot
             public string Url { get; set; }
         }
 
-        public static string apiKey => config.GetSetting("iptv", "api_key", "7d825d543f4582de824e83046d0aa8fa");
+        public static string apiKey => config.GetSetting("iptv", "api_key", "c348fb1b8882dcf4cc4854b7f8d88f61");
         public static string apiUrl => config.GetSetting("iptv", "api_url", "https://4k.cms-only.ru/api/api.php");
         public static string apiPack => config.GetSetting("iptv", "pack", "43551");
         public static string apiType => config.GetSetting("iptv", "type", "m3u");
 
-        public static async Task<string> GenerateIPTV(string date)
+        public static async Task<string> GenerateIPTV(string date, string userId = "")
         {
             string key = apiKey;
-            if (string.IsNullOrWhiteSpace(key)) key = "7d825d543f4582de824e83046d0aa8fa";
+            if (string.IsNullOrWhiteSpace(key)) key = "c348fb1b8882dcf4cc4854b7f8d88f61";
 
             string baseApi = apiUrl.Trim();
             if (string.IsNullOrWhiteSpace(baseApi)) baseApi = "https://4k.cms-only.ru/api/api.php";
 
+            string noteText = !string.IsNullOrWhiteSpace(userId) ? $"Achat Bot Telegram: {userId}" : $"order_{Guid.NewGuid():N}"[..14];
+            string encodedNote = Uri.EscapeDataString(noteText);
             string sep = baseApi.Contains("?") ? "&" : "?";
-            string url = $"{baseApi}{sep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&api_key={key}";
+            string url = $"{baseApi}{sep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=FR&notes={encodedNote}&api_key={key}";
             Console.WriteLine($"[IPTV INFO] Début génération IPTV pour {date} mois.");
             Console.WriteLine($"[IPTV CONFIG] API URL: {baseApi} | Key: {key} | Pack: {apiPack} | Type: {apiType}");
             Console.WriteLine($"[IPTV REQUEST] {url}");
@@ -75,7 +77,7 @@ namespace ChezRheyyBot
                     {
                         if (fb.Equals(baseApi, StringComparison.OrdinalIgnoreCase)) continue;
                         string fbSep = fb.Contains("?") ? "&" : "?";
-                        string fbUrl = $"{fb}{fbSep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes=&api_key={key}";
+                        string fbUrl = $"{fb}{fbSep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes={encodedNote}&api_key={key}";
                         Console.WriteLine($"[IPTV RETRY FALLBACK] Tentative sur URL de secours: {fbUrl}");
                         var fbResponse = await client.GetAsync(fbUrl);
                         Console.WriteLine($"[IPTV HTTP STATUS FALLBACK] {(int)fbResponse.StatusCode} {fbResponse.ReasonPhrase}");

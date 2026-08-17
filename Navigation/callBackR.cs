@@ -76,7 +76,7 @@ namespace ChezRheyyBot
                     }
 
                     Console.WriteLine($"[IPTV BUY] User: {config.CurrentChatId} | Formule: {number} mois | Prix: {prix}€ | Solde actuel: {solde}€");
-                    string link = await iptv.GenerateIPTV(number.ToString());
+                    string link = await iptv.GenerateIPTV(number.ToString(), config.CurrentChatId);
                     Console.WriteLine($"[IPTV BUY RESULT] Link généré: '{link}'");
 
                     if (string.IsNullOrWhiteSpace(link) || !Uri.TryCreate(link, UriKind.Absolute, out Uri? uri))
