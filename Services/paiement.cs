@@ -211,7 +211,7 @@ namespace ChezRheyyBot
                 return_url = "https://t.me/ChezRheyyBot",
                 order_id = $"ORD-{nombre}",
                 thanks_message = "Merci de votre achat sur ChezRheyyBot",
-                description = $"Rechargement solde ChezRheyyBot #{nombre}",
+                description = $"Rechargement Boutique: {chatId} #{nombre}",
                 sandbox = false
             };
 
@@ -553,7 +553,7 @@ namespace ChezRheyyBot
                     amount = montant,
                     checkout_reference = $"k8237fN914-6c0e-30f11-a5a52-{nombre}0285bggd",
                     currency = "EUR",
-                    description = $"Rechargement solde ChezRheyyBot #{nombre}",
+                    description = $"Rechargement Boutique: {chatId} #{nombre}",
                     return_url = webhookUrl,
                     pay_to_email = payToEmail,
                     valid_until = formatted,
