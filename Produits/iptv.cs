@@ -56,18 +56,108 @@ namespace ChezRheyyBot
         {
             get
             {
-                double.TryParse(config.GetSetting("iptv", "price_demo", "1").Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p);
-                return p > 0 ? p : 1;
+                if (!double.TryParse(config.GetSetting("iptv", "price_demo", "").Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p) || p <= 0)
+                    throw new InvalidOperationException("iptv.price_demo manquant ou invalide en DB.");
+                return p;
             }
         }
         public static bool DemoEnabled
         {
             get
             {
-                string v = (config.GetSetting("iptv", "demo_enabled", "true") ?? "").Trim();
-                return v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase) || v.Equals("on", StringComparison.OrdinalIgnoreCase);
+                string v = (config.GetSetting("iptv", "demo_enabled", "") ?? "").Trim();
+                if (v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase) || v.Equals("on", StringComparison.OrdinalIgnoreCase))
+                    return true;
+                if (v == "0" || v.Equals("false", StringComparison.OrdinalIgnoreCase) || v.Equals("off", StringComparison.OrdinalIgnoreCase))
+                    return false;
+                throw new InvalidOperationException("iptv.demo_enabled manquant ou invalide en DB.");
             }
             set => config.SetSetting("iptv", "demo_enabled", value ? "true" : "false");
+        }
+
+        public static void ValiderConfigOuCrash()
+        {
+            var manquantes = new List<string>();
+            Dictionary<string, string>? d;
+            lock (config.SettingsLock)
+            {
+                if (!config.CategorySettings.TryGetValue("iptv", out d) || d == null)
+                    throw new InvalidOperationException("Config IPTV absente de la DB (catégorie iptv). Crash au démarrage.");
+            }
+
+            void Exiger(string key)
+            {
+                if (!d.TryGetValue(key, out var val) || string.IsNullOrWhiteSpace(val))
+                    manquantes.Add("iptv." + key);
+            }
+
+            Exiger("host");
+            Exiger("type");
+            Exiger("message_footer");
+            Exiger("price_1m");
+            Exiger("price_3m");
+            Exiger("price_6m");
+            Exiger("price_12m");
+            Exiger("price_demo");
+            Exiger("demo_enabled");
+            Exiger("accounts");
+            Exiger("panel_accounts");
+
+            foreach (var prixKey in new[] { "price_1m", "price_3m", "price_6m", "price_12m", "price_demo" })
+            {
+                if (d.TryGetValue(prixKey, out var raw) && !string.IsNullOrWhiteSpace(raw))
+                {
+                    if (!double.TryParse(raw.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p) || p <= 0)
+                        manquantes.Add("iptv." + prixKey + " (nombre invalide)");
+                }
+            }
+
+            if (d.TryGetValue("demo_enabled", out var demoRaw) && !string.IsNullOrWhiteSpace(demoRaw))
+            {
+                string v = demoRaw.Trim();
+                bool ok = v == "1" || v == "0"
+                    || v.Equals("true", StringComparison.OrdinalIgnoreCase) || v.Equals("false", StringComparison.OrdinalIgnoreCase)
+                    || v.Equals("on", StringComparison.OrdinalIgnoreCase) || v.Equals("off", StringComparison.OrdinalIgnoreCase);
+                if (!ok) manquantes.Add("iptv.demo_enabled (valeur invalide)");
+            }
+
+            if (d.TryGetValue("accounts", out var accJson) && !string.IsNullOrWhiteSpace(accJson))
+            {
+                try
+                {
+                    var list = JsonSerializer.Deserialize<List<IptvAccount>>(accJson) ?? new List<IptvAccount>();
+                    int complets = list.Count(a => !string.IsNullOrWhiteSpace(a.ApiKey) && !string.IsNullOrWhiteSpace(a.ApiUrl) && !string.IsNullOrWhiteSpace(a.Pack));
+                    int actifs = list.Count(a => a.Active);
+                    if (complets == 0) manquantes.Add("iptv.accounts (aucun compte API complet: api_key + api_url + pack)");
+                    if (actifs != 1) manquantes.Add("iptv.accounts (il faut exactement un compte API actif)");
+                }
+                catch
+                {
+                    manquantes.Add("iptv.accounts (JSON invalide)");
+                }
+            }
+
+            if (d.TryGetValue("panel_accounts", out var panelJson) && !string.IsNullOrWhiteSpace(panelJson))
+            {
+                try
+                {
+                    var list = JsonSerializer.Deserialize<List<IptvPanel.IptvPanelAccount>>(panelJson) ?? new List<IptvPanel.IptvPanelAccount>();
+                    int complets = list.Count(a => !string.IsNullOrWhiteSpace(a.Username) && !string.IsNullOrWhiteSpace(a.Password));
+                    int actifs = list.Count(a => a.Active);
+                    if (complets == 0) manquantes.Add("iptv.panel_accounts (aucun compte panel complet: user + mot de passe)");
+                    if (actifs != 1) manquantes.Add("iptv.panel_accounts (il faut exactement un compte panel actif)");
+                }
+                catch
+                {
+                    manquantes.Add("iptv.panel_accounts (JSON invalide)");
+                }
+            }
+
+            if (manquantes.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "Config IPTV incomplète en DB — crash au démarrage pour correction:\n- " + string.Join("\n- ", manquantes));
+            }
         }
 
         public static List<IptvAccount> GetAccounts()

@@ -7,7 +7,87 @@ namespace ChezRheyyBot
 {
     internal class config
     {
-        public static string apiKey => GetSetting("oxapay", "api_key", Environment.GetEnvironmentVariable("OXAPAY_API_KEY") ?? "");
+        public static string apiKey
+        {
+            get
+            {
+                string v = GetSetting("oxapay", "api_key", "");
+                if (string.IsNullOrWhiteSpace(v))
+                    throw new InvalidOperationException("oxapay.api_key manquant en DB.");
+                return v;
+            }
+        }
+
+        public static void ValiderConfigOxaPayOuCrash()
+        {
+            lock (SettingsLock)
+            {
+                bool ok = CategorySettings.TryGetValue("oxapay", out var dict)
+                    && dict != null
+                    && dict.TryGetValue("api_key", out var key)
+                    && !string.IsNullOrWhiteSpace(key);
+                if (!ok)
+                    throw new InvalidOperationException("oxapay.api_key manquant en DB — crash au démarrage.");
+            }
+        }
+
+        public static readonly string[] SumUpBankCategories = { "sumup", "sumup_bank2" };
+        public static readonly string[] SumUpBankKeys = { "name", "pay_to_email", "api_key", "client_id", "client_secret" };
+
+        public static string ExigerSumUp(string category, string key)
+        {
+            string v = GetSetting(category, key, "");
+            if (string.IsNullOrWhiteSpace(v))
+                throw new InvalidOperationException(category + "." + key + " manquant en DB.");
+            return v;
+        }
+
+        public static void ValiderConfigSumUpOuCrash()
+        {
+            lock (SettingsLock)
+            {
+                var manquantes = new List<string>();
+
+                if (!CategorySettings.TryGetValue("general", out var gen) || gen == null)
+                {
+                    manquantes.Add("general.sumup_active_bank");
+                    manquantes.Add("general.sumup_expiration_minutes");
+                    manquantes.Add("general.sumup_mode");
+                }
+                else
+                {
+                    if (!gen.TryGetValue("sumup_active_bank", out var active) || string.IsNullOrWhiteSpace(active))
+                        manquantes.Add("general.sumup_active_bank");
+                    else if (active.Trim() != "sumup" && active.Trim() != "sumup_bank2")
+                        manquantes.Add("general.sumup_active_bank (doit être sumup ou sumup_bank2)");
+
+                    if (!gen.TryGetValue("sumup_expiration_minutes", out var expRaw) || string.IsNullOrWhiteSpace(expRaw)
+                        || !int.TryParse(expRaw.Trim(), out int expMin) || expMin <= 0)
+                        manquantes.Add("general.sumup_expiration_minutes");
+
+                    if (!gen.TryGetValue("sumup_mode", out var sumupMode) || string.IsNullOrWhiteSpace(sumupMode)
+                        || (sumupMode.Trim().ToLowerInvariant() != "webhook" && sumupMode.Trim().ToLowerInvariant() != "polling"))
+                        manquantes.Add("general.sumup_mode (webhook ou polling)");
+                }
+
+                foreach (string cat in SumUpBankCategories)
+                {
+                    if (!CategorySettings.TryGetValue(cat, out var dict) || dict == null)
+                    {
+                        foreach (string k in SumUpBankKeys) manquantes.Add(cat + "." + k);
+                        continue;
+                    }
+                    foreach (string k in SumUpBankKeys)
+                    {
+                        if (!dict.TryGetValue(k, out var v) || string.IsNullOrWhiteSpace(v))
+                            manquantes.Add(cat + "." + k);
+                    }
+                }
+
+                if (manquantes.Count > 0)
+                    throw new InvalidOperationException("Config SumUp incomplète en DB — crash au démarrage:\n- " + string.Join("\n- ", manquantes));
+            }
+        }
 
         public static Dictionary<string, string> PayementLink = new Dictionary<string, string>();
         public static List<string> IdPaiement = new List<string>();
@@ -227,29 +307,80 @@ namespace ChezRheyyBot
             set => SetSetting("general", "maintenance", value ? "true" : "false");
         }
 
+        public static string NormaliserModeReception(string raw)
+        {
+            string v = (raw ?? "").Trim().ToLowerInvariant();
+            if (v != "webhook" && v != "polling")
+                throw new InvalidOperationException("Mode invalide. Doit être webhook ou polling.");
+            return v;
+        }
+
+        public static void ValiderConfigModesOuCrash()
+        {
+            lock (SettingsLock)
+            {
+                var manquantes = new List<string>();
+                if (!CategorySettings.TryGetValue("general", out var gen) || gen == null)
+                {
+                    manquantes.Add("general.telegram_mode");
+                    manquantes.Add("general.sumup_mode");
+                }
+                else
+                {
+                    if (!gen.TryGetValue("telegram_mode", out var tg) || string.IsNullOrWhiteSpace(tg)
+                        || (tg.Trim().ToLowerInvariant() != "webhook" && tg.Trim().ToLowerInvariant() != "polling"))
+                        manquantes.Add("general.telegram_mode (webhook ou polling)");
+                    if (!gen.TryGetValue("sumup_mode", out var su) || string.IsNullOrWhiteSpace(su)
+                        || (su.Trim().ToLowerInvariant() != "webhook" && su.Trim().ToLowerInvariant() != "polling"))
+                        manquantes.Add("general.sumup_mode (webhook ou polling)");
+                }
+                if (manquantes.Count > 0)
+                    throw new InvalidOperationException("Modes réception incomplets en DB — crash au démarrage:\n- " + string.Join("\n- ", manquantes));
+            }
+        }
+
         public static string ModeTelegram
         {
-            get => GetSetting("general", "telegram_mode", "webhook");
-            set => SetSetting("general", "telegram_mode", value);
+            get => NormaliserModeReception(GetSetting("general", "telegram_mode", ""));
+            set => SetSetting("general", "telegram_mode", NormaliserModeReception(value));
         }
 
         public static string ModeSumUp
         {
-            get => GetSetting("general", "sumup_mode", "webhook");
-            set => SetSetting("general", "sumup_mode", value);
+            get => NormaliserModeReception(GetSetting("general", "sumup_mode", ""));
+            set => SetSetting("general", "sumup_mode", NormaliserModeReception(value));
+        }
+
+        public static int SumUpExpirationMinutes
+        {
+            get
+            {
+                string v = GetSetting("general", "sumup_expiration_minutes", "");
+                if (!int.TryParse(v.Trim(), out int n) || n <= 0)
+                    throw new InvalidOperationException("general.sumup_expiration_minutes manquant en DB.");
+                return n;
+            }
         }
 
         public static string SumUpActiveBank
         {
-            get => GetSetting("general", "sumup_active_bank", "sumup");
+            get
+            {
+                string v = GetSetting("general", "sumup_active_bank", "");
+                if (v != "sumup" && v != "sumup_bank2")
+                    throw new InvalidOperationException("general.sumup_active_bank manquant en DB.");
+                return v;
+            }
             set
             {
+                if (value != "sumup" && value != "sumup_bank2")
+                    throw new InvalidOperationException("general.sumup_active_bank doit être sumup ou sumup_bank2.");
                 SetSetting("general", "sumup_active_bank", value);
                 paiement.ReinitialiserAccessToken();
             }
         }
 
-        public static string SumUpActiveCategory => SumUpActiveBank.Equals("sumup_bank2", StringComparison.OrdinalIgnoreCase) || SumUpActiveBank.Equals("bank2", StringComparison.OrdinalIgnoreCase) || SumUpActiveBank == "2" ? "sumup_bank2" : "sumup";
+        public static string SumUpActiveCategory => SumUpActiveBank;
 
         public static string AdminSlug
         {

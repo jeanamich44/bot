@@ -306,12 +306,15 @@ namespace ChezRheyyBot
             return "";
         }
 
-        public static async Task<Dictionary<string, string>> GetResellerPanelStats()
+        public static async Task<Dictionary<string, string>> GetResellerPanelStats(bool forceRefresh = false)
         {
-            lock (CacheLock)
+            if (!forceRefresh)
             {
-                if (StatsCache != null && DateTime.UtcNow < StatsUntil)
-                    return new Dictionary<string, string>(StatsCache);
+                lock (CacheLock)
+                {
+                    if (StatsCache != null && DateTime.UtcNow < StatsUntil)
+                        return new Dictionary<string, string>(StatsCache);
+                }
             }
 
             var auth = await AuthenticateSession();
@@ -332,6 +335,14 @@ namespace ChezRheyyBot
                 StatsUntil = DateTime.UtcNow.AddSeconds(120);
             }
             return data;
+        }
+
+        public static bool TryParseRemainingDemos(string raw, out int count)
+        {
+            count = -1;
+            if (string.IsNullOrWhiteSpace(raw)) return false;
+            var match = Regex.Match(raw.Trim(), @"\d+");
+            return match.Success && int.TryParse(match.Value, out count);
         }
 
         public static async Task<Dictionary<string, string>> GenerateDemoIptvLine()
@@ -404,7 +415,9 @@ namespace ChezRheyyBot
 
             string extractedUser = userMatch.Groups[1].Value;
             string extractedPass = passMatch.Groups[1].Value;
-            string serverBase = string.IsNullOrWhiteSpace(iptv.Host) ? "http://cf.business-cloud-neo.com" : iptv.Host.Trim().TrimEnd('/');
+            string serverBase = (iptv.Host ?? "").Trim().TrimEnd('/');
+            if (string.IsNullOrWhiteSpace(serverBase))
+                throw new Exception("Host IPTV manquant en base.");
             return new Dictionary<string, string>
             {
                 ["username"] = extractedUser,

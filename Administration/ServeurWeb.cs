@@ -634,35 +634,144 @@ namespace ChezRheyyBot
                     accounts = ChezRheyyBot.iptv.GetAccounts(),
                     panel_accounts = IptvPanel.GetPanelAccounts()
                 };
-                string telegramMode = config.ModeTelegram;
-                string sumupMode = config.ModeSumUp;
-                string sumupActiveBank = config.SumUpActiveCategory;
-                string sumupBank1Email = config.GetSetting("sumup", "pay_to_email", "gustave.pro@outlook.fr");
-                string sumupBank2Email = config.GetSetting("sumup_bank2", "pay_to_email", "kevin.ebpro@outlook.fr");
-                RepondreJson(response, 200, new { iptv, telegramMode, sumupMode, sumupActiveBank, sumupBank1Email, sumupBank2Email });
+                string LireCat(string cat, string key)
+                {
+                    if (config.CategorySettings.TryGetValue(cat, out var d) && d != null && d.TryGetValue(key, out var v))
+                        return v ?? "";
+                    return "";
+                }
+                string telegramMode = LireCat("general", "telegram_mode");
+                string sumupMode = LireCat("general", "sumup_mode");
+                var sumup = new
+                {
+                    active = LireCat("general", "sumup_active_bank"),
+                    expiration_minutes = LireCat("general", "sumup_expiration_minutes"),
+                    banks = new
+                    {
+                        sumup = new
+                        {
+                            name = LireCat("sumup", "name"),
+                            pay_to_email = LireCat("sumup", "pay_to_email"),
+                            api_key = LireCat("sumup", "api_key"),
+                            client_id = LireCat("sumup", "client_id"),
+                            client_secret = LireCat("sumup", "client_secret")
+                        },
+                        sumup_bank2 = new
+                        {
+                            name = LireCat("sumup_bank2", "name"),
+                            pay_to_email = LireCat("sumup_bank2", "pay_to_email"),
+                            api_key = LireCat("sumup_bank2", "api_key"),
+                            client_id = LireCat("sumup_bank2", "client_id"),
+                            client_secret = LireCat("sumup_bank2", "client_secret")
+                        }
+                    }
+                };
+                string oxapayApiKey = LireCat("oxapay", "api_key");
+                RepondreJson(response, 200, new { iptv, telegramMode, sumupMode, sumup, oxapayApiKey });
             }
             else if (path == "/api/admin/settings/telegram" && request.HttpMethod == "POST")
             {
                 using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
                 string bodyStr = await reader.ReadToEndAsync();
                 using var doc = JsonDocument.Parse(bodyStr);
-                string mode = doc.RootElement.GetProperty("mode").GetString() ?? "polling";
+                string mode = doc.RootElement.TryGetProperty("mode", out var modeElem) ? (modeElem.GetString() ?? "").Trim() : "";
+                if (mode != "webhook" && mode != "polling")
+                {
+                    RepondreJson(response, 400, new { success = false, message = "Mode Telegram invalide. Doit être webhook ou polling." });
+                    return;
+                }
 
                 await Program.AppliquerModeTelegram(botClient, mode);
                 RepondreJson(response, 200, new { success = true, mode = config.ModeTelegram });
             }
-            else if (path == "/api/admin/settings/sumup/bank" && request.HttpMethod == "POST")
+            else if (path == "/api/admin/settings/sumup/mode" && request.HttpMethod == "POST")
             {
                 using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
                 string bodyStr = await reader.ReadToEndAsync();
                 using var doc = JsonDocument.Parse(bodyStr);
-                string bank = doc.RootElement.TryGetProperty("bank", out var bElem) ? bElem.GetString() ?? "sumup" : "sumup";
+                string mode = doc.RootElement.TryGetProperty("mode", out var modeElem) ? (modeElem.GetString() ?? "").Trim() : "";
+                if (mode != "webhook" && mode != "polling")
+                {
+                    RepondreJson(response, 400, new { success = false, message = "Mode SumUp invalide. Doit être webhook ou polling." });
+                    return;
+                }
 
-                if (bank == "1" || bank == "bank1" || bank == "sumup") bank = "sumup";
-                else if (bank == "2" || bank == "bank2" || bank == "sumup_bank2") bank = "sumup_bank2";
+                Program.AppliquerModeSumUp(botClient, mode);
+                RepondreJson(response, 200, new { success = true, mode = config.ModeSumUp });
+            }
+            else if (path == "/api/admin/settings/sumup" && request.HttpMethod == "POST")
+            {
+                using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+                string bodyStr = await reader.ReadToEndAsync();
+                using var doc = JsonDocument.Parse(bodyStr);
+                var root = doc.RootElement;
 
-                config.SumUpActiveBank = bank;
+                string active = root.TryGetProperty("active", out var actElem) ? (actElem.GetString() ?? "").Trim() : "";
+                if (active != "sumup" && active != "sumup_bank2")
+                {
+                    RepondreJson(response, 400, new { success = false, message = "Banque active invalide. Doit être sumup ou sumup_bank2." });
+                    return;
+                }
+
+                string LireBanque(string cat)
+                {
+                    if (!root.TryGetProperty("banks", out var banks) || banks.ValueKind != JsonValueKind.Object)
+                        return "Bloc banks manquant.";
+                    if (!banks.TryGetProperty(cat, out var bank) || bank.ValueKind != JsonValueKind.Object)
+                        return "Banque " + cat + " manquante.";
+                    foreach (string k in config.SumUpBankKeys)
+                    {
+                        string val = bank.TryGetProperty(k, out var el) ? (el.GetString() ?? "").Trim() : "";
+                        if (string.IsNullOrWhiteSpace(val))
+                            return cat + "." + k + " vide. Tout doit être en table.";
+                    }
+                    foreach (string k in config.SumUpBankKeys)
+                    {
+                        string val = bank.TryGetProperty(k, out var el) ? (el.GetString() ?? "").Trim() : "";
+                        config.SetSetting(cat, k, val);
+                    }
+                    return "";
+                }
+
+                string err1 = LireBanque("sumup");
+                if (!string.IsNullOrEmpty(err1))
+                {
+                    RepondreJson(response, 400, new { success = false, message = err1 });
+                    return;
+                }
+                string err2 = LireBanque("sumup_bank2");
+                if (!string.IsNullOrEmpty(err2))
+                {
+                    RepondreJson(response, 400, new { success = false, message = err2 });
+                    return;
+                }
+
+                string expRaw = "";
+                if (root.TryGetProperty("expiration_minutes", out var expElem))
+                    expRaw = GetJsonStringOrNumber(expElem).Trim();
+                if (!int.TryParse(expRaw, out int expMin) || expMin <= 0)
+                {
+                    RepondreJson(response, 400, new { success = false, message = "Expiration SumUp invalide. Doit être un nombre de minutes > 0." });
+                    return;
+                }
+
+                config.SumUpActiveBank = active;
+                config.SetSetting("general", "sumup_expiration_minutes", expMin.ToString());
                 RepondreJson(response, 200, new { success = true, bank = config.SumUpActiveCategory });
+            }
+            else if (path == "/api/admin/settings/oxapay" && request.HttpMethod == "POST")
+            {
+                using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+                string bodyStr = await reader.ReadToEndAsync();
+                using var doc = JsonDocument.Parse(bodyStr);
+                string apiKey = doc.RootElement.TryGetProperty("api_key", out var kElem) ? (kElem.GetString() ?? "").Trim() : "";
+                if (string.IsNullOrWhiteSpace(apiKey))
+                {
+                    RepondreJson(response, 400, new { success = false, message = "Clé OxaPay vide. La clé doit être en DB." });
+                    return;
+                }
+                config.SetSetting("oxapay", "api_key", apiKey);
+                RepondreJson(response, 200, new { success = true });
             }
             else if (path == "/api/admin/settings/iptv" && request.HttpMethod == "POST")
             {

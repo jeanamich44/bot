@@ -82,7 +82,7 @@ class Program
 
     public static async Task AppliquerModeTelegram(ITelegramBotClient botClient, string targetMode)
     {
-        string mode = targetMode.ToLower() == "webhook" ? "webhook" : "polling";
+        string mode = config.NormaliserModeReception(targetMode);
         config.ModeTelegram = mode;
 
         if (mode == "webhook")
@@ -138,7 +138,7 @@ class Program
 
     public static void AppliquerModeSumUp(ITelegramBotClient botClient, string targetMode)
     {
-        string mode = targetMode.ToLower() == "webhook" ? "webhook" : "polling";
+        string mode = config.NormaliserModeReception(targetMode);
         config.ModeSumUp = mode;
 
         lock (_modeLock)
@@ -152,8 +152,7 @@ class Program
                     _sumupPollingCts = null;
                 }
                 string domainEnv = config.DomainePublic();
-                string sumupWebhookUrl = $"https://{domainEnv}/webhook/sumup/";
-                Console.WriteLine($"[SumUp Mode] Mode Webhook: {sumupWebhookUrl}");
+                Console.WriteLine($"[SumUp Mode] Mode Webhook: https://{domainEnv}/webhook/sumup/");
             }
             else
             {
@@ -161,7 +160,7 @@ class Program
                 {
                     _sumupPollingCts = new CancellationTokenSource();
                     _ = paiement.VerifierPaiementSumAPI(botClient, _sumupPollingCts.Token);
-                    Console.WriteLine("[SumUp Mode] Mode Polling: ActivÃ©");
+                    Console.WriteLine("[SumUp Mode] Mode Polling: Activé");
                 }
             }
         }

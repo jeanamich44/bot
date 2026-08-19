@@ -738,114 +738,47 @@ namespace ChezRheyyBot
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ChargerSettings Erreur] {ex.Message}");
+                throw new InvalidOperationException("Impossible de charger les settings depuis la DB: " + ex.Message, ex);
             }
+
+            if (!dbSuccess)
+                throw new InvalidOperationException("Settings DB non chargés.");
 
             lock (config.SettingsLock)
             {
-                if (!config.CategorySettings.ContainsKey("iptv"))
+                if (config.CategorySettings.TryGetValue("iptv", out var iptvDict) && iptvDict != null)
                 {
-                    config.CategorySettings["iptv"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                }
-
-                var iptvDict = config.CategorySettings["iptv"];
-
-                if (!iptvDict.ContainsKey("host") || string.IsNullOrWhiteSpace(iptvDict["host"]))
-                    iptvDict["host"] = "http://cf.business-cloud-neo.com";
-
-                if (!iptvDict.ContainsKey("message_footer") || string.IsNullOrWhiteSpace(iptvDict["message_footer"]))
-                    iptvDict["message_footer"] = "Afin d'installer facilement les meilleures applications IPTV, voici le meilleur tuto avec toutes les applications pour n'importe quel appareil :\nhttps://neo4k.fr/guide-dinstallation-iptv-france/";
-
-                iptvDict["price_demo"] = "1";
-                if (!iptvDict.ContainsKey("demo_enabled") || string.IsNullOrWhiteSpace(iptvDict["demo_enabled"]))
-                    iptvDict["demo_enabled"] = "true";
-
-                bool hasAccounts = iptvDict.TryGetValue("accounts", out string? accountsRaw)
-                    && !string.IsNullOrWhiteSpace(accountsRaw)
-                    && accountsRaw.TrimStart().StartsWith("[");
-                if (!hasAccounts)
-                {
-                    string legacyKey = iptvDict.TryGetValue("api_key", out string? k) ? k : "";
-                    string legacyUrl = iptvDict.TryGetValue("api_url", out string? u) ? u : "";
-                    string legacyPack = iptvDict.TryGetValue("pack", out string? p) ? p : "";
-                    if (!string.IsNullOrWhiteSpace(legacyKey) && !string.IsNullOrWhiteSpace(legacyPack))
+                    bool hasAccounts = iptvDict.TryGetValue("accounts", out string? accountsRaw)
+                        && !string.IsNullOrWhiteSpace(accountsRaw)
+                        && accountsRaw.TrimStart().StartsWith("[");
+                    if (!hasAccounts)
                     {
-                        var migrated = new List<iptv.IptvAccount>
+                        string legacyKey = iptvDict.TryGetValue("api_key", out string? k) ? k : "";
+                        string legacyUrl = iptvDict.TryGetValue("api_url", out string? u) ? u : "";
+                        string legacyPack = iptvDict.TryGetValue("pack", out string? p) ? p : "";
+                        if (!string.IsNullOrWhiteSpace(legacyKey) && !string.IsNullOrWhiteSpace(legacyPack) && !string.IsNullOrWhiteSpace(legacyUrl))
                         {
-                            new iptv.IptvAccount { Name = "Compte 1", ApiKey = legacyKey, ApiUrl = legacyUrl ?? "", Pack = legacyPack, Active = true }
-                        };
-                        iptvDict["accounts"] = JsonSerializer.Serialize(migrated);
-                    }
-                    else if (!iptvDict.ContainsKey("accounts"))
-                    {
-                        iptvDict["accounts"] = "[]";
-                    }
-                }
-
-                iptvDict.Remove("api_key");
-                iptvDict.Remove("api_url");
-                iptvDict.Remove("pack");
-                iptvDict.Remove("action");
-
-                if (iptvDict.TryGetValue("accounts", out string? accJson) && !string.IsNullOrWhiteSpace(accJson))
-                {
-                    try
-                    {
-                        var list = JsonSerializer.Deserialize<List<iptv.IptvAccount>>(accJson) ?? new List<iptv.IptvAccount>();
-                        if (list.Count > 0 && !list.Any(a => a.Active))
-                        {
-                            var first = list.FirstOrDefault(a =>
-                                !string.IsNullOrWhiteSpace(a.ApiKey) &&
-                                !string.IsNullOrWhiteSpace(a.ApiUrl) &&
-                                !string.IsNullOrWhiteSpace(a.Pack));
-                            if (first != null) first.Active = true;
-                            else list[0].Active = true;
+                            var migrated = new List<iptv.IptvAccount>
+                            {
+                                new iptv.IptvAccount { Name = "Compte 1", ApiKey = legacyKey, ApiUrl = legacyUrl, Pack = legacyPack, Active = true }
+                            };
+                            iptvDict["accounts"] = JsonSerializer.Serialize(migrated);
                         }
-                        bool seenActive = false;
-                        foreach (var a in list)
-                        {
-                            if (a.Active && !seenActive) seenActive = true;
-                            else a.Active = false;
-                        }
-                        iptvDict["accounts"] = JsonSerializer.Serialize(list);
                     }
-                    catch { }
-                }
 
-                bool hasPanelAccounts = iptvDict.TryGetValue("panel_accounts", out string? panelRaw)
-                    && !string.IsNullOrWhiteSpace(panelRaw)
-                    && panelRaw.TrimStart().StartsWith("[");
-                if (!hasPanelAccounts)
-                {
-                    var seeded = new List<IptvPanel.IptvPanelAccount>
-                    {
-                        new IptvPanel.IptvPanelAccount
-                        {
-                            Name = "ChezRheyy",
-                            Username = "ChezRheyy",
-                            Password = "Holipe94!??",
-                            Active = true
-                        }
-                    };
-                    iptvDict["panel_accounts"] = JsonSerializer.Serialize(seeded);
-                }
-                else
-                {
-                    try
-                    {
-                        var panelList = JsonSerializer.Deserialize<List<IptvPanel.IptvPanelAccount>>(panelRaw!)
-                            ?? new List<IptvPanel.IptvPanelAccount>();
-                        iptvDict["panel_accounts"] = JsonSerializer.Serialize(IptvPanel.NormalizeActive(panelList));
-                    }
-                    catch { }
+                    iptvDict.Remove("api_key");
+                    iptvDict.Remove("api_url");
+                    iptvDict.Remove("pack");
+                    iptvDict.Remove("action");
                 }
             }
 
-            if (dbSuccess)
-            {
-                config.ChargerMetricsFromSettings();
-            }
+            iptv.ValiderConfigOuCrash();
+            config.ValiderConfigOxaPayOuCrash();
+            config.ValiderConfigSumUpOuCrash();
+            config.ValiderConfigModesOuCrash();
 
+            config.ChargerMetricsFromSettings();
             SauvegarderSettings();
         }
 

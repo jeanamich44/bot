@@ -241,6 +241,15 @@ namespace ChezRheyyBot
             Dictionary<string, string> creds;
             try
             {
+                var stats = await IptvPanel.GetResellerPanelStats(forceRefresh: true);
+                string remainingRaw = stats.TryGetValue("remaining_demos", out var rd) ? rd : "";
+                if (IptvPanel.TryParseRemainingDemos(remainingRaw, out int remaining) && remaining <= 0)
+                {
+                    Console.WriteLine($"[IPTV DEMO] Stock démos à 0 (panel: {remainingRaw}). Aucun débit pour {chatId}.");
+                    await botClient.SendTextMessageAsync(chatId, "❌ Toutes les démos du jour ont déjà été achetées.\nRéessaie demain. Aucun débit n'a été effectué.");
+                    return;
+                }
+
                 creds = await IptvPanel.GenerateDemoIptvLine();
             }
             catch (Exception ex)
@@ -324,30 +333,29 @@ namespace ChezRheyyBot
             bool demoOn = iptv.DemoEnabled;
             string pDemo = iptv.PrixDemo.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
-            var message = $"*ChezRheyy IPTV* \n\n1 mois ➔ {p1}€\n3 mois ➔ {p3}€\n6 mois ➔ {p6}€\n12 mois ➔ {p12}€";
+            var message = "*ChezRheyy IPTV* \n\n";
             if (demoOn)
-                message += $"\nDémo 24h ➔ {pDemo}€";
+                message += $"Démo 24h ➔ {pDemo}€\n";
+            message += $"1 mois ➔ {p1}€\n3 mois ➔ {p3}€\n6 mois ➔ {p6}€\n12 mois ➔ {p12}€";
 
-            var keyboardButtons = new List<List<InlineKeyboardButton>>
-            {
-                new List<InlineKeyboardButton>
-                {
-                    InlineKeyboardButton.WithCallbackData("1 mois", "iiptv1mois"),
-                    InlineKeyboardButton.WithCallbackData("3 mois", "iiptv3mois"),
-                },
-                new List<InlineKeyboardButton>
-                {
-                    InlineKeyboardButton.WithCallbackData("6 mois","iiptv6mois"),
-                    InlineKeyboardButton.WithCallbackData("12 mois","iiptv12mois"),
-                }
-            };
+            var keyboardButtons = new List<List<InlineKeyboardButton>>();
             if (demoOn)
             {
                 keyboardButtons.Add(new List<InlineKeyboardButton>
                 {
-                    InlineKeyboardButton.WithCallbackData("Démo 24h 1€", "iiptvdemo")
+                    InlineKeyboardButton.WithCallbackData($"Démo 24h {pDemo}€", "iiptvdemo")
                 });
             }
+            keyboardButtons.Add(new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("1 mois", "iiptv1mois"),
+                InlineKeyboardButton.WithCallbackData("3 mois", "iiptv3mois"),
+            });
+            keyboardButtons.Add(new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("6 mois","iiptv6mois"),
+                InlineKeyboardButton.WithCallbackData("12 mois","iiptv12mois"),
+            });
             keyboardButtons.Add(new List<InlineKeyboardButton>
             {
                 InlineKeyboardButton.WithCallbackData("Home", "iHome")

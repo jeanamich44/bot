@@ -450,9 +450,9 @@ namespace ChezRheyyBot
                 }
 
                 string cat = config.SumUpActiveCategory;
-                string apiKey = config.GetSetting(cat, "api_key", Environment.GetEnvironmentVariable("SUMUP_API_KEY") ?? "");
-                string clientId = config.GetSetting(cat, "client_id", Environment.GetEnvironmentVariable("SUMUP_CLIENT_ID") ?? "");
-                string clientSecret = config.GetSetting(cat, "client_secret", Environment.GetEnvironmentVariable("SUMUP_CLIENT_SECRET") ?? "");
+                string apiKey = config.ExigerSumUp(cat, "api_key");
+                string clientId = config.ExigerSumUp(cat, "client_id");
+                string clientSecret = config.ExigerSumUp(cat, "client_secret");
 
                 var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/token");
                 var postData = $"grant_type=client_credentials&client_id={clientId}&client_secret={clientSecret}";
@@ -495,7 +495,7 @@ namespace ChezRheyyBot
                     return;
                 }
 
-                DateTime expirationUtc = DateTime.UtcNow.AddMinutes(15);
+                DateTime expirationUtc = DateTime.UtcNow.AddMinutes(config.SumUpExpirationMinutes);
                 string formatted = expirationUtc.ToString("yyyy-MM-dd'T'HH:mm:sszzz");
 
                 var rnd = Random.Shared;
@@ -504,7 +504,7 @@ namespace ChezRheyyBot
                 string webhookUrl = $"https://{config.DomainePublic()}/webhook/sumup/";
 
                 string cat = config.SumUpActiveCategory;
-                string payToEmail = config.GetSetting(cat, "pay_to_email", Environment.GetEnvironmentVariable("SUMUP_PAY_TO_EMAIL") ?? "");
+                string payToEmail = config.ExigerSumUp(cat, "pay_to_email");
                 string accessToken = await ObtenirSumUpAccessToken(cancellationToken);
 
                 var secondRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.sumup.com/v0.1/checkouts");

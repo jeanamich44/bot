@@ -1777,15 +1777,34 @@ document.addEventListener('DOMContentLoaded', () => {
         renderIptvPanelAccounts(iptv.panel_accounts || []);
 
         if (data.telegramMode) {
-            document.getElementById('setting-telegram-mode').value = data.telegramMode;
+            const tgSelect = document.getElementById('setting-telegram-mode');
+            if (tgSelect) tgSelect.value = data.telegramMode;
         }
         if (data.sumupMode) {
-            document.getElementById('setting-sumup-mode').value = data.sumupMode;
+            const suSelect = document.getElementById('setting-sumup-mode');
+            if (suSelect) suSelect.value = data.sumupMode;
         }
-        if (data.sumupActiveBank) {
-            const bankSelect = document.getElementById('setting-sumup-bank');
-            if (bankSelect) bankSelect.value = data.sumupActiveBank;
-        }
+        const sumup = data.sumup || {};
+        const banks = sumup.banks || {};
+        const b1 = banks.sumup || {};
+        const b2 = banks.sumup_bank2 || {};
+        const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+        setVal('sumup-expiration', sumup.expiration_minutes);
+        setVal('sumup1-name', b1.name);
+        setVal('sumup1-email', b1.pay_to_email);
+        setVal('sumup1-api-key', b1.api_key);
+        setVal('sumup1-client-id', b1.client_id);
+        setVal('sumup1-client-secret', b1.client_secret);
+        setVal('sumup2-name', b2.name);
+        setVal('sumup2-email', b2.pay_to_email);
+        setVal('sumup2-api-key', b2.api_key);
+        setVal('sumup2-client-id', b2.client_id);
+        setVal('sumup2-client-secret', b2.client_secret);
+        const active = sumup.active === 'sumup_bank2' ? 'sumup-active-2' : 'sumup-active-1';
+        const activeEl = document.getElementById(active);
+        if (activeEl) activeEl.checked = true;
+        const oxaKey = document.getElementById('setting-oxapay-key');
+        if (oxaKey) oxaKey.value = data.oxapayApiKey || '';
     }
 
     // [ PAYMENTS PAGINATION LOGIC ] ==========================================
@@ -2019,19 +2038,68 @@ document.addEventListener('DOMContentLoaded', () => {
         sumupModeForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const mode = document.getElementById('setting-sumup-mode').value;
-            console.error("Endpoint /settings/sumup/mode n'existe pas sur le serveur.");
-            showToast("Fonctionnalité désactivée temporairement.", "danger");
+            const res = await apiRequest('/settings/sumup/mode', 'POST', { mode });
+            if (res && res.success) {
+                showToast(`Mode SumUp basculé sur ${res.mode === 'webhook' ? 'Webhook ⚡' : 'Long Polling 🔄'} avec succès !`, 'success');
+            }
         });
     }
 
-    const sumupBankForm = document.getElementById('settings-sumup-bank-form');
-    if (sumupBankForm) {
-        sumupBankForm.addEventListener('submit', async (e) => {
+    const sumupForm = document.getElementById('settings-sumup-form');
+    if (sumupForm) {
+        sumupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const bank = document.getElementById('setting-sumup-bank').value;
-            const res = await apiRequest('/settings/sumup/bank', 'POST', { bank: bank });
+            const val = (id) => (document.getElementById(id)?.value || '').trim();
+            const active = document.querySelector('input[name="sumup-active"]:checked')?.value || '';
+            const payload = {
+                active,
+                expiration_minutes: val('sumup-expiration'),
+                banks: {
+                    sumup: {
+                        name: val('sumup1-name'),
+                        pay_to_email: val('sumup1-email'),
+                        api_key: val('sumup1-api-key'),
+                        client_id: val('sumup1-client-id'),
+                        client_secret: val('sumup1-client-secret')
+                    },
+                    sumup_bank2: {
+                        name: val('sumup2-name'),
+                        pay_to_email: val('sumup2-email'),
+                        api_key: val('sumup2-api-key'),
+                        client_id: val('sumup2-client-id'),
+                        client_secret: val('sumup2-client-secret')
+                    }
+                }
+            };
+            const champs = [
+                payload.active,
+                payload.expiration_minutes,
+                payload.banks.sumup.name, payload.banks.sumup.pay_to_email, payload.banks.sumup.api_key, payload.banks.sumup.client_id, payload.banks.sumup.client_secret,
+                payload.banks.sumup_bank2.name, payload.banks.sumup_bank2.pay_to_email, payload.banks.sumup_bank2.api_key, payload.banks.sumup_bank2.client_id, payload.banks.sumup_bank2.client_secret
+            ];
+            if (champs.some(x => !x) || (payload.active !== 'sumup' && payload.active !== 'sumup_bank2') || !(Number(payload.expiration_minutes) > 0)) {
+                showToast('Tous les champs SumUp des deux banques sont obligatoires.', 'danger');
+                return;
+            }
+            const res = await apiRequest('/settings/sumup', 'POST', payload);
             if (res && res.success) {
-                showToast('Banque SumUp active enregistrée avec succès !', 'success');
+                showToast('Comptes SumUp enregistrés.', 'success');
+            }
+        });
+    }
+
+    const oxapayForm = document.getElementById('settings-oxapay-form');
+    if (oxapayForm) {
+        oxapayForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const api_key = (document.getElementById('setting-oxapay-key')?.value || '').trim();
+            if (!api_key) {
+                showToast('La clé OxaPay ne peut pas être vide.', 'danger');
+                return;
+            }
+            const res = await apiRequest('/settings/oxapay', 'POST', { api_key });
+            if (res && res.success) {
+                showToast('Clé OxaPay enregistrée.', 'success');
             }
         });
     }
