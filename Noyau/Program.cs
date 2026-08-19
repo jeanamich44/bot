@@ -97,13 +97,7 @@ class Program
                 }
             }
 
-            string? domainEnv = config.DomainePublic();
-            if (string.IsNullOrEmpty(domainEnv))
-            {
-                Console.WriteLine("[Telegram Mode] Webhook impossible: RAILWAY_PUBLIC_DOMAIN / RAILWAY_STATIC_URL / general.public_domain manquant.");
-                return;
-            }
-
+            string domainEnv = config.DomainePublic();
             string webhookUrl = $"https://{domainEnv}/webhook/telegram/";
             using (var webhookClient = new HttpClient())
             {
@@ -157,12 +151,7 @@ class Program
                     _sumupPollingCts.Dispose();
                     _sumupPollingCts = null;
                 }
-                string? domainEnv = config.DomainePublic();
-                if (string.IsNullOrEmpty(domainEnv))
-                {
-                    Console.WriteLine("[SumUp Mode] Webhook: domaine public manquant.");
-                    return;
-                }
+                string domainEnv = config.DomainePublic();
                 string sumupWebhookUrl = $"https://{domainEnv}/webhook/sumup/";
                 Console.WriteLine($"[SumUp Mode] Mode Webhook: {sumupWebhookUrl}");
             }

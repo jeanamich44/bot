@@ -501,10 +501,7 @@ namespace ChezRheyyBot
                 var rnd = Random.Shared;
                 int nombre = rnd.Next(10000, 100000);
 
-                string domainEnv = config.DomainePublic() ?? "";
-                string webhookUrl = !string.IsNullOrEmpty(domainEnv)
-                    ? $"https://{domainEnv}/webhook/sumup/"
-                    : "https://t.me/ChezRheyyBot";
+                string webhookUrl = $"https://{config.DomainePublic()}/webhook/sumup/";
 
                 string cat = config.SumUpActiveCategory;
                 string payToEmail = config.GetSetting(cat, "pay_to_email", Environment.GetEnvironmentVariable("SUMUP_PAY_TO_EMAIL") ?? "");

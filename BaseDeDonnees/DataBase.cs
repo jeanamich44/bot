@@ -19,43 +19,24 @@ namespace ChezRheyyBot
 
         public static string GetConnectionString()
         {
-            string dbUrl = Environment.GetEnvironmentVariable("DATABASE_URL")
-                ?? Environment.GetEnvironmentVariable("DATABASE_PUBLIC_URL")
-                ?? Environment.GetEnvironmentVariable("POSTGRES_URL")
-                ?? "";
+            string dbUrl = Environment.GetEnvironmentVariable("DATABASE_URL") ?? "";
+            if (string.IsNullOrWhiteSpace(dbUrl))
+                throw new InvalidOperationException("Variable d'environnement DATABASE_URL manquante.");
 
-            if (!string.IsNullOrEmpty(dbUrl))
+            if (dbUrl.StartsWith("postgres://") || dbUrl.StartsWith("postgresql://"))
             {
-                try
-                {
-                    if (dbUrl.StartsWith("postgres://") || dbUrl.StartsWith("postgresql://"))
-                    {
-                        var uri = new Uri(dbUrl);
-                        string userInfo = uri.UserInfo;
-                        string[] userParts = userInfo.Split(':');
-                        string username = userParts[0];
-                        string password = userParts.Length > 1 ? Uri.UnescapeDataString(userParts[1]) : "";
-                        string host = uri.Host;
-                        int port = uri.Port > 0 ? uri.Port : 5432;
-                        string database = uri.AbsolutePath.TrimStart('/');
-
-                        return $"Host={host};Port={port};Username={username};Password={password};Database={database};SslMode=Prefer;";
-                    }
-                    return dbUrl;
-                }
-                catch
-                {
-
-                }
+                var uri = new Uri(dbUrl);
+                string userInfo = uri.UserInfo;
+                string[] userParts = userInfo.Split(':');
+                string username = userParts[0];
+                string password = userParts.Length > 1 ? Uri.UnescapeDataString(userParts[1]) : "";
+                string host = uri.Host;
+                int port = uri.Port > 0 ? uri.Port : 5432;
+                string database = uri.AbsolutePath.TrimStart('/');
+                return $"Host={host};Port={port};Username={username};Password={password};Database={database};SslMode=Prefer;";
             }
 
-            string h = Environment.GetEnvironmentVariable("PGHOST") ?? "localhost";
-            string u = Environment.GetEnvironmentVariable("PGUSER") ?? "postgres";
-            string p = Environment.GetEnvironmentVariable("PGPASSWORD") ?? "postgres";
-            string d = Environment.GetEnvironmentVariable("PGDATABASE") ?? "postgres";
-            string pt = Environment.GetEnvironmentVariable("PGPORT") ?? "5432";
-
-            return $"Host={h};Port={pt};Username={u};Password={p};Database={d};SslMode=Prefer;";
+            return dbUrl;
         }
 
         public static void CreerTableStockSiExistePas()
@@ -308,27 +289,6 @@ namespace ChezRheyyBot
                             if (isAdmin && !newAdmins.Contains(id.ToString()))
                             {
                                 newAdmins.Add(id.ToString());
-                            }
-                        }
-
-                        string[] defaultAdmins = new[] { "6298536933", "8740419947", "8676919760", "5883885733" };
-                        foreach (var adminId in defaultAdmins)
-                        {
-                            if (!newAdmins.Contains(adminId)) newAdmins.Add(adminId);
-                        }
-
-                        string envAdmins = Environment.GetEnvironmentVariable("ADMIN_IDS")
-                            ?? Environment.GetEnvironmentVariable("TELEGRAM_ADMIN_IDS")
-                            ?? config.GetSetting("admin", "ids", "");
-                        if (!string.IsNullOrWhiteSpace(envAdmins))
-                        {
-                            foreach (var item in envAdmins.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries))
-                            {
-                                string clean = item.Trim();
-                                if (!string.IsNullOrEmpty(clean) && !newAdmins.Contains(clean))
-                                {
-                                    newAdmins.Add(clean);
-                                }
                             }
                         }
 
@@ -785,29 +745,37 @@ namespace ChezRheyyBot
             {
                 if (!config.CategorySettings.ContainsKey("iptv"))
                 {
-                    config.CategorySettings["iptv"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        { "api_key", Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "c348fb1b8882dcf4cc4854b7f8d88f61" },
-                        { "api_url", Environment.GetEnvironmentVariable("IPTV_API_URL") ?? "https://4k.cms-only.ru/api/api.php" },
-                        { "pack", Environment.GetEnvironmentVariable("IPTV_PACK") ?? "43551" },
-                        { "type", "m3u" },
-                        { "price_1m", "5" },
-                        { "price_3m", "10" },
-                        { "price_6m", "15" },
-                        { "price_12m", "30" }
-                    };
+                    config.CategorySettings["iptv"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 }
-                else
+
+                var iptvDict = config.CategorySettings["iptv"];
+
+                if (!iptvDict.ContainsKey("host") || string.IsNullOrWhiteSpace(iptvDict["host"]))
+                    iptvDict["host"] = "http://cf.business-cloud-neo.com";
+
+                if (!iptvDict.ContainsKey("message_footer") || string.IsNullOrWhiteSpace(iptvDict["message_footer"]))
+                    iptvDict["message_footer"] = "Afin d'installer facilement les meilleures applications IPTV, voici le meilleur tuto avec toutes les applications pour n'importe quel appareil :\nhttps://neo4k.fr/guide-dinstallation-iptv-france/";
+
+                bool hasAccounts = iptvDict.TryGetValue("accounts", out string? accountsRaw)
+                    && !string.IsNullOrWhiteSpace(accountsRaw)
+                    && accountsRaw.TrimStart().StartsWith("[");
+                if (!hasAccounts)
                 {
-                    var iptvDict = config.CategorySettings["iptv"];
-                    if (!iptvDict.ContainsKey("api_key") || string.IsNullOrWhiteSpace(iptvDict["api_key"])) iptvDict["api_key"] = Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "c348fb1b8882dcf4cc4854b7f8d88f61";
-                    if (!iptvDict.ContainsKey("api_url") || string.IsNullOrWhiteSpace(iptvDict["api_url"])) iptvDict["api_url"] = "https://4k.cms-only.ru/api/api.php";
-                    if (!iptvDict.ContainsKey("pack")) iptvDict["pack"] = "43551";
-                    if (!iptvDict.ContainsKey("type")) iptvDict["type"] = "m3u";
-                    if (!iptvDict.ContainsKey("price_1m")) iptvDict["price_1m"] = "5";
-                    if (!iptvDict.ContainsKey("price_3m")) iptvDict["price_3m"] = "10";
-                    if (!iptvDict.ContainsKey("price_6m")) iptvDict["price_6m"] = "15";
-                    if (!iptvDict.ContainsKey("price_12m")) iptvDict["price_12m"] = "30";
+                    string legacyKey = iptvDict.TryGetValue("api_key", out string? k) ? k : "";
+                    string legacyUrl = iptvDict.TryGetValue("api_url", out string? u) ? u : "";
+                    string legacyPack = iptvDict.TryGetValue("pack", out string? p) ? p : "";
+                    if (!string.IsNullOrWhiteSpace(legacyKey) && !string.IsNullOrWhiteSpace(legacyPack))
+                    {
+                        var migrated = new List<iptv.IptvAccount>
+                        {
+                            new iptv.IptvAccount { Name = "Compte 1", ApiKey = legacyKey, ApiUrl = legacyUrl ?? "", Pack = legacyPack }
+                        };
+                        iptvDict["accounts"] = JsonSerializer.Serialize(migrated);
+                    }
+                    else if (!iptvDict.ContainsKey("accounts"))
+                    {
+                        iptvDict["accounts"] = "[]";
+                    }
                 }
             }
 

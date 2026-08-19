@@ -1766,14 +1766,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!data) return;
 
         const iptv = data.iptv || {};
-        if (document.getElementById('setting-iptv-key')) document.getElementById('setting-iptv-key').value = iptv.api_key || 'c348fb1b8882dcf4cc4854b7f8d88f61';
-        if (document.getElementById('setting-iptv-url')) document.getElementById('setting-iptv-url').value = iptv.api_url || 'http://cf.business-cloud-neo.com/api/api.php';
-        if (document.getElementById('setting-iptv-pack')) document.getElementById('setting-iptv-pack').value = iptv.pack || '43551';
-        if (document.getElementById('setting-iptv-type')) document.getElementById('setting-iptv-type').value = iptv.type || 'm3u';
-        document.getElementById('setting-iptv-1m').value = iptv.price_1m || '5';
-        document.getElementById('setting-iptv-3m').value = iptv.price_3m || '10';
-        document.getElementById('setting-iptv-6m').value = iptv.price_6m || '15';
-        document.getElementById('setting-iptv-12m').value = iptv.price_12m || '30';
+        if (document.getElementById('setting-iptv-host')) document.getElementById('setting-iptv-host').value = iptv.host || '';
+        if (document.getElementById('setting-iptv-type')) document.getElementById('setting-iptv-type').value = iptv.type || '';
+        if (document.getElementById('setting-iptv-footer')) document.getElementById('setting-iptv-footer').value = iptv.message_footer || '';
+        document.getElementById('setting-iptv-1m').value = iptv.price_1m || '';
+        document.getElementById('setting-iptv-3m').value = iptv.price_3m || '';
+        document.getElementById('setting-iptv-6m').value = iptv.price_6m || '';
+        document.getElementById('setting-iptv-12m').value = iptv.price_12m || '';
+        renderIptvAccounts(iptv.accounts || []);
 
         if (data.telegramMode) {
             document.getElementById('setting-telegram-mode').value = data.telegramMode;
@@ -2035,18 +2035,89 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function renderIptvAccounts(accounts) {
+        const list = document.getElementById('iptv-accounts-list');
+        if (!list) return;
+        list.innerHTML = '';
+        const rows = Array.isArray(accounts) && accounts.length ? accounts : [{ name: '', api_key: '', api_url: '', pack: '' }];
+        rows.forEach((acc) => list.appendChild(createIptvAccountRow(acc)));
+    }
+
+    function createIptvAccountRow(acc) {
+        const wrap = document.createElement('div');
+        wrap.className = 'iptv-account-row';
+        wrap.style.cssText = 'border: 1px solid var(--border, #2a2a3a); border-radius: 10px; padding: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;';
+        wrap.innerHTML = `
+            <div class="form-group">
+                <label class="form-label">Nom</label>
+                <input type="text" class="form-input iptv-acc-name" placeholder="Compte 1" value="">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Pack</label>
+                <input type="text" class="form-input iptv-acc-pack" placeholder="43551" value="">
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label class="form-label">API Key</label>
+                <input type="text" class="form-input iptv-acc-key" placeholder="api_key" value="">
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label class="form-label">API URL</label>
+                <input type="text" class="form-input iptv-acc-url" placeholder="https://4k.cms-only.ru/api/api.php" value="">
+            </div>
+            <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end;">
+                <button type="button" class="btn iptv-acc-remove" style="background: transparent; color: #f87171; border: 1px solid rgba(248,113,113,0.4);">Supprimer</button>
+            </div>
+        `;
+        wrap.querySelector('.iptv-acc-name').value = acc.name || '';
+        wrap.querySelector('.iptv-acc-pack').value = acc.pack || '';
+        wrap.querySelector('.iptv-acc-key').value = acc.api_key || '';
+        wrap.querySelector('.iptv-acc-url').value = acc.api_url || '';
+        wrap.querySelector('.iptv-acc-remove').addEventListener('click', () => {
+            const list = document.getElementById('iptv-accounts-list');
+            if (list && list.children.length > 1) wrap.remove();
+            else showToast('Garde au moins un compte, ou vide les champs.', 'warning');
+        });
+        return wrap;
+    }
+
+    function collectIptvAccounts() {
+        return Array.from(document.querySelectorAll('.iptv-account-row')).map((row) => ({
+            name: row.querySelector('.iptv-acc-name')?.value.trim() || '',
+            api_key: row.querySelector('.iptv-acc-key')?.value.trim() || '',
+            api_url: row.querySelector('.iptv-acc-url')?.value.trim() || '',
+            pack: row.querySelector('.iptv-acc-pack')?.value.trim() || ''
+        }));
+    }
+
+    const btnAddIptvAccount = document.getElementById('btn-add-iptv-account');
+    if (btnAddIptvAccount) {
+        btnAddIptvAccount.addEventListener('click', () => {
+            const list = document.getElementById('iptv-accounts-list');
+            if (list) list.appendChild(createIptvAccountRow({ name: '', api_key: '', api_url: '', pack: '' }));
+        });
+    }
+
     document.getElementById('settings-iptv-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const key = document.getElementById('setting-iptv-key') ? document.getElementById('setting-iptv-key').value.trim() : '';
-        const url = document.getElementById('setting-iptv-url') ? document.getElementById('setting-iptv-url').value.trim() : '';
-        const pack = document.getElementById('setting-iptv-pack') ? document.getElementById('setting-iptv-pack').value.trim() : '';
+        const host = document.getElementById('setting-iptv-host') ? document.getElementById('setting-iptv-host').value.trim() : '';
         const type = document.getElementById('setting-iptv-type') ? document.getElementById('setting-iptv-type').value.trim() : '';
+        const footer = document.getElementById('setting-iptv-footer') ? document.getElementById('setting-iptv-footer').value : '';
         const p1 = document.getElementById('setting-iptv-1m').value.trim();
         const p3 = document.getElementById('setting-iptv-3m').value.trim();
         const p6 = document.getElementById('setting-iptv-6m').value.trim();
         const p12 = document.getElementById('setting-iptv-12m').value.trim();
+        const accounts = collectIptvAccounts();
 
-        const res = await apiRequest('/settings/iptv', 'POST', { api_key: key, api_url: url, pack: pack, type: type, price_1m: p1, price_3m: p3, price_6m: p6, price_12m: p12 });
+        const res = await apiRequest('/settings/iptv', 'POST', {
+            host,
+            type,
+            message_footer: footer,
+            price_1m: p1,
+            price_3m: p3,
+            price_6m: p6,
+            price_12m: p12,
+            accounts
+        });
         if (res && res.success) {
             showToast('Configuration et tarifs IPTV enregistrés !', 'success');
         }

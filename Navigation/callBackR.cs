@@ -103,10 +103,10 @@ namespace ChezRheyyBot
 
         private static async Task AcheterIptv(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken, string chatId, string msg)
         {
-            double.TryParse(config.GetSetting("iptv", "price_1m", "5"), out double p1);
-            double.TryParse(config.GetSetting("iptv", "price_3m", "10"), out double p3);
-            double.TryParse(config.GetSetting("iptv", "price_6m", "15"), out double p6);
-            double.TryParse(config.GetSetting("iptv", "price_12m", "30"), out double p12);
+            double.TryParse(config.GetSetting("iptv", "price_1m"), out double p1);
+            double.TryParse(config.GetSetting("iptv", "price_3m"), out double p3);
+            double.TryParse(config.GetSetting("iptv", "price_6m"), out double p6);
+            double.TryParse(config.GetSetting("iptv", "price_12m"), out double p12);
 
             Dictionary<int, double> prixParMois = new()
             {
@@ -169,17 +169,19 @@ namespace ChezRheyyBot
                 }
             }
 
-            string baseUrl = "http://cf.business-cloud-neo.com";
+            string baseUrl = iptv.Host;
+            string footer = (iptv.MessageFooter ?? "").Trim();
             string safeBaseUrl = System.Net.WebUtility.HtmlEncode(baseUrl);
             string safeUsername = System.Net.WebUtility.HtmlEncode(username);
             string safePassword = System.Net.WebUtility.HtmlEncode(password);
+            string safeFooter = System.Net.WebUtility.HtmlEncode(footer);
 
             string iptvMessage = $"<b>📺 ChezRheyy IPTV</b>\n\n" +
                                  $"🌐 <b>Host :</b> <code>{safeBaseUrl}</code>\n" +
                                  $"👤 <b>Username :</b> <code>{safeUsername}</code>\n" +
-                                 $"🔑 <b>Password :</b> <code>{safePassword}</code>\n\n" +
-                                 $"Afin d'installer facilement les meilleures applications IPTV, voici le meilleur tuto avec toutes les applications pour n'importe quel appareil :\n" +
-                                 $"https://neo4k.fr/guide-dinstallation-iptv-france/";
+                                 $"🔑 <b>Password :</b> <code>{safePassword}</code>";
+            if (!string.IsNullOrWhiteSpace(safeFooter))
+                iptvMessage += "\n\n" + safeFooter;
 
             try
             {
@@ -187,9 +189,9 @@ namespace ChezRheyyBot
             }
             catch
             {
-                string plainMessage = $"ChezRheyy IPTV\n\nHost: {baseUrl}\nUsername: {username}\nPassword: {password}\n\n" +
-                    "Afin d'installer facilement les meilleures applications IPTV, voici le meilleur tuto avec toutes les applications pour n'importe quel appareil :\n" +
-                    "https://neo4k.fr/guide-dinstallation-iptv-france/";
+                string plainMessage = $"ChezRheyy IPTV\n\nHost: {baseUrl}\nUsername: {username}\nPassword: {password}";
+                if (!string.IsNullOrWhiteSpace(footer))
+                    plainMessage += "\n\n" + footer;
                 await botClient.SendTextMessageAsync(chatId, plainMessage, cancellationToken: cancellationToken);
             }
 
@@ -220,10 +222,10 @@ namespace ChezRheyyBot
 
         private static async Task SendIptvStock(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken, string chatId)
         {
-            string p1 = config.GetSetting("iptv", "price_1m", "5");
-            string p3 = config.GetSetting("iptv", "price_3m", "10");
-            string p6 = config.GetSetting("iptv", "price_6m", "15");
-            string p12 = config.GetSetting("iptv", "price_12m", "30");
+            string p1 = config.GetSetting("iptv", "price_1m");
+            string p3 = config.GetSetting("iptv", "price_3m");
+            string p6 = config.GetSetting("iptv", "price_6m");
+            string p12 = config.GetSetting("iptv", "price_12m");
 
             var message = $"*ChezRheyy IPTV* \n\n1 mois ➔ {p1}€\n3 mois ➔ {p3}€\n6 mois ➔ {p6}€\n12 mois ➔ {p12}€";
 

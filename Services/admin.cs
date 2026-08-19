@@ -658,7 +658,7 @@ namespace ChezRheyyBot
         {
             try
             {
-                string domainEnv = config.DomainePublic() ?? "serveur-production-db21.up.railway.app";
+                string domainEnv = config.DomainePublic();
                 string slug = config.AdminSlug.Trim('/');
                 string fullUrl = $"https://{domainEnv}/{slug}/";
 

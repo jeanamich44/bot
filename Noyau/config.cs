@@ -203,17 +203,16 @@ namespace ChezRheyyBot
             SetSetting("general", "payment_cooldowns", JsonSerializer.Serialize(new Dictionary<string, long>(CooldownPaiementUnix)));
         }
 
-        public static string? DomainePublic()
+        public static string DomainePublic()
         {
-            string d = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN")
-                ?? Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL")
-                ?? GetSetting("general", "public_domain", "")
-                ?? "serveur-production-db21.up.railway.app";
-            d = (d ?? "").Trim().TrimEnd('/');
-            if (string.IsNullOrWhiteSpace(d)) d = "serveur-production-db21.up.railway.app";
+            string d = (Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN") ?? "").Trim().TrimEnd('/');
+            if (string.IsNullOrWhiteSpace(d))
+                throw new InvalidOperationException("Variable d'environnement RAILWAY_PUBLIC_DOMAIN manquante.");
             if (d.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) d = d[8..];
             if (d.StartsWith("http://", StringComparison.OrdinalIgnoreCase)) d = d[7..];
-            return string.IsNullOrWhiteSpace(d) ? "serveur-production-db21.up.railway.app" : d;
+            if (string.IsNullOrWhiteSpace(d))
+                throw new InvalidOperationException("Variable d'environnement RAILWAY_PUBLIC_DOMAIN manquante.");
+            return d;
         }
 
         public static bool SecretsEgaux(string a, string b)

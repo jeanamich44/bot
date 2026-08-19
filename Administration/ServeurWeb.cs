@@ -621,7 +621,18 @@ namespace ChezRheyyBot
             }
             else if (path == "/api/admin/settings" && request.HttpMethod == "GET")
             {
-                var iptv = config.CategorySettings.TryGetValue("iptv", out var dict) ? dict : new Dictionary<string, string>();
+                var iptvDict = config.CategorySettings.TryGetValue("iptv", out var dict) ? dict : new Dictionary<string, string>();
+                var iptv = new
+                {
+                    host = iptvDict.TryGetValue("host", out var h) ? h : "",
+                    type = iptvDict.TryGetValue("type", out var t) ? t : "",
+                    message_footer = iptvDict.TryGetValue("message_footer", out var f) ? f : "",
+                    price_1m = iptvDict.TryGetValue("price_1m", out var p1v) ? p1v : "",
+                    price_3m = iptvDict.TryGetValue("price_3m", out var p3v) ? p3v : "",
+                    price_6m = iptvDict.TryGetValue("price_6m", out var p6v) ? p6v : "",
+                    price_12m = iptvDict.TryGetValue("price_12m", out var p12v) ? p12v : "",
+                    accounts = ChezRheyyBot.iptv.GetAccounts()
+                };
                 string telegramMode = config.ModeTelegram;
                 string sumupMode = config.ModeSumUp;
                 string sumupActiveBank = config.SumUpActiveCategory;
@@ -659,14 +670,29 @@ namespace ChezRheyyBot
                 using var doc = JsonDocument.Parse(bodyStr);
                 var root = doc.RootElement;
 
-                if (root.TryGetProperty("api_key", out var kElem)) config.SetSetting("iptv", "api_key", kElem.GetString() ?? "");
-                if (root.TryGetProperty("api_url", out var uElem)) config.SetSetting("iptv", "api_url", uElem.GetString() ?? "");
-                if (root.TryGetProperty("pack", out var pkElem)) config.SetSetting("iptv", "pack", pkElem.GetString() ?? "");
+                if (root.TryGetProperty("host", out var hostElem)) config.SetSetting("iptv", "host", hostElem.GetString() ?? "");
                 if (root.TryGetProperty("type", out var tElem)) config.SetSetting("iptv", "type", tElem.GetString() ?? "");
-                if (root.TryGetProperty("price_1m", out var p1)) config.SetSetting("iptv", "price_1m", p1.ValueKind == JsonValueKind.Number ? p1.GetRawText() : (p1.GetString() ?? "5"));
-                if (root.TryGetProperty("price_3m", out var p3)) config.SetSetting("iptv", "price_3m", p3.ValueKind == JsonValueKind.Number ? p3.GetRawText() : (p3.GetString() ?? "10"));
-                if (root.TryGetProperty("price_6m", out var p6)) config.SetSetting("iptv", "price_6m", p6.ValueKind == JsonValueKind.Number ? p6.GetRawText() : (p6.GetString() ?? "15"));
-                if (root.TryGetProperty("price_12m", out var p12)) config.SetSetting("iptv", "price_12m", p12.ValueKind == JsonValueKind.Number ? p12.GetRawText() : (p12.GetString() ?? "30"));
+                if (root.TryGetProperty("message_footer", out var footElem)) config.SetSetting("iptv", "message_footer", footElem.GetString() ?? "");
+                if (root.TryGetProperty("price_1m", out var p1)) config.SetSetting("iptv", "price_1m", p1.ValueKind == JsonValueKind.Number ? p1.GetRawText() : (p1.GetString() ?? ""));
+                if (root.TryGetProperty("price_3m", out var p3)) config.SetSetting("iptv", "price_3m", p3.ValueKind == JsonValueKind.Number ? p3.GetRawText() : (p3.GetString() ?? ""));
+                if (root.TryGetProperty("price_6m", out var p6)) config.SetSetting("iptv", "price_6m", p6.ValueKind == JsonValueKind.Number ? p6.GetRawText() : (p6.GetString() ?? ""));
+                if (root.TryGetProperty("price_12m", out var p12)) config.SetSetting("iptv", "price_12m", p12.ValueKind == JsonValueKind.Number ? p12.GetRawText() : (p12.GetString() ?? ""));
+
+                if (root.TryGetProperty("accounts", out var accElem) && accElem.ValueKind == JsonValueKind.Array)
+                {
+                    var accounts = new List<iptv.IptvAccount>();
+                    foreach (var item in accElem.EnumerateArray())
+                    {
+                        accounts.Add(new iptv.IptvAccount
+                        {
+                            Name = item.TryGetProperty("name", out var nEl) ? nEl.GetString() ?? "" : "",
+                            ApiKey = item.TryGetProperty("api_key", out var kEl) ? kEl.GetString() ?? "" : "",
+                            ApiUrl = item.TryGetProperty("api_url", out var uEl) ? uEl.GetString() ?? "" : "",
+                            Pack = item.TryGetProperty("pack", out var pkEl) ? pkEl.GetString() ?? "" : ""
+                        });
+                    }
+                    config.SetSetting("iptv", "accounts", JsonSerializer.Serialize(accounts));
+                }
 
                 RepondreJson(response, 200, new { success = true });
             }
