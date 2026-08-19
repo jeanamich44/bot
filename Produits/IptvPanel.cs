@@ -107,6 +107,41 @@ namespace ChezRheyyBot
                 !string.IsNullOrWhiteSpace(a.Password));
         }
 
+        public static bool ActiverCompte(string choix, out string label, out string erreur)
+        {
+            label = "";
+            erreur = "";
+            var list = GetPanelAccounts();
+            if (list.Count == 0)
+            {
+                erreur = "Aucun compte panel configuré.";
+                return false;
+            }
+
+            int idx = -1;
+            if (int.TryParse(choix, out int n) && n >= 1 && n <= list.Count)
+                idx = n - 1;
+            else
+                idx = list.FindIndex(a =>
+                    a.Name.Equals(choix, StringComparison.OrdinalIgnoreCase) ||
+                    a.Username.Equals(choix, StringComparison.OrdinalIgnoreCase));
+
+            if (idx < 0)
+            {
+                erreur = "Compte panel introuvable. Utilise /comptepanel 1, /comptepanel 2, ou le nom du compte.";
+                return false;
+            }
+
+            for (int i = 0; i < list.Count; i++)
+                list[i].Active = i == idx;
+            config.SetSetting("iptv", "panel_accounts", JsonSerializer.Serialize(list));
+            ResetAuthCache();
+            var acc = list[idx];
+            label = string.IsNullOrWhiteSpace(acc.Name) ? acc.Username : acc.Name;
+            if (string.IsNullOrWhiteSpace(label)) label = $"Compte {idx + 1}";
+            return true;
+        }
+
         public static List<IptvPanelAccount> NormalizeActive(List<IptvPanelAccount> list)
         {
             bool seen = false;

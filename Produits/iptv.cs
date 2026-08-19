@@ -52,6 +52,23 @@ namespace ChezRheyyBot
         public static string apiType => config.GetSetting("iptv", "type", "");
         public static string Host => config.GetSetting("iptv", "host", "");
         public static string MessageFooter => config.GetSetting("iptv", "message_footer", "");
+        public static double PrixDemo
+        {
+            get
+            {
+                double.TryParse(config.GetSetting("iptv", "price_demo", "1").Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p);
+                return p > 0 ? p : 1;
+            }
+        }
+        public static bool DemoEnabled
+        {
+            get
+            {
+                string v = (config.GetSetting("iptv", "demo_enabled", "true") ?? "").Trim();
+                return v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase) || v.Equals("on", StringComparison.OrdinalIgnoreCase);
+            }
+            set => config.SetSetting("iptv", "demo_enabled", value ? "true" : "false");
+        }
 
         public static List<IptvAccount> GetAccounts()
         {
@@ -75,6 +92,37 @@ namespace ChezRheyyBot
                 !string.IsNullOrWhiteSpace(a.ApiKey) &&
                 !string.IsNullOrWhiteSpace(a.ApiUrl) &&
                 !string.IsNullOrWhiteSpace(a.Pack));
+        }
+
+        public static bool ActiverCompte(string choix, out string label, out string erreur)
+        {
+            label = "";
+            erreur = "";
+            var list = GetAccounts();
+            if (list.Count == 0)
+            {
+                erreur = "Aucun compte API configuré.";
+                return false;
+            }
+
+            int idx = -1;
+            if (int.TryParse(choix, out int n) && n >= 1 && n <= list.Count)
+                idx = n - 1;
+            else
+                idx = list.FindIndex(a => a.Name.Equals(choix, StringComparison.OrdinalIgnoreCase));
+
+            if (idx < 0)
+            {
+                erreur = "Compte API introuvable. Utilise /compteapi 1, /compteapi 2, ou le nom du compte.";
+                return false;
+            }
+
+            for (int i = 0; i < list.Count; i++)
+                list[i].Active = i == idx;
+            config.SetSetting("iptv", "accounts", JsonSerializer.Serialize(list));
+            var acc = list[idx];
+            label = string.IsNullOrWhiteSpace(acc.Name) ? $"Compte {idx + 1}" : acc.Name;
+            return true;
         }
 
         public static async Task<string> GenerateIPTV(string date, string userId = "")

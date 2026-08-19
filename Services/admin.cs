@@ -26,6 +26,9 @@ namespace ChezRheyyBot
             "/panel",
             "/bank",
             "/sumupbank",
+            "/compteapi",
+            "/comptepanel",
+            "/demoiptv",
             "/help"
         };
 
@@ -48,6 +51,9 @@ namespace ChezRheyyBot
             { "panel", ("Affiche l'URL secrète d'accès au Panel d'Administration Web.", "/panel", "/panel") },
             { "bank", ("Affiche ou modifie la banque active pour les paiements SumUp.", "/bank 1 ou /bank 2", "/bank [1|2]") },
             { "sumupbank", ("Affiche ou modifie la banque active pour les paiements SumUp.", "/sumupbank 1 ou /sumupbank 2", "/sumupbank [1|2]") },
+            { "compteapi", ("Affiche ou change le compte API IPTV actif (abonnements payants 1/3/6/12 mois).", "/compteapi 2", "/compteapi [n°|nom]") },
+            { "comptepanel", ("Affiche ou change le compte panel IPTV actif (user / mot de passe, pour les démos).", "/comptepanel 1", "/comptepanel [n°|nom]") },
+            { "demoiptv", ("Active ou désactive le bouton d'achat démo IPTV dans le bot.", "/demoiptv on ou /demoiptv off", "/demoiptv [on|off]") },
             { "help", ("Affiche l'aide des commandes administration.", "/help ou /help stock ou /help all", "/help [commande|all]") }
         };
 
@@ -103,6 +109,15 @@ namespace ChezRheyyBot
                     case "/bank":
                     case "/sumupbank":
                         await BasculerBanqueSumUp(message, botClient, update, cancellationToken);
+                        break;
+                    case "/compteapi":
+                        await SwitcherCompteApi(message, botClient, update, cancellationToken);
+                        break;
+                    case "/comptepanel":
+                        await SwitcherComptePanel(message, botClient, update, cancellationToken);
+                        break;
+                    case "/demoiptv":
+                        await ToggleDemoIptv(message, botClient, update, cancellationToken);
                         break;
                     case "/help":
                         await HelpCommande(botClient, update, cancellationToken);
@@ -912,6 +927,110 @@ namespace ChezRheyyBot
             {
                 await botClient.SendTextMessageAsync(config.CurrentChatId, "❌ Choix invalide. Utilisez <code>/bank 1</code> ou <code>/bank 2</code>.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
             }
+        }
+
+        private static async Task SwitcherCompteApi(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            var list = iptv.GetAccounts();
+            string[] parts = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("📡 <b>COMPTES API IPTV</b>\n");
+                if (list.Count == 0)
+                {
+                    sb.AppendLine("Aucun compte configuré.");
+                }
+                else
+                {
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        var a = list[i];
+                        string nom = string.IsNullOrWhiteSpace(a.Name) ? $"Compte {i + 1}" : HtmlEncode(a.Name);
+                        string pack = HtmlEncode(a.Pack);
+                        string actif = a.Active ? " — <b>ACTIF</b>" : "";
+                        sb.AppendLine($"{i + 1}. {nom} | pack <code>{pack}</code>{actif}");
+                    }
+                    sb.AppendLine("\nChanger : <code>/compteapi 1</code> ou <code>/compteapi Nom</code>");
+                }
+                await botClient.SendTextMessageAsync(config.CurrentChatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                return;
+            }
+
+            if (!iptv.ActiverCompte(parts[1], out string label, out string erreur))
+            {
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "❌ " + HtmlEncode(erreur), parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                return;
+            }
+
+            await botClient.SendTextMessageAsync(config.CurrentChatId, $"✅ Compte API actif : <b>{HtmlEncode(label)}</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+        }
+
+        private static async Task SwitcherComptePanel(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            var list = IptvPanel.GetPanelAccounts();
+            string[] parts = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("🖥 <b>COMPTES PANEL IPTV</b>\n");
+                if (list.Count == 0)
+                {
+                    sb.AppendLine("Aucun compte configuré.");
+                }
+                else
+                {
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        var a = list[i];
+                        string nom = string.IsNullOrWhiteSpace(a.Name) ? a.Username : a.Name;
+                        if (string.IsNullOrWhiteSpace(nom)) nom = $"Compte {i + 1}";
+                        string user = HtmlEncode(a.Username);
+                        string actif = a.Active ? " — <b>ACTIF</b>" : "";
+                        sb.AppendLine($"{i + 1}. {HtmlEncode(nom)} | user <code>{user}</code>{actif}");
+                    }
+                    sb.AppendLine("\nChanger : <code>/comptepanel 1</code> ou <code>/comptepanel Nom</code>");
+                }
+                await botClient.SendTextMessageAsync(config.CurrentChatId, sb.ToString(), parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                return;
+            }
+
+            if (!IptvPanel.ActiverCompte(parts[1], out string label, out string erreur))
+            {
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "❌ " + HtmlEncode(erreur), parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                return;
+            }
+
+            await botClient.SendTextMessageAsync(config.CurrentChatId, $"✅ Compte panel actif : <b>{HtmlEncode(label)}</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+        }
+
+        private static async Task ToggleDemoIptv(string message, ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        {
+            string[] parts = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+            {
+                string etat = iptv.DemoEnabled ? "ACTIVÉES 🟢" : "DÉSACTIVÉES 🔴";
+                string txt = $"📺 <b>ACHATS DÉMO IPTV</b>\n\n" +
+                             $"État : <b>{etat}</b>\nPrix : <b>{iptv.PrixDemo.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}€</b>\n\n" +
+                             $"• <code>/demoiptv on</code> : afficher le bouton Démo et autoriser l'achat\n" +
+                             $"• <code>/demoiptv off</code> : cacher le bouton et bloquer l'achat";
+                await botClient.SendTextMessageAsync(config.CurrentChatId, txt, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                return;
+            }
+
+            string arg = parts[1].Trim().ToLower();
+            if (arg == "on" || arg == "1" || arg == "true" || arg == "enable")
+                iptv.DemoEnabled = true;
+            else if (arg == "off" || arg == "0" || arg == "false" || arg == "disable")
+                iptv.DemoEnabled = false;
+            else
+            {
+                await botClient.SendTextMessageAsync(config.CurrentChatId, "❌ Utilise <code>/demoiptv on</code> ou <code>/demoiptv off</code>.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                return;
+            }
+
+            string statusText = iptv.DemoEnabled ? "ACTIVÉES 🟢" : "DÉSACTIVÉES 🔴";
+            await botClient.SendTextMessageAsync(config.CurrentChatId, $"📺 Achats démo IPTV : <b>{statusText}</b>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
         }
 
         private static string HtmlEncode(string text)

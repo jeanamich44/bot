@@ -756,6 +756,10 @@ namespace ChezRheyyBot
                 if (!iptvDict.ContainsKey("message_footer") || string.IsNullOrWhiteSpace(iptvDict["message_footer"]))
                     iptvDict["message_footer"] = "Afin d'installer facilement les meilleures applications IPTV, voici le meilleur tuto avec toutes les applications pour n'importe quel appareil :\nhttps://neo4k.fr/guide-dinstallation-iptv-france/";
 
+                iptvDict["price_demo"] = "1";
+                if (!iptvDict.ContainsKey("demo_enabled") || string.IsNullOrWhiteSpace(iptvDict["demo_enabled"]))
+                    iptvDict["demo_enabled"] = "true";
+
                 bool hasAccounts = iptvDict.TryGetValue("accounts", out string? accountsRaw)
                     && !string.IsNullOrWhiteSpace(accountsRaw)
                     && accountsRaw.TrimStart().StartsWith("[");

@@ -29,6 +29,11 @@ namespace ChezRheyyBot
                     await SendIptvStock(botClient, update, cancellationToken, chatId);
                     return;
                 }
+                if (data == "iiptvdemo")
+                {
+                    await AcheterIptvDemo(botClient, update, cancellationToken, chatId);
+                    return;
+                }
                 if (data.Contains("iiptv"))
                 {
                     await AcheterIptv(botClient, update, cancellationToken, chatId, data);
@@ -207,6 +212,97 @@ namespace ChezRheyyBot
             DataBase.EnregistrerTransaction(userId, "IPTV", $"{number} mois", username, null, prix);
         }
 
+        private static async Task AcheterIptvDemo(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken, string chatId)
+        {
+            if (!iptv.DemoEnabled)
+            {
+                await botClient.SendTextMessageAsync(chatId, "Les démos IPTV sont désactivées.");
+                return;
+            }
+
+            if (!long.TryParse(chatId, out long userId))
+            {
+                await botClient.SendTextMessageAsync(chatId, "Offre invalide.");
+                return;
+            }
+
+            var user = config.TrouverUtilisateur(userId);
+            if (user == null) return;
+
+            double prix = iptv.PrixDemo;
+            if (user.Solde < prix)
+            {
+                await botClient.SendTextMessageAsync(chatId, $"Solde insuffisant ❌\nPrix : {prix}€\nVotre solde : {user.Solde}€");
+                return;
+            }
+
+            Console.WriteLine($"[IPTV DEMO] User: {chatId} | Prix: {prix}€ | Solde actuel: {user.Solde}€");
+            await botClient.SendTextMessageAsync(chatId, "⏳ Génération de ta démo IPTV…");
+
+            Dictionary<string, string> creds;
+            try
+            {
+                creds = await IptvPanel.GenerateDemoIptvLine();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[IPTV DEMO ERROR] {ex.Message}");
+                await botClient.SendTextMessageAsync(chatId, "❌ Une erreur est survenue lors de la génération de la démo. Aucun débit n'a été effectué.");
+                return;
+            }
+
+            string username = creds.TryGetValue("username", out var u) ? u : "";
+            string password = creds.TryGetValue("password", out var p) ? p : "";
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                await botClient.SendTextMessageAsync(chatId, "❌ Une erreur est survenue lors de la génération de la démo. Aucun débit n'a été effectué.");
+                return;
+            }
+
+            if (!DataBase.DebiterSoldeAtomique(userId, prix, true, out _))
+            {
+                await botClient.SendTextMessageAsync(chatId, "❌ Solde insuffisant au moment du débit. Aucune démo n'a été confirmée côté boutique.");
+                return;
+            }
+
+            string baseUrl = iptv.Host;
+            string footer = (iptv.MessageFooter ?? "").Trim();
+            string safeBaseUrl = System.Net.WebUtility.HtmlEncode(baseUrl);
+            string safeUsername = System.Net.WebUtility.HtmlEncode(username);
+            string safePassword = System.Net.WebUtility.HtmlEncode(password);
+            string safeFooter = System.Net.WebUtility.HtmlEncode(footer);
+
+            string iptvMessage = $"<b>📺 ChezRheyy IPTV Démo</b>\n\n" +
+                                 $"🌐 <b>Host :</b> <code>{safeBaseUrl}</code>\n" +
+                                 $"👤 <b>Username :</b> <code>{safeUsername}</code>\n" +
+                                 $"🔑 <b>Password :</b> <code>{safePassword}</code>";
+            if (!string.IsNullOrWhiteSpace(safeFooter))
+                iptvMessage += "\n\n" + safeFooter;
+
+            try
+            {
+                await botClient.SendTextMessageAsync(chatId, iptvMessage, parseMode: ParseMode.Html, cancellationToken: cancellationToken);
+            }
+            catch
+            {
+                string plainMessage = $"ChezRheyy IPTV Démo\n\nHost: {baseUrl}\nUsername: {username}\nPassword: {password}";
+                if (!string.IsNullOrWhiteSpace(footer))
+                    plainMessage += "\n\n" + footer;
+                await botClient.SendTextMessageAsync(chatId, plainMessage, cancellationToken: cancellationToken);
+            }
+
+            try
+            {
+                foreach (var id in config.idAdmins)
+                {
+                    await botClient.SendTextMessageAsync(id, $"📺 <b>[ACHAT IPTV DÉMO]</b>\n<b>User</b>: <code>{chatId}</code>\n<b>Prix</b>: {prix}€\n<b>Username</b>: <code>{safeUsername}</code>", parseMode: ParseMode.Html, cancellationToken: cancellationToken);
+                }
+            }
+            catch { }
+
+            DataBase.EnregistrerTransaction(userId, "IPTV", "demo", username, null, prix);
+        }
+
         private static string? QueryParam(Uri uri, params string[] keys)
         {
             string q = uri.Query.TrimStart('?');
@@ -226,8 +322,12 @@ namespace ChezRheyyBot
             string p3 = config.GetSetting("iptv", "price_3m");
             string p6 = config.GetSetting("iptv", "price_6m");
             string p12 = config.GetSetting("iptv", "price_12m");
+            bool demoOn = iptv.DemoEnabled;
+            string pDemo = iptv.PrixDemo.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
             var message = $"*ChezRheyy IPTV* \n\n1 mois ➔ {p1}€\n3 mois ➔ {p3}€\n6 mois ➔ {p6}€\n12 mois ➔ {p12}€";
+            if (demoOn)
+                message += $"\nDémo ➔ {pDemo}€";
 
             var keyboardButtons = new List<List<InlineKeyboardButton>>
             {
@@ -240,12 +340,19 @@ namespace ChezRheyyBot
                 {
                     InlineKeyboardButton.WithCallbackData("6 mois","iiptv6mois"),
                     InlineKeyboardButton.WithCallbackData("12 mois","iiptv12mois"),
-                },
-                new List<InlineKeyboardButton>
-                {
-                    InlineKeyboardButton.WithCallbackData("Home", "iHome")
                 }
             };
+            if (demoOn)
+            {
+                keyboardButtons.Add(new List<InlineKeyboardButton>
+                {
+                    InlineKeyboardButton.WithCallbackData($"Démo {pDemo}€", "iiptvdemo")
+                });
+            }
+            keyboardButtons.Add(new List<InlineKeyboardButton>
+            {
+                InlineKeyboardButton.WithCallbackData("Home", "iHome")
+            });
 
             await botClient.SendTextMessageAsync(chatId, message, parseMode: ParseMode.Markdown, replyMarkup: new InlineKeyboardMarkup(keyboardButtons));
         }
