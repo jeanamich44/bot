@@ -81,6 +81,9 @@ namespace ChezRheyyBot
                 );
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS IsBanned BOOLEAN DEFAULT FALSE;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS IsAdmin BOOLEAN DEFAULT FALSE;
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS BanReason TEXT;
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS UserNumber INTEGER;
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS Username TEXT;
                 CREATE TABLE IF NOT EXISTS settings (
                     Key TEXT PRIMARY KEY,
                     Value JSONB
@@ -261,22 +264,17 @@ namespace ChezRheyyBot
                 {
                     connexion.Open();
 
-                    try
-                    {
-                        using var alterCmd = new NpgsqlCommand("ALTER TABLE users ADD COLUMN IF NOT EXISTS UserNumber INTEGER; ALTER TABLE users ADD COLUMN IF NOT EXISTS Username TEXT;", connexion);
-                        alterCmd.ExecuteNonQuery();
-                    }
-                    catch { }
-
                     string requete = "SELECT Id, Achat, Solde, IsBanned, IsAdmin, BanReason, UserNumber, Username FROM users";
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     using (var reader = cmd.ExecuteReader())
                     {
-                        config.UserSave.Clear();
-                        config.BanniUser.Clear();
-                        config.BanReasons.Clear();
-                        config.idAdmins.Clear();
-                        config.Usernames.Clear();
+                        var newUsers = new List<Utilisateur>();
+                        var newBanned = new List<string>();
+                        var newReasons = new Dictionary<long, string>();
+                        var newAdmins = new List<string>();
+                        var newNames = new Dictionary<long, string>();
+                        var newNumbers = new Dictionary<long, int>();
+
                         while (reader.Read())
                         {
                             long id = reader.GetInt64(0);
@@ -290,59 +288,72 @@ namespace ChezRheyyBot
 
                             if (!string.IsNullOrWhiteSpace(uname))
                             {
-                                config.Usernames[id] = uname;
+                                newNames[id] = uname;
                             }
 
                             if (userNum > 0)
                             {
-                                config.UserNumbers[id] = userNum;
-                            }
-                            else
-                            {
-                                userNum = config.ObtenirOuCreerNumeroUtilisateur(id);
+                                newNumbers[id] = userNum;
                             }
 
-                            config.UserSave.Add(new Tuple<long, int, double, bool>(id, achat, solde, isBanned));
+                            newUsers.Add(new Utilisateur { Id = id, Achat = achat, Solde = solde, IsBanned = isBanned });
                             if (isBanned)
                             {
-                                config.BanniUser.Add(id.ToString());
+                                newBanned.Add(id.ToString());
                                 if (!string.IsNullOrEmpty(banReason))
                                 {
-                                    config.BanReasons[id] = banReason;
+                                    newReasons[id] = banReason;
                                 }
                             }
-                            if (isAdmin && !config.idAdmins.Contains(id.ToString()))
+                            if (isAdmin && !newAdmins.Contains(id.ToString()))
                             {
-                                config.idAdmins.Add(id.ToString());
+                                newAdmins.Add(id.ToString());
                             }
                         }
 
                         string[] defaultAdmins = new[] { "6298536933", "8740419947", "8676919760", "5883885733" };
                         foreach (var adminId in defaultAdmins)
                         {
-                            if (!config.idAdmins.Contains(adminId)) config.idAdmins.Add(adminId);
+                            if (!newAdmins.Contains(adminId)) newAdmins.Add(adminId);
                         }
 
-                        string envAdmins = Environment.GetEnvironmentVariable("ADMIN_IDS") 
-                            ?? Environment.GetEnvironmentVariable("TELEGRAM_ADMIN_IDS") 
+                        string envAdmins = Environment.GetEnvironmentVariable("ADMIN_IDS")
+                            ?? Environment.GetEnvironmentVariable("TELEGRAM_ADMIN_IDS")
                             ?? config.GetSetting("admin", "ids", "");
                         if (!string.IsNullOrWhiteSpace(envAdmins))
                         {
                             foreach (var item in envAdmins.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries))
                             {
                                 string clean = item.Trim();
-                                if (!string.IsNullOrEmpty(clean) && !config.idAdmins.Contains(clean))
+                                if (!string.IsNullOrEmpty(clean) && !newAdmins.Contains(clean))
                                 {
-                                    config.idAdmins.Add(clean);
+                                    newAdmins.Add(clean);
+                                }
+                            }
+                        }
+
+                        lock (config.UsersLock)
+                        {
+                            config.UserSave = newUsers;
+                            config.BanniUser = newBanned;
+                            config.BanReasons = newReasons;
+                            config.idAdmins = newAdmins;
+                            config.Usernames = newNames;
+                            foreach (var kv in newNumbers) config.UserNumbers[kv.Key] = kv.Value;
+                            foreach (var u in newUsers)
+                            {
+                                if (!config.UserNumbers.ContainsKey(u.Id))
+                                {
+                                    config.ObtenirOuCreerNumeroUtilisateur(u.Id);
                                 }
                             }
                         }
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-
+                Console.WriteLine($"[ChargerUtilisateurs Erreur] {ex.Message}");
             }
         }
 
@@ -350,10 +361,11 @@ namespace ChezRheyyBot
         {
             try
             {
+                var copie = config.CopierUtilisateurs();
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
-                    foreach (var item in config.UserSave)
+                    foreach (var item in copie)
                     {
                         string requete = @"
                         INSERT INTO users (Id, Achat, Solde, IsBanned, BanReason, UserNumber, Username, IsAdmin)
@@ -362,22 +374,22 @@ namespace ChezRheyyBot
 
                         using (var cmd = new NpgsqlCommand(requete, connexion))
                         {
-                            cmd.Parameters.AddWithValue("@id", item.Item1);
-                            cmd.Parameters.AddWithValue("@achat", item.Item2);
-                            cmd.Parameters.AddWithValue("@solde", item.Item3);
-                            cmd.Parameters.AddWithValue("@banned", item.Item4);
-                            cmd.Parameters.AddWithValue("@reason", config.BanReasons.TryGetValue(item.Item1, out string? r) ? (object)r : DBNull.Value);
-                            cmd.Parameters.AddWithValue("@usernum", config.ObtenirOuCreerNumeroUtilisateur(item.Item1));
-                            cmd.Parameters.AddWithValue("@username", config.Usernames.TryGetValue(item.Item1, out string? u) && !string.IsNullOrWhiteSpace(u) ? (object)u : DBNull.Value);
-                            cmd.Parameters.AddWithValue("@isadmin", config.idAdmins.Contains(item.Item1.ToString()));
+                            cmd.Parameters.AddWithValue("@id", item.Id);
+                            cmd.Parameters.AddWithValue("@achat", item.Achat);
+                            cmd.Parameters.AddWithValue("@solde", item.Solde);
+                            cmd.Parameters.AddWithValue("@banned", item.IsBanned);
+                            cmd.Parameters.AddWithValue("@reason", config.BanReasons.TryGetValue(item.Id, out string? r) ? (object)r : DBNull.Value);
+                            cmd.Parameters.AddWithValue("@usernum", config.ObtenirOuCreerNumeroUtilisateur(item.Id));
+                            cmd.Parameters.AddWithValue("@username", config.Usernames.TryGetValue(item.Id, out string? u) && !string.IsNullOrWhiteSpace(u) ? (object)u : DBNull.Value);
+                            cmd.Parameters.AddWithValue("@isadmin", config.idAdmins.Contains(item.Id.ToString()));
                             cmd.ExecuteNonQuery();
                         }
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-
+                Console.WriteLine($"[SauvegarderUtilisateurs Erreur] {ex.Message}");
             }
         }
 
@@ -385,10 +397,8 @@ namespace ChezRheyyBot
         {
             try
             {
-                int index = config.UserSave.FindIndex(u => u.Item1 == userId);
-                if (index == -1) return;
-
-                var item = config.UserSave[index];
+                var item = config.TrouverUtilisateur(userId);
+                if (item == null) return;
                 using (var connexion = new NpgsqlConnection(GetConnectionString()))
                 {
                     connexion.Open();
@@ -399,21 +409,21 @@ namespace ChezRheyyBot
 
                     using (var cmd = new NpgsqlCommand(requete, connexion))
                     {
-                        cmd.Parameters.AddWithValue("@id", item.Item1);
-                        cmd.Parameters.AddWithValue("@achat", item.Item2);
-                        cmd.Parameters.AddWithValue("@solde", item.Item3);
-                        cmd.Parameters.AddWithValue("@banned", item.Item4);
-                        cmd.Parameters.AddWithValue("@reason", config.BanReasons.TryGetValue(item.Item1, out string? r) ? (object)r : DBNull.Value);
-                        cmd.Parameters.AddWithValue("@usernum", config.ObtenirOuCreerNumeroUtilisateur(item.Item1));
-                        cmd.Parameters.AddWithValue("@username", config.Usernames.TryGetValue(item.Item1, out string? u) && !string.IsNullOrWhiteSpace(u) ? (object)u : DBNull.Value);
-                        cmd.Parameters.AddWithValue("@isadmin", config.idAdmins.Contains(item.Item1.ToString()));
+                        cmd.Parameters.AddWithValue("@id", item.Id);
+                        cmd.Parameters.AddWithValue("@achat", item.Achat);
+                        cmd.Parameters.AddWithValue("@solde", item.Solde);
+                        cmd.Parameters.AddWithValue("@banned", item.IsBanned);
+                        cmd.Parameters.AddWithValue("@reason", config.BanReasons.TryGetValue(item.Id, out string? r) ? (object)r : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@usernum", config.ObtenirOuCreerNumeroUtilisateur(item.Id));
+                        cmd.Parameters.AddWithValue("@username", config.Usernames.TryGetValue(item.Id, out string? u) && !string.IsNullOrWhiteSpace(u) ? (object)u : DBNull.Value);
+                        cmd.Parameters.AddWithValue("@isadmin", config.idAdmins.Contains(item.Id.ToString()));
                         cmd.ExecuteNonQuery();
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-
+                Console.WriteLine($"[SauvegarderUtilisateurIndividuel Erreur] {ex.Message}");
             }
         }
 
@@ -428,11 +438,14 @@ namespace ChezRheyyBot
                     cmd.Parameters.AddWithValue("@id", userId);
                     cmd.ExecuteNonQuery();
                 }
-                config.UserSave.RemoveAll(u => u.Item1 == userId);
-                config.Usernames.Remove(userId);
-                config.UserNumbers.Remove(userId);
-                config.BanReasons.Remove(userId);
-                config.BanniUser.Remove(userId.ToString());
+                lock (config.UsersLock)
+                {
+                    config.UserSave.RemoveAll(u => u.Id == userId);
+                    config.Usernames.Remove(userId);
+                    config.UserNumbers.Remove(userId);
+                    config.BanReasons.Remove(userId);
+                    config.BanniUser.Remove(userId.ToString());
+                }
                 return true;
             }
             catch
@@ -446,7 +459,7 @@ namespace ChezRheyyBot
             var usersCopy = config.UserSave.ToList();
             foreach (var u in usersCopy)
             {
-                long userId = u.Item1;
+                long userId = u.Id;
                 if (!config.Usernames.TryGetValue(userId, out string? existing) || string.IsNullOrWhiteSpace(existing))
                 {
                     try
@@ -467,6 +480,173 @@ namespace ChezRheyyBot
 
 
 
+
+        public static bool AcheterStockAtomique(long userId, int stockId, out StockItem? item, out double nouveauSolde, out int nouveauxAchats)
+        {
+            item = null;
+            nouveauSolde = 0;
+            nouveauxAchats = 0;
+
+            using var connexion = new NpgsqlConnection(GetConnectionString());
+            connexion.Open();
+            using var tx = connexion.BeginTransaction();
+            try
+            {
+                StockItem stock;
+                using (var cmd = new NpgsqlCommand("SELECT Id, Brand, Code, Pin, Value, Price FROM stock WHERE Id = @id FOR UPDATE", connexion, tx))
+                {
+                    cmd.Parameters.AddWithValue("@id", stockId);
+                    using var reader = cmd.ExecuteReader();
+                    if (!reader.Read())
+                    {
+                        tx.Rollback();
+                        return false;
+                    }
+
+                    stock = new StockItem
+                    {
+                        Id = reader.GetInt32(0),
+                        Brand = reader.IsDBNull(1) ? "" : reader.GetString(1),
+                        Code = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                        Pin = reader.IsDBNull(3) ? "" : reader.GetString(3),
+                        Value = reader.IsDBNull(4) ? "0" : reader.GetInt32(4).ToString(),
+                        Price = reader.IsDBNull(5) ? "0" : reader.GetDouble(5).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    };
+                }
+
+                double.TryParse((stock.Price ?? "0").Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double prix);
+
+                using (var cmd = new NpgsqlCommand(@"
+                    INSERT INTO users (Id, Achat, Solde, IsBanned) VALUES (@id, 0, 0, FALSE)
+                    ON CONFLICT (Id) DO NOTHING;
+                    SELECT Solde FROM users WHERE Id = @id FOR UPDATE;", connexion, tx))
+                {
+                    cmd.Parameters.AddWithValue("@id", userId);
+                    object? soldeObj = cmd.ExecuteScalar();
+                    double solde = soldeObj == null || soldeObj is DBNull ? 0 : Convert.ToDouble(soldeObj);
+                    if (solde < prix)
+                    {
+                        tx.Rollback();
+                        return false;
+                    }
+                }
+
+                using (var cmd = new NpgsqlCommand("UPDATE users SET Solde = Solde - @p, Achat = Achat + 1 WHERE Id = @id RETURNING Solde, Achat", connexion, tx))
+                {
+                    cmd.Parameters.AddWithValue("@p", prix);
+                    cmd.Parameters.AddWithValue("@id", userId);
+                    using var reader = cmd.ExecuteReader();
+                    if (!reader.Read())
+                    {
+                        tx.Rollback();
+                        return false;
+                    }
+                    nouveauSolde = reader.GetDouble(0);
+                    nouveauxAchats = reader.GetInt32(1);
+                }
+
+                using (var cmd = new NpgsqlCommand("DELETE FROM stock WHERE Id = @id", connexion, tx))
+                {
+                    cmd.Parameters.AddWithValue("@id", stockId);
+                    cmd.ExecuteNonQuery();
+                }
+
+                int.TryParse(stock.Value, out int val);
+                using (var cmd = new NpgsqlCommand(@"
+                    INSERT INTO transactions (UserId, Brand, Code, Pin, Value, Price)
+                    VALUES (@userId, @brand, @code, @pin, @value, @price);", connexion, tx))
+                {
+                    cmd.Parameters.AddWithValue("@userId", userId);
+                    cmd.Parameters.AddWithValue("@brand", stock.Brand ?? "");
+                    cmd.Parameters.AddWithValue("@code", stock.Code ?? "");
+                    cmd.Parameters.AddWithValue("@pin", (object?)stock.Pin ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@value", val > 0 ? val : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@price", prix);
+                    cmd.ExecuteNonQuery();
+                }
+
+                tx.Commit();
+                item = stock;
+                var cached = config.TrouverUtilisateur(userId);
+                config.SynchroniserCacheUtilisateur(userId, nouveauxAchats, nouveauSolde, cached?.IsBanned ?? false);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                try { tx.Rollback(); } catch { }
+                Console.WriteLine($"[AcheterStockAtomique Erreur] {ex.Message}");
+                item = null;
+                return false;
+            }
+        }
+
+        public static bool DebiterSoldeAtomique(long userId, double montant, bool incrementerAchat, out double nouveauSolde)
+        {
+            nouveauSolde = 0;
+            if (montant < 0) return false;
+
+            using var connexion = new NpgsqlConnection(GetConnectionString());
+            connexion.Open();
+            using var tx = connexion.BeginTransaction();
+            try
+            {
+                using (var cmd = new NpgsqlCommand(@"
+                    INSERT INTO users (Id, Achat, Solde, IsBanned) VALUES (@id, 0, 0, FALSE)
+                    ON CONFLICT (Id) DO NOTHING;", connexion, tx))
+                {
+                    cmd.Parameters.AddWithValue("@id", userId);
+                    cmd.ExecuteNonQuery();
+                }
+
+                string sql = incrementerAchat
+                    ? "UPDATE users SET Solde = Solde - @p, Achat = Achat + 1 WHERE Id = @id AND Solde >= @p RETURNING Solde, Achat, IsBanned"
+                    : "UPDATE users SET Solde = Solde - @p WHERE Id = @id AND Solde >= @p RETURNING Solde, Achat, IsBanned";
+
+                using (var cmd = new NpgsqlCommand(sql, connexion, tx))
+                {
+                    cmd.Parameters.AddWithValue("@p", montant);
+                    cmd.Parameters.AddWithValue("@id", userId);
+                    using var reader = cmd.ExecuteReader();
+                    if (!reader.Read())
+                    {
+                        tx.Rollback();
+                        return false;
+                    }
+                    nouveauSolde = reader.GetDouble(0);
+                    int achats = reader.GetInt32(1);
+                    bool banned = !reader.IsDBNull(2) && reader.GetBoolean(2);
+                    reader.Close();
+                    tx.Commit();
+                    config.SynchroniserCacheUtilisateur(userId, achats, nouveauSolde, banned);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                try { tx.Rollback(); } catch { }
+                Console.WriteLine($"[DebiterSoldeAtomique Erreur] {ex.Message}");
+                return false;
+            }
+        }
+
+        public static double CrediterSoldeAtomique(long userId, double montant)
+        {
+            using var connexion = new NpgsqlConnection(GetConnectionString());
+            connexion.Open();
+            using var cmd = new NpgsqlCommand(@"
+                INSERT INTO users (Id, Achat, Solde, IsBanned) VALUES (@id, 0, @m, FALSE)
+                ON CONFLICT (Id) DO UPDATE SET Solde = users.Solde + @m
+                RETURNING Solde, Achat, IsBanned;", connexion);
+            cmd.Parameters.AddWithValue("@id", userId);
+            cmd.Parameters.AddWithValue("@m", montant);
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read()) return 0;
+            double solde = reader.GetDouble(0);
+            int achats = reader.GetInt32(1);
+            bool banned = !reader.IsDBNull(2) && reader.GetBoolean(2);
+            config.SynchroniserCacheUtilisateur(userId, achats, solde, banned);
+            return solde;
+        }
 
         public static void EnregistrerTransaction(long userId, string brand, string code, string pin, int? value, double price)
         {
@@ -603,16 +783,13 @@ namespace ChezRheyyBot
 
             lock (config.SettingsLock)
             {
-                string defaultKey = Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "";
-                if (string.IsNullOrWhiteSpace(defaultKey)) defaultKey = "c348fb1b8882dcf4cc4854b7f8d88f61";
-
                 if (!config.CategorySettings.ContainsKey("iptv"))
                 {
                     config.CategorySettings["iptv"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                     {
-                        { "api_key", defaultKey },
-                        { "api_url", "https://4k.cms-only.ru/api/api.php" },
-                        { "pack", "43551" },
+                        { "api_key", Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "c348fb1b8882dcf4cc4854b7f8d88f61" },
+                        { "api_url", Environment.GetEnvironmentVariable("IPTV_API_URL") ?? "https://4k.cms-only.ru/api/api.php" },
+                        { "pack", Environment.GetEnvironmentVariable("IPTV_PACK") ?? "43551" },
                         { "type", "m3u" },
                         { "price_1m", "5" },
                         { "price_3m", "10" },
@@ -623,8 +800,8 @@ namespace ChezRheyyBot
                 else
                 {
                     var iptvDict = config.CategorySettings["iptv"];
-                    if (!iptvDict.ContainsKey("api_key") || string.IsNullOrWhiteSpace(iptvDict["api_key"])) iptvDict["api_key"] = defaultKey;
-                    if (!iptvDict.ContainsKey("api_url") || string.IsNullOrWhiteSpace(iptvDict["api_url"]) || iptvDict["api_url"].Contains("business-cloud-neo.com")) iptvDict["api_url"] = "https://4k.cms-only.ru/api/api.php";
+                    if (!iptvDict.ContainsKey("api_key") || string.IsNullOrWhiteSpace(iptvDict["api_key"])) iptvDict["api_key"] = Environment.GetEnvironmentVariable("IPTV_API_KEY") ?? "c348fb1b8882dcf4cc4854b7f8d88f61";
+                    if (!iptvDict.ContainsKey("api_url") || string.IsNullOrWhiteSpace(iptvDict["api_url"])) iptvDict["api_url"] = "https://4k.cms-only.ru/api/api.php";
                     if (!iptvDict.ContainsKey("pack")) iptvDict["pack"] = "43551";
                     if (!iptvDict.ContainsKey("type")) iptvDict["type"] = "m3u";
                     if (!iptvDict.ContainsKey("price_1m")) iptvDict["price_1m"] = "5";

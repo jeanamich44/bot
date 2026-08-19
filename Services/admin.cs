@@ -172,11 +172,11 @@ namespace ChezRheyyBot
                 if (index != -1 && index + 1 < text.Length)
                 {
                     string contenu = text.Substring(index + 1).Trim();
-                    foreach (var item in config.UserSave.ToList())
+                    foreach (var item in config.CopierUtilisateurs())
                     {
                         try
                         {
-                            await botClient.SendTextMessageAsync(item.Item1, contenu, cancellationToken: cancellationToken);
+                            await botClient.SendTextMessageAsync(item.Id, contenu, cancellationToken: cancellationToken);
                             await Task.Delay(35);
                         }
                         catch { }
@@ -198,9 +198,9 @@ namespace ChezRheyyBot
                 var msg = update.Message.Text.Split(' ');
                 if (msg.Length == 2)
                 {
-                    if (config.banAPI.Contains(msg[1]))
+                    if (config.EstEnCooldownPaiement(msg[1]))
                     {
-                        config.banAPI.Remove(msg[1]);
+                        config.RetirerCooldownPaiement(msg[1]);
                         await botClient.SendTextMessageAsync(config.CurrentChatId, $"User {msg[1]} peut payer", cancellationToken: cancellationToken);
                     }
                     else
@@ -219,18 +219,7 @@ namespace ChezRheyyBot
                 var msg = message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 if (msg.Length == 3 && long.TryParse(msg[1], out long userId) && double.TryParse(msg[2].Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double mtn))
                 {
-                    int result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
-                    if (result == -1)
-                    {
-                        config.UserSave.Add(Tuple.Create(userId, 0, 0.0, false));
-                        result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
-                    }
-
-                    var ancienTuple = config.UserSave[result];
-                    double nouveauSolde = ancienTuple.Item3 + mtn;
-
-                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
-                    DataBase.SauvegarderUtilisateurIndividuel(userId);
+                    double nouveauSolde = DataBase.CrediterSoldeAtomique(userId, mtn);
 
                     try
                     {
@@ -261,19 +250,7 @@ namespace ChezRheyyBot
                 var msg = message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 if (msg.Length == 3 && long.TryParse(msg[1], out long userId) && double.TryParse(msg[2].Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double mtn))
                 {
-                    int result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
-                    if (result == -1)
-                    {
-                        config.UserSave.Add(Tuple.Create(userId, 0, 0.0, false));
-                        result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
-                    }
-
-                    var ancienTuple = config.UserSave[result];
-                    double nouveauSolde = ancienTuple.Item3 - mtn;
-                    if (nouveauSolde < 0) nouveauSolde = 0.0;
-
-                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
-                    DataBase.SauvegarderUtilisateurIndividuel(userId);
+                    DataBase.DebiterSoldeAtomique(userId, mtn, false, out double nouveauSolde);
 
                     try
                     {
@@ -335,16 +312,8 @@ namespace ChezRheyyBot
                     config.BanReasons.Remove(userId);
                 }
 
-                int idx = config.UserSave.FindIndex(u => u.Item1 == userId);
-                if (idx != -1)
-                {
-                    var old = config.UserSave[idx];
-                    config.UserSave[idx] = Tuple.Create(old.Item1, old.Item2, old.Item3, true);
-                }
-                else
-                {
-                    config.UserSave.Add(Tuple.Create(userId, 0, 0.0, true));
-                }
+                var uBan = config.ObtenirOuCreerUtilisateur(userId);
+                uBan.IsBanned = true;
                 DataBase.SauvegarderUtilisateurIndividuel(userId);
 
                 string responseMsg = string.IsNullOrEmpty(reason)
@@ -377,12 +346,8 @@ namespace ChezRheyyBot
                 }
                 config.BanReasons.Remove(userId);
 
-                int idx = config.UserSave.FindIndex(u => u.Item1 == userId);
-                if (idx != -1)
-                {
-                    var old = config.UserSave[idx];
-                    config.UserSave[idx] = Tuple.Create(old.Item1, old.Item2, old.Item3, false);
-                }
+                var uDeban = config.ObtenirOuCreerUtilisateur(userId);
+                uDeban.IsBanned = false;
                 DataBase.SauvegarderUtilisateurIndividuel(userId);
 
                 await botClient.SendTextMessageAsync(config.CurrentChatId, $"L'ID {msg[1]} a bien été débanni.", cancellationToken: cancellationToken);
@@ -401,18 +366,17 @@ namespace ChezRheyyBot
                 var msg = update.Message.Text.Split(' ');
                 if (msg.Length == 2 && long.TryParse(msg[1], out long userId))
                 {
-                    int result = config.UserSave.FindIndex(tuple => tuple.Item1 == userId);
-                    if (result == -1)
+                    var ancienTuple = config.TrouverUtilisateur(userId);
+                    if (ancienTuple == null)
                     {
                         await botClient.SendTextMessageAsync(config.CurrentChatId, $"Erreur: {msg[1]} ID introuvable !!", cancellationToken: cancellationToken);
                         return;
                     }
 
-                    var ancienTuple = config.UserSave[result];
                     string banReason = config.BanReasons.TryGetValue(userId, out var r) ? r : "";
-                    string reasonLine = ancienTuple.Item4 ? $"\nRaison ban: {(string.IsNullOrEmpty(banReason) ? "Aucune spécifiée" : banReason)}" : "";
+                    string reasonLine = ancienTuple.IsBanned ? $"\nRaison ban: {(string.IsNullOrEmpty(banReason) ? "Aucune spécifiée" : banReason)}" : "";
 
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Info de {msg[1]}\n\nAchat: {ancienTuple.Item2}\nSolde: {ancienTuple.Item3}€\nBanni: {ancienTuple.Item4}{reasonLine}", cancellationToken: cancellationToken);
+                    await botClient.SendTextMessageAsync(config.CurrentChatId, $"Info de {msg[1]}\n\nAchat: {ancienTuple.Achat}\nSolde: {ancienTuple.Solde}€\nBanni: {ancienTuple.IsBanned}{reasonLine}", cancellationToken: cancellationToken);
                 }
             }
             catch (Exception ex) { Console.WriteLine($"[Erreur Admin] {ex.Message}"); }
@@ -694,7 +658,7 @@ namespace ChezRheyyBot
         {
             try
             {
-                string domainEnv = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN") ?? Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL") ?? "serveur-production-db21.up.railway.app";
+                string domainEnv = config.DomainePublic() ?? "serveur-production-db21.up.railway.app";
                 string slug = config.AdminSlug.Trim('/');
                 string fullUrl = $"https://{domainEnv}/{slug}/";
 

@@ -1,6 +1,5 @@
-using System;
-using Telegram.Bot.Types;
 using Telegram.Bot;
+using Telegram.Bot.Types;
 
 namespace ChezRheyyBot
 {
@@ -8,18 +7,19 @@ namespace ChezRheyyBot
     {
         public static async Task LancerActionDans24h(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
-            await Task.Delay(TimeSpan.FromMinutes(20));
-
-            foreach (var id in config.banAPI)
+            try
             {
-                try
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    await botClient.SendTextMessageAsync(id, $"Cooldown fini, vous pouvez désormais créer un nouveau lien de paiement");
+                    await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
+                    config.PurgerCooldownsExpires();
                 }
-                catch { }
             }
-
-            config.banAPI.Clear();
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Cooldown Worker] {ex.Message}");
+            }
         }
     }
 }

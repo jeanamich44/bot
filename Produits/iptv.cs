@@ -41,7 +41,7 @@ namespace ChezRheyyBot
             string key = apiKey;
             if (string.IsNullOrWhiteSpace(key)) key = "c348fb1b8882dcf4cc4854b7f8d88f61";
 
-            string baseApi = apiUrl.Trim();
+            string baseApi = (apiUrl ?? "").Trim();
             if (string.IsNullOrWhiteSpace(baseApi)) baseApi = "https://4k.cms-only.ru/api/api.php";
 
             string noteText = !string.IsNullOrWhiteSpace(userId) ? $"Achat Bot Telegram: {userId}" : $"order_{Guid.NewGuid():N}"[..14];
@@ -49,8 +49,7 @@ namespace ChezRheyyBot
             string sep = baseApi.Contains("?") ? "&" : "?";
             string url = $"{baseApi}{sep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=FR&notes={encodedNote}&api_key={key}";
             Console.WriteLine($"[IPTV INFO] Début génération IPTV pour {date} mois.");
-            Console.WriteLine($"[IPTV CONFIG] API URL: {baseApi} | Key: {key} | Pack: {apiPack} | Type: {apiType}");
-            Console.WriteLine($"[IPTV REQUEST] {url}");
+            Console.WriteLine($"[IPTV CONFIG] API URL: {baseApi} | Pack: {apiPack} | Type: {apiType}");
 
             try
             {
@@ -78,7 +77,7 @@ namespace ChezRheyyBot
                         if (fb.Equals(baseApi, StringComparison.OrdinalIgnoreCase)) continue;
                         string fbSep = fb.Contains("?") ? "&" : "?";
                         string fbUrl = $"{fb}{fbSep}action=new&type={apiType}&sub={date}&pack={apiPack}&country=&notes={encodedNote}&api_key={key}";
-                        Console.WriteLine($"[IPTV RETRY FALLBACK] Tentative sur URL de secours: {fbUrl}");
+                        Console.WriteLine($"[IPTV RETRY FALLBACK] Tentative URL de secours (sans log de clé)");
                         var fbResponse = await client.GetAsync(fbUrl);
                         Console.WriteLine($"[IPTV HTTP STATUS FALLBACK] {(int)fbResponse.StatusCode} {fbResponse.ReasonPhrase}");
                         if (fbResponse.StatusCode == System.Net.HttpStatusCode.OK)

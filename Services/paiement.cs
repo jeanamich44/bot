@@ -14,6 +14,7 @@ namespace ChezRheyyBot
 
         public static async Task PaiementList(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
+            string chatId = config.CurrentChatId;
             var inlineKeyboard = new InlineKeyboardMarkup(new[]
             {
                 new[]
@@ -34,23 +35,7 @@ namespace ChezRheyyBot
                           "• <b>Carte / Apple Pay</b> : Validation instantanée\n" +
                           "• <b>Crypto Monnaie</b> : Validation rapide\n";
 
-            try
-            {
-                await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]) - 1);
-                await botClient.SendTextMessageAsync(config.CurrentChatId, text, replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
-            }
-            catch
-            {
-                try
-                {
-                    await botClient.DeleteMessageAsync(config.CurrentChatId, int.Parse(config.IdMessage[config.CurrentChatId]));
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, text, replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
-                }
-                catch
-                {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, text, replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
-                }
-            }
+            await botClient.SendTextMessageAsync(chatId, text, replyMarkup: inlineKeyboard, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
         }
 
         public static async Task RecupererMontant(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -99,9 +84,9 @@ namespace ChezRheyyBot
 
             Console.WriteLine($"[Paiement] Activation de la saisie personnalisée pour ChatID: {chatId}");
 
-            if (!config.CustomPaiement.Contains(chatId))
+            if (!config.CustomPaiement.ContainsKey(chatId))
             {
-                config.CustomPaiement.Add(chatId);
+                config.CustomPaiement.TryAdd(chatId, 0);
             }
             await botClient.SendTextMessageAsync(chatId, "✏️ <b>Veuillez inscrire le montant souhaité en € :</b>\n<i>(Minimum: 3 €, Maximum: 70 €)</i>", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
         }
@@ -135,8 +120,9 @@ namespace ChezRheyyBot
             {
                 try
                 {
-                    config.CustomPaiement.Remove(chatId);
-                    config.AttentePaiement.Remove(chatId);
+                    config.CustomPaiement.TryRemove(chatId, out _);
+                config.ActiverCooldownPaiement(chatId, TimeSpan.FromHours(24));
+                    config.AttentePaiement.TryRemove(chatId, out _);
                 }
                 catch { }
 
@@ -237,7 +223,8 @@ namespace ChezRheyyBot
 
                 try
                 {
-                    config.CustomPaiement.Remove(chatId);
+                config.CustomPaiement.TryRemove(chatId, out _);
+                config.ActiverCooldownPaiement(chatId, TimeSpan.FromHours(24));
                 }
                 catch { }
 
@@ -327,19 +314,7 @@ namespace ChezRheyyBot
                         if (string.Equals(status, "paid", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "overpaid", StringComparison.OrdinalIgnoreCase))
                         {
                             Console.WriteLine($"[Paiement Crypto OK] Facture {item.TrackId} validée ({status}), Montant: {montantReçu}€ pour ChatID: {item.ChatId}");
-                            int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(item.ChatId));
-                            if (result != -1)
-                            {
-                                var ancienTuple = config.UserSave[result];
-                                double nouveauSolde = ancienTuple.Item3 + montantReçu;
-                                config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
-                            }
-                            else
-                            {
-                                config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantReçu, false));
-                            }
-
-                            DataBase.SauvegarderUtilisateurIndividuel(long.Parse(item.ChatId));
+                            DataBase.CrediterSoldeAtomique(long.Parse(item.ChatId), montantReçu);
 
                             bool etaitExpire = string.Equals(item.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase);
                             bool etaitAnnule = string.Equals(item.Status, "CANCELED", StringComparison.OrdinalIgnoreCase);
@@ -381,19 +356,7 @@ namespace ChezRheyyBot
 
                             if (montantReçu > 0)
                             {
-                                int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(item.ChatId));
-                                if (result != -1)
-                                {
-                                    var ancienTuple = config.UserSave[result];
-                                    double nouveauSolde = ancienTuple.Item3 + montantReçu;
-                                    config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSolde, ancienTuple.Item4);
-                                }
-                                else
-                                {
-                                    config.UserSave.Add(Tuple.Create(long.Parse(item.ChatId), 0, montantReçu, false));
-                                }
-
-                                DataBase.SauvegarderUtilisateurIndividuel(long.Parse(item.ChatId));
+                                DataBase.CrediterSoldeAtomique(long.Parse(item.ChatId), montantReçu);
                             }
 
                             foreach (var id in config.idAdmins)
@@ -538,7 +501,7 @@ namespace ChezRheyyBot
                 var rnd = Random.Shared;
                 int nombre = rnd.Next(10000, 100000);
 
-                string domainEnv = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN") ?? Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL") ?? "";
+                string domainEnv = config.DomainePublic() ?? "";
                 string webhookUrl = !string.IsNullOrEmpty(domainEnv)
                     ? $"https://{domainEnv}/webhook/sumup/"
                     : "https://t.me/ChezRheyyBot";
@@ -572,6 +535,8 @@ namespace ChezRheyyBot
                 string payementlink = secondJson.RootElement.GetProperty("hosted_checkout_url").GetString() ?? "";
 
                 DataBase.CreerPaiementEnBDD(chatId, id, montant, "CB", payementlink);
+                config.AttentePaiement.TryRemove(chatId, out _);
+                config.ActiverCooldownPaiement(chatId, TimeSpan.FromHours(24));
 
                 foreach (var ids in config.idAdmins)
                 {
@@ -717,20 +682,7 @@ namespace ChezRheyyBot
             Console.WriteLine($"[{sourceLabel}] Facture {trackId} validée et payée ! ChatID: {chatId}, Montant: {montantSumUp}€");
 
             double nouveauSoldeTotal = 0;
-            int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(chatId));
-            if (result != -1)
-            {
-                var ancienTuple = config.UserSave[result];
-                nouveauSoldeTotal = ancienTuple.Item3 + montantSumUp;
-                config.UserSave[result] = Tuple.Create(ancienTuple.Item1, ancienTuple.Item2, nouveauSoldeTotal, ancienTuple.Item4);
-            }
-            else
-            {
-                nouveauSoldeTotal = montantSumUp;
-                config.UserSave.Add(Tuple.Create(long.Parse(chatId), 0, montantSumUp, false));
-            }
-
-            DataBase.SauvegarderUtilisateurIndividuel(long.Parse(chatId));
+            nouveauSoldeTotal = DataBase.CrediterSoldeAtomique(long.Parse(chatId), montantSumUp);
 
             string urlPaiement = DataBase.ObtenirUrlPaiementBDD(trackId);
             string texteLien = string.IsNullOrEmpty(urlPaiement) ? "" : $"\nLien: {urlPaiement}";

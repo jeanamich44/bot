@@ -135,10 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const pwd = tokenInput.value.trim();
         if (!pwd) return;
 
-        authToken = pwd;
         const res = await apiRequest('/login', 'POST', { password: pwd });
-        if (res && res.success) {
-            localStorage.setItem('admin_auth_token', pwd);
+        if (res && res.success && res.token) {
+            authToken = res.token;
+            localStorage.setItem('admin_auth_token', res.token);
             localStorage.setItem('admin_auth_token_time', Date.now().toString());
             showToast('Connexion réussie (Session 24h) !', 'success');
             initApp();
@@ -2066,9 +2066,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const res = await apiRequest('/settings/password', 'POST', { password: pass });
             if (res && res.success) {
-                authToken = pass;
-                localStorage.setItem('admin_auth_token', pass);
-                localStorage.setItem('admin_auth_token_time', Date.now().toString());
+                if (res.token) {
+                    authToken = res.token;
+                    localStorage.setItem('admin_auth_token', res.token);
+                    localStorage.setItem('admin_auth_token_time', Date.now().toString());
+                }
                 showToast('Mot de passe administrateur mis à jour avec succès !', 'success');
                 document.getElementById('setting-admin-password').value = '';
                 document.getElementById('setting-admin-password-confirm').value = '';

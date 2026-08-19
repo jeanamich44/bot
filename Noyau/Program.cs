@@ -1,4 +1,4 @@
-using Telegram.Bot.Exceptions;
+﻿using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
@@ -42,13 +42,13 @@ class Program
         config.GetProfileSettings();
 
         var me = await botClient.GetMeAsync();
-        Console.WriteLine($"Bot {me.Username} est démarré...");
+        Console.WriteLine($"Bot {me.Username} est dÃ©marrÃ©...");
 
         try
         {
             await botClient.SetMyCommandsAsync(new[]
             {
-                new BotCommand { Command = "start", Description = "Démarrage" }
+                new BotCommand { Command = "start", Description = "DÃ©marrage" }
             }, cancellationToken: cancellationToken);
         }
         catch { }
@@ -97,13 +97,29 @@ class Program
                 }
             }
 
-            string domainEnv = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN")
-                ?? Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL")
-                ?? "serveur-production-db21.up.railway.app";
+            string? domainEnv = config.DomainePublic();
+            if (string.IsNullOrEmpty(domainEnv))
+            {
+                Console.WriteLine("[Telegram Mode] Webhook impossible: RAILWAY_PUBLIC_DOMAIN / RAILWAY_STATIC_URL / general.public_domain manquant.");
+                return;
+            }
 
             string webhookUrl = $"https://{domainEnv}/webhook/telegram/";
-            await botClient.SetWebhookAsync(webhookUrl);
-            Console.WriteLine($"[Telegram Mode] Mode Webhook: {webhookUrl}");
+            using (var webhookClient = new HttpClient())
+            {
+                var form = new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    ["url"] = webhookUrl,
+                    ["secret_token"] = config.TelegramWebhookSecret
+                });
+                var webhookResp = await webhookClient.PostAsync($"https://api.telegram.org/bot{config.botToken}/setWebhook", form);
+                if (!webhookResp.IsSuccessStatusCode)
+                {
+                    string body = await webhookResp.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[Telegram Mode] setWebhook échec: {(int)webhookResp.StatusCode}");
+                }
+            }
+            Console.WriteLine($"[Telegram Mode] Mode Webhook: {webhookUrl} (secret token actif)");
         }
         else
         {
@@ -120,7 +136,7 @@ class Program
                     _pollingCts = new CancellationTokenSource();
                     var receiverOptions = new ReceiverOptions { AllowedUpdates = Array.Empty<UpdateType>() };
                     botClient.StartReceiving(HandleUpdateAsync, HandleErrorAsync, receiverOptions, _pollingCts.Token);
-                    Console.WriteLine("[Telegram Mode] Mode Polling: Activé");
+                    Console.WriteLine("[Telegram Mode] Mode Polling: ActivÃ©");
                 }
             }
         }
@@ -141,9 +157,12 @@ class Program
                     _sumupPollingCts.Dispose();
                     _sumupPollingCts = null;
                 }
-                string domainEnv = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN")
-                    ?? Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL")
-                    ?? "serveur-production-db21.up.railway.app";
+                string? domainEnv = config.DomainePublic();
+                if (string.IsNullOrEmpty(domainEnv))
+                {
+                    Console.WriteLine("[SumUp Mode] Webhook: domaine public manquant.");
+                    return;
+                }
                 string sumupWebhookUrl = $"https://{domainEnv}/webhook/sumup/";
                 Console.WriteLine($"[SumUp Mode] Mode Webhook: {sumupWebhookUrl}");
             }
@@ -153,7 +172,7 @@ class Program
                 {
                     _sumupPollingCts = new CancellationTokenSource();
                     _ = paiement.VerifierPaiementSumAPI(botClient, _sumupPollingCts.Token);
-                    Console.WriteLine("[SumUp Mode] Mode Polling: Activé");
+                    Console.WriteLine("[SumUp Mode] Mode Polling: ActivÃ©");
                 }
             }
         }
@@ -162,15 +181,15 @@ class Program
     public static async Task AnnoncerModeMaintenance(ITelegramBotClient botClient, bool maintenance, CancellationToken cancellationToken = default)
     {
         string msg = maintenance
-            ? "🛠️ <b>Mode Maintenance Activé</b>\n\nLe bot est actuellement en maintenance. Certaines fonctionnalités peuvent être indisponibles temporairement.\n\n💬 <b>Besoin d'Aide ? Contactez un Admin :</b>\n@RheyyFondaa\n@NtRheyyTech"
-            : "🟢 <b>Mode Maintenance Désactivé</b>\n\nLe bot est de nouveau entièrement opérationnel ! Merci de votre patience. 🎉";
+            ? "ðŸ› ï¸ <b>Mode Maintenance ActivÃ©</b>\n\nLe bot est actuellement en maintenance. Certaines fonctionnalitÃ©s peuvent Ãªtre indisponibles temporairement.\n\nðŸ’¬ <b>Besoin d'Aide ? Contactez un Admin :</b>\n@RheyyFondaa\n@NtRheyyTech"
+            : "ðŸŸ¢ <b>Mode Maintenance DÃ©sactivÃ©</b>\n\nLe bot est de nouveau entiÃ¨rement opÃ©rationnel ! Merci de votre patience. ðŸŽ‰";
 
-        var users = config.UserSave.ToList();
+        var users = config.CopierUtilisateurs();
         foreach (var item in users)
         {
             try
             {
-                await botClient.SendTextMessageAsync(item.Item1, msg, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
+                await botClient.SendTextMessageAsync(item.Id, msg, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, cancellationToken: cancellationToken);
                 await Task.Delay(35, cancellationToken);
             }
             catch { }
@@ -187,202 +206,136 @@ class Program
         try
         {
             config.IncTelegramReceived();
+            config.ResetContexte();
 
-
-            if (!await GetChatId(botClient, update, cancellationToken))
+            if (!ExtraireContexte(update))
             {
                 Console.WriteLine("[-] Erreur recuperation ChatId");
                 return;
             }
 
+            string chatId = config.CurrentChatId;
 
-            if (config.BanniUser.Contains(config.CurrentChatId))
+            if (config.BanniUser.Contains(chatId))
             {
-                long.TryParse(config.CurrentChatId, out long bId);
+                long.TryParse(chatId, out long bId);
                 string reasonText = config.BanReasons.TryGetValue(bId, out string? r) && !string.IsNullOrEmpty(r) ? $"\nRaison : {r}" : "";
-                await botClient.SendTextMessageAsync(config.CurrentChatId, $"Vous avez été banni de @ChezRheyyBot.{reasonText}\nEn cas de besoin contactez un administrateur.");
+                await botClient.SendTextMessageAsync(chatId, $"Vous avez Ã©tÃ© banni de @ChezRheyyBot.{reasonText}\nEn cas de besoin contactez un administrateur.");
                 return;
             }
 
-            if (config.ModeMaintenance && !config.idAdmins.Contains(config.CurrentChatId))
+            if (config.ModeMaintenance && !config.idAdmins.Contains(chatId))
             {
-                await botClient.SendTextMessageAsync(config.CurrentChatId, "🛠️ <b>Maintenance en cours</b>\n\nLe bot est actuellement en maintenance. Veuillez réessayer ultérieurement.\n\n💬 <b>Besoin d'Aide ? Contactez un Admin :</b>\n@RheyyFondaa\n@NtRheyyTech", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                await botClient.SendTextMessageAsync(chatId, "ðŸ› ï¸ <b>Maintenance en cours</b>\n\nLe bot est actuellement en maintenance. Veuillez rÃ©essayer ultÃ©rieurement.\n\nðŸ’¬ <b>Besoin d'Aide ? Contactez un Admin :</b>\n@RheyyFondaa\n@NtRheyyTech", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                 return;
             }
 
-            if(config.blockstart == false)
+            if (config.blockstart == false)
             {
-                Blocks.LancerActionDans24h(botClient, update, cancellationToken);
+                _ = Blocks.LancerActionDans24h(botClient, update, cancellationToken);
                 config.blockstart = true;
-            }
-
-            if (!await GetInformation(botClient, update, cancellationToken))
-            {
-                if(config.CurrentPseudo == "")
-                {
-                    await botClient.SendTextMessageAsync(config.CurrentChatId, "❌ Merci de configurer un pseudo pour utiliser le bot");
-                    return;
-                }
-
-                return;
             }
 
             lock (_idMessageLock)
             {
-                if (!config.IdMessage.ContainsKey(config.CurrentChatId))
-                {
-                    config.IdMessage.Add(config.CurrentChatId, config.msgId);
-                }
-                else
-                {
-                    config.IdMessage[config.CurrentChatId] = config.msgId;
-                }
+                config.IdMessage[chatId] = config.msgId;
             }
-
-
-
 
             config.IncCommandsExecuted();
 
-            int result = config.UserSave.FindIndex(tuple => tuple.Item1 == long.Parse(config.CurrentChatId));
-            if (result == -1)
+            if (long.TryParse(chatId, out long newUserId))
             {
-                long newUserId = long.Parse(config.CurrentChatId);
-                config.UserSave.Add(Tuple.Create(newUserId, 0, 0.0, false));
+                config.ObtenirOuCreerUtilisateur(newUserId);
                 DataBase.SauvegarderUtilisateurIndividuel(newUserId);
             }
 
             if (update.Type == UpdateType.Message && update.Message is { } message)
             {
                 string textToProcess = message.Text ?? message.Caption ?? "";
-                if (config.idAdmins.Contains(config.CurrentChatId))
+                if (config.idAdmins.Contains(chatId))
                 {
                     if (!string.IsNullOrWhiteSpace(textToProcess) && await admin.CommandeAdmin(textToProcess, botClient, update, cancellationToken))
                     {
                         return;
                     }
-                    else if (textToProcess == "/start")
+                    if (textToProcess == "/start")
                     {
                         await SampleM.SendMessage(botClient, update, cancellationToken);
-                        return;
-                    }
-
-                    else if(update.Message.Text != "" && config.CustomPaiement.Contains(config.CurrentChatId))
-                    {
-                        int mtn = 0;
-
-                        if(!int.TryParse(update.Message.Text, out mtn))
-                        {
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, "Veuillez ne fournir que des chiffres.");
-                            return;
-                        }
-
-                        if (mtn < 3 || mtn > 70)
-                        {
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, "⚠️ <b>Montant invalide.</b> Le montant d'une recharge Crypto doit être compris entre <b>3 €</b> et <b>70 €</b>.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
-                            return;
-                        }
-
-                        Console.WriteLine($"[Paiement] Demande rechargement Crypto manuel: {mtn}€ par {config.CurrentChatId}");
-                        config.CustomPaiement.Remove(config.CurrentChatId);
-                        await paiement.GenerateLink(botClient, update, cancellationToken, update.Message.Text);
-                        return;
-                    }
-                    else if(update.Message.Text != "" && config.AttentePaiement.Contains(config.CurrentChatId))
-                    {
-                        int mtn = 0;
-
-                        if (!int.TryParse(update.Message.Text, out mtn))
-                        {
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, "Veuillez ne fournir que des chiffres.");
-                            return;
-                        }
-
-                        if (mtn <= 0)
-                        {
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, $"Impossible de recharger { update.Message.Text}\n");
-                            return;
-                        }
-                        else if(mtn >= 70)
-                        {
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, "Impossible de recharger au dessus de 70 euros.");
-                            return;
-                        }
-
-                        await paiement.CreerPaiementSumAPI(botClient,update,cancellationToken,mtn);
                         return;
                     }
                 }
-                else
+                else if (textToProcess == "/start")
                 {
-                    if(update.Message.Text == "/start")
-                    {
-                        await SampleM.SendMessage(botClient, update, cancellationToken);
-                        return;
-                    }
+                    await SampleM.SendMessage(botClient, update, cancellationToken);
+                    return;
+                }
 
-                    else if (update.Message.Text != "" && config.CustomPaiement.Contains(config.CurrentChatId))
-                    {
-
-                        int mtn = 0;
-
-                        if (!int.TryParse(update.Message.Text, out mtn))
-                        {
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, "Veuillez ne fournir que des chiffres.");
-                            return;
-                        }
-
-                        if (mtn < 3 || mtn > 70)
-                        {
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, "⚠️ <b>Montant invalide.</b> Le montant d'une recharge Crypto doit être compris entre <b>3 €</b> et <b>70 €</b>.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
-                            return;
-                        }
-
-                        Console.WriteLine($"[Paiement] Demande rechargement Crypto manuel: {mtn}€ par {config.CurrentChatId}");
-                        await paiement.GenerateLink(botClient, update, cancellationToken, update.Message.Text);
-                        config.CustomPaiement.Remove(config.CurrentChatId);
-                        return;
-                    }
-                    else if (update.Message.Text != "" && config.AttentePaiement.Contains(config.CurrentChatId))
-                    {
-                        int mtn = 0;
-
-                        if (!int.TryParse(update.Message.Text, out mtn))
-                        {
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, "Veuillez ne fournir que des chiffres.");
-                            return;
-                        }
-
-                        if (mtn <= 0)
-                        {
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, $"Impossible de recharger {update.Message.Text}\n");
-                            return;
-                        }
-                        else if (mtn > 70)
-                        {
-                            await botClient.SendTextMessageAsync(config.CurrentChatId, "Impossible de recharger au dessus de 70 euros.");
-                            return;
-                        }
-
-                        await paiement.CreerPaiementSumAPI(botClient, update, cancellationToken, mtn);
-                        return;
-                    }
-
+                if (!string.IsNullOrEmpty(message.Text) && await TraiterSaisieMontant(botClient, update, cancellationToken, message.Text, chatId))
+                {
+                    return;
                 }
                 return;
             }
             else if (update.Type == UpdateType.CallbackQuery)
             {
                 await callBackR.ResponseCallBack(botClient, update, cancellationToken);
-                return;
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[Erreur Globale] {ex.Message}");
         }
-
     }
+
+    static async Task<bool> TraiterSaisieMontant(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken, string texte, string chatId)
+    {
+        if (config.CustomPaiement.ContainsKey(chatId))
+        {
+            if (!int.TryParse(texte, out int mtn))
+            {
+                await botClient.SendTextMessageAsync(chatId, "Veuillez ne fournir que des chiffres.");
+                return true;
+            }
+
+            if (mtn < 3 || mtn > 70)
+            {
+                await botClient.SendTextMessageAsync(chatId, "âš ï¸ <b>Montant invalide.</b> Le montant d'une recharge Crypto doit Ãªtre compris entre <b>3 â‚¬</b> et <b>70 â‚¬</b>.", parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                return true;
+            }
+
+            Console.WriteLine($"[Paiement] Demande rechargement Crypto manuel: {mtn}â‚¬ par {chatId}");
+            config.CustomPaiement.TryRemove(chatId, out _);
+            await paiement.GenerateLink(botClient, update, cancellationToken, texte);
+            return true;
+        }
+
+        if (config.AttentePaiement.ContainsKey(chatId))
+        {
+            if (!int.TryParse(texte, out int mtn))
+            {
+                await botClient.SendTextMessageAsync(chatId, "Veuillez ne fournir que des chiffres.");
+                return true;
+            }
+
+            if (mtn <= 0)
+            {
+                await botClient.SendTextMessageAsync(chatId, $"Impossible de recharger {texte}\n");
+                return true;
+            }
+            if (mtn > 70)
+            {
+                await botClient.SendTextMessageAsync(chatId, "Impossible de recharger au dessus de 70 euros.");
+                return true;
+            }
+
+            config.AttentePaiement.TryRemove(chatId, out _);
+            await paiement.CreerPaiementSumAPI(botClient, update, cancellationToken, mtn);
+            return true;
+        }
+
+        return false;
+    }
+
     static Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
     {
         try
@@ -396,47 +349,53 @@ class Program
             };
 
             Console.WriteLine(errorMessage);
-            return Task.CompletedTask;
         }
-        catch
-        {
-
-        }
+        catch { }
 
         return Task.CompletedTask;
     }
-    static async Task<bool> GetChatId(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+
+    static bool ExtraireContexte(Update update)
     {
         try
         {
-            if (update.Type == UpdateType.CallbackQuery)
+            long id = 0;
+            string pseudo = "";
+            string messageId = "";
+
+            if (update.Type == UpdateType.CallbackQuery && update.CallbackQuery?.From != null)
             {
-                config.CurrentChatId = update.CallbackQuery.From.Id.ToString();
-                if (update.CallbackQuery?.Message != null) { config.msgId = update.CallbackQuery.Message.MessageId.ToString(); }
-                config.CurrentPseudo = update.CallbackQuery.From.Username;
-                return true;
+                id = update.CallbackQuery.From.Id;
+                pseudo = update.CallbackQuery.From.Username ?? update.CallbackQuery.From.FirstName ?? "";
+                if (update.CallbackQuery.Message != null) messageId = update.CallbackQuery.Message.MessageId.ToString();
             }
-            else if (update.Type == UpdateType.Message)
+            else if (update.Type == UpdateType.Message && update.Message?.From != null)
             {
-                config.CurrentChatId = update.Message.From.Id.ToString();
-                config.msgId = update.Message.MessageId.ToString();
-                config.CurrentPseudo = update.Message.From.Username;
-                return true;
+                id = update.Message.From.Id;
+                pseudo = update.Message.From.Username ?? update.Message.From.FirstName ?? "";
+                messageId = update.Message.MessageId.ToString();
             }
-            else if (update.Type == UpdateType.InlineQuery)
+            else if (update.Type == UpdateType.InlineQuery && update.InlineQuery?.From != null)
             {
-                config.CurrentChatId = update.InlineQuery.From.Id.ToString();
-                config.msgId = update.InlineQuery.Id;
-                config.CurrentPseudo = update.InlineQuery.From.Username;
+                id = update.InlineQuery.From.Id;
+                pseudo = update.InlineQuery.From.Username ?? update.InlineQuery.From.FirstName ?? "";
+                messageId = update.InlineQuery.Id;
+            }
+            else
+            {
+                return false;
             }
 
-            if (long.TryParse(config.CurrentChatId, out long uId))
+            config.CurrentChatId = id.ToString();
+            config.CurrentPseudo = pseudo;
+            config.msgId = messageId;
+
+            string formattedUname = !string.IsNullOrWhiteSpace(pseudo) ? (pseudo.StartsWith("@") ? pseudo : "@" + pseudo) : "";
+            lock (config.UsersLock)
             {
-                string pseudo = config.CurrentPseudo ?? "";
-                string formattedUname = !string.IsNullOrWhiteSpace(pseudo) ? (pseudo.StartsWith("@") ? pseudo : "@" + pseudo) : "";
-                if (!string.IsNullOrEmpty(formattedUname) || !config.Usernames.ContainsKey(uId))
+                if (!string.IsNullOrEmpty(formattedUname) || !config.Usernames.ContainsKey(id))
                 {
-                    config.Usernames[uId] = formattedUname;
+                    config.Usernames[id] = formattedUname;
                 }
             }
             return true;
@@ -445,38 +404,5 @@ class Program
         {
             return false;
         }
-
-
-        return false;
-    }
-    private static async Task<bool> GetInformation(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
-    {
-        try
-        {
-            if (update.Type == UpdateType.CallbackQuery)
-            {
-                string uname = update.CallbackQuery.From.Username ?? update.CallbackQuery.From.FirstName ?? "User";
-                if (long.TryParse(config.CurrentChatId, out long uId))
-                {
-                    config.Usernames[uId] = uname.StartsWith("@") ? uname : uname;
-                }
-                return true;
-            }
-            if (update.Type == UpdateType.Message && update.Message != null)
-            {
-                string uname = update.Message.From?.Username ?? update.Message.From?.FirstName ?? "User";
-                if (long.TryParse(config.CurrentChatId, out long uId))
-                {
-                    config.Usernames[uId] = uname.StartsWith("@") ? uname : uname;
-                }
-                return true;
-            }
-        }
-        catch
-        {
-            return true;
-        }
-
-        return true;
     }
 }

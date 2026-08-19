@@ -1,3 +1,8 @@
+using System.Collections.Concurrent;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+
 namespace ChezRheyyBot
 {
     internal class config
@@ -6,11 +11,12 @@ namespace ChezRheyyBot
 
         public static Dictionary<string, string> PayementLink = new Dictionary<string, string>();
         public static List<string> IdPaiement = new List<string>();
-        public static List<string> CustomPaiement = new List<string>();
+        public static ConcurrentDictionary<string, byte> CustomPaiement = new ConcurrentDictionary<string, byte>();
 
         public static string botToken => Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN") ?? throw new InvalidOperationException("Variable d'environnement TELEGRAM_BOT_TOKEN manquante.");
 
-        public static List<Tuple<long, int, double, bool>> UserSave = new List<Tuple<long, int, double, bool>>();
+        public static readonly object UsersLock = new object();
+        public static List<Utilisateur> UserSave = new List<Utilisateur>();
         public static string debugMode = "run";
 
         public static List<string> idAdmins = new List<string>();
@@ -20,47 +26,201 @@ namespace ChezRheyyBot
         public static Dictionary<long, int> UserNumbers = new Dictionary<long, int>();
         public static Dictionary<long, string> Usernames = new Dictionary<long, string>();
 
+        private static readonly AsyncLocal<BotContexte> _contexte = new AsyncLocal<BotContexte>();
+
+        public static void ResetContexte() => _contexte.Value = new BotContexte();
+
+        private static BotContexte Ctx
+        {
+            get
+            {
+                if (_contexte.Value == null) _contexte.Value = new BotContexte();
+                return _contexte.Value;
+            }
+        }
+
+        public static string CurrentChatId
+        {
+            get => Ctx.ChatId;
+            set => Ctx.ChatId = value ?? "";
+        }
+
+        public static string CurrentPseudo
+        {
+            get => Ctx.Pseudo;
+            set => Ctx.Pseudo = value ?? "";
+        }
+
+        public static string msgId
+        {
+            get => Ctx.MsgId;
+            set => Ctx.MsgId = value ?? "";
+        }
+
         public static string ObtenirUsername(long userId)
         {
-            if (Usernames.TryGetValue(userId, out string? username) && !string.IsNullOrWhiteSpace(username))
+            lock (UsersLock)
             {
-                return username.Trim();
+                if (Usernames.TryGetValue(userId, out string? username) && !string.IsNullOrWhiteSpace(username))
+                {
+                    return username.Trim();
+                }
             }
             return "";
         }
 
         public static int ObtenirOuCreerNumeroUtilisateur(long userId)
         {
-            if (UserNumbers.TryGetValue(userId, out int num))
+            lock (UsersLock)
             {
+                if (UserNumbers.TryGetValue(userId, out int num))
+                {
+                    return num;
+                }
+
+                if (userId == 6298536933) num = 1;
+                else if (userId == 8740419947) num = 2;
+                else if (userId == 8676919760) num = 3;
+                else if (userId == 5883885733) num = 4;
+                else
+                {
+                    int max = UserNumbers.Values.DefaultIfEmpty(0).Max();
+                    if (max < 4) max = 4;
+                    num = max + 1;
+                }
+
+                UserNumbers[userId] = num;
                 return num;
             }
-
-            if (userId == 6298536933) num = 1;
-            else if (userId == 8740419947) num = 2;
-            else if (userId == 8676919760) num = 3;
-            else if (userId == 5883885733) num = 4;
-            else
-            {
-                int max = UserNumbers.Values.DefaultIfEmpty(0).Max();
-                if (max < 4) max = 4;
-                num = max + 1;
-            }
-
-            UserNumbers[userId] = num;
-            return num;
         }
-        public static string CurrentChatId = "";
+
+        public static Utilisateur ObtenirOuCreerUtilisateur(long id)
+        {
+            lock (UsersLock)
+            {
+                var u = UserSave.FirstOrDefault(x => x.Id == id);
+                if (u != null) return u;
+                u = new Utilisateur { Id = id };
+                UserSave.Add(u);
+                return u;
+            }
+        }
+
+        public static Utilisateur? TrouverUtilisateur(long id)
+        {
+            lock (UsersLock)
+            {
+                return UserSave.FirstOrDefault(x => x.Id == id);
+            }
+        }
+
+        public static List<Utilisateur> CopierUtilisateurs()
+        {
+            lock (UsersLock)
+            {
+                return UserSave.Select(u => new Utilisateur
+                {
+                    Id = u.Id,
+                    Achat = u.Achat,
+                    Solde = u.Solde,
+                    IsBanned = u.IsBanned
+                }).ToList();
+            }
+        }
+
+        public static void SynchroniserCacheUtilisateur(long id, int achat, double solde, bool isBanned)
+        {
+            lock (UsersLock)
+            {
+                var u = UserSave.FirstOrDefault(x => x.Id == id);
+                if (u == null)
+                {
+                    UserSave.Add(new Utilisateur { Id = id, Achat = achat, Solde = solde, IsBanned = isBanned });
+                }
+                else
+                {
+                    u.Achat = achat;
+                    u.Solde = solde;
+                    u.IsBanned = isBanned;
+                }
+            }
+        }
+
         public static Dictionary<string, string> IdMessage = new Dictionary<string, string>();
-        public static string msgId = "";
-        public static string CurrentPseudo = "";
         public static double currentSolde = 0.0;
         public static int achat = 0;
 
         public static Dictionary<string, string> PayementAPI = new Dictionary<string, string>();
-        public static List<string> AttentePaiement = new List<string>();
+        public static ConcurrentDictionary<string, byte> AttentePaiement = new ConcurrentDictionary<string, byte>();
         public static Dictionary<string, string> MontantPayement = new Dictionary<string, string>();
-        public static List<string> banAPI = new List<string>();
+        public static ConcurrentDictionary<string, long> CooldownPaiementUnix = new ConcurrentDictionary<string, long>();
+
+        public static bool EstEnCooldownPaiement(string chatId)
+        {
+            PurgerCooldownsExpires();
+            return CooldownPaiementUnix.ContainsKey(chatId);
+        }
+
+        public static void ActiverCooldownPaiement(string chatId, TimeSpan duree)
+        {
+            long until = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + (long)duree.TotalSeconds;
+            CooldownPaiementUnix[chatId] = until;
+            PersisterCooldowns();
+        }
+
+        public static void RetirerCooldownPaiement(string chatId)
+        {
+            CooldownPaiementUnix.TryRemove(chatId, out _);
+            PersisterCooldowns();
+        }
+
+        public static void PurgerCooldownsExpires()
+        {
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            foreach (var kv in CooldownPaiementUnix.ToArray())
+            {
+                if (kv.Value <= now) CooldownPaiementUnix.TryRemove(kv.Key, out _);
+            }
+        }
+
+        public static void ChargerCooldowns()
+        {
+            string raw = GetSetting("general", "payment_cooldowns", "");
+            if (string.IsNullOrWhiteSpace(raw)) return;
+            try
+            {
+                var dict = JsonSerializer.Deserialize<Dictionary<string, long>>(raw);
+                if (dict == null) return;
+                foreach (var kv in dict) CooldownPaiementUnix[kv.Key] = kv.Value;
+                PurgerCooldownsExpires();
+            }
+            catch { }
+        }
+
+        private static void PersisterCooldowns()
+        {
+            PurgerCooldownsExpires();
+            SetSetting("general", "payment_cooldowns", JsonSerializer.Serialize(new Dictionary<string, long>(CooldownPaiementUnix)));
+        }
+
+        public static string? DomainePublic()
+        {
+            string d = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN")
+                ?? Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL")
+                ?? GetSetting("general", "public_domain", "")
+                ?? "serveur-production-db21.up.railway.app";
+            d = (d ?? "").Trim().TrimEnd('/');
+            if (string.IsNullOrWhiteSpace(d)) d = "serveur-production-db21.up.railway.app";
+            if (d.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) d = d[8..];
+            if (d.StartsWith("http://", StringComparison.OrdinalIgnoreCase)) d = d[7..];
+            return string.IsNullOrWhiteSpace(d) ? "serveur-production-db21.up.railway.app" : d;
+        }
+
+        public static bool SecretsEgaux(string a, string b)
+        {
+            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || a.Length != b.Length) return false;
+            return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(a), Encoding.UTF8.GetBytes(b));
+        }
 
         public static bool ModeMaintenance
         {
@@ -96,6 +256,22 @@ namespace ChezRheyyBot
         {
             get => GetSetting("admin", "slug", "espace-sec-x9k2m7");
             set => SetSetting("admin", "slug", value);
+        }
+
+        public static string TelegramWebhookSecret
+        {
+            get
+            {
+                string env = Environment.GetEnvironmentVariable("TELEGRAM_WEBHOOK_SECRET") ?? "";
+                if (!string.IsNullOrWhiteSpace(env)) return env.Trim();
+
+                string stored = GetSetting("telegram", "webhook_secret", "");
+                if (!string.IsNullOrWhiteSpace(stored)) return stored.Trim();
+
+                string generated = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+                SetSetting("telegram", "webhook_secret", generated);
+                return generated;
+            }
         }
 
         public static bool blockstart = false;
@@ -218,6 +394,7 @@ namespace ChezRheyyBot
         public static void GetProfileSettings()
         {
             DataBase.ChargerSettings();
+            ChargerCooldowns();
         }
 
         public static void SetProfileSettings()

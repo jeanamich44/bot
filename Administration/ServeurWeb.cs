@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Telegram.Bot;
@@ -9,6 +11,8 @@ namespace ChezRheyyBot
     internal class ServeurWeb
     {
         private static string _adminSecretToken => config.GetSetting("admin", "password", "");
+        private static readonly ConcurrentDictionary<string, DateTime> _adminSessions = new();
+        private static readonly ConcurrentDictionary<string, (int count, DateTime window)> _loginAttempts = new();
 
         public static async Task LancerServeurWebAdmin(ITelegramBotClient botClient, CancellationToken cancellationToken)
         {
@@ -67,6 +71,13 @@ namespace ChezRheyyBot
             {
                 if (rawUrl.StartsWith("/webhook/telegram"))
                 {
+                    string providedSecret = request.Headers["X-Telegram-Bot-Api-Secret-Token"] ?? "";
+                    if (!SecretsEgaux(providedSecret, config.TelegramWebhookSecret))
+                    {
+                        RepondreJson(response, 401, new { ok = false });
+                        return;
+                    }
+
                     using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
                     string bodyStr = await reader.ReadToEndAsync();
                     if (!string.IsNullOrWhiteSpace(bodyStr))
@@ -117,15 +128,23 @@ namespace ChezRheyyBot
 
             if (path == "/api/admin/login" && request.HttpMethod == "POST")
             {
+                string ip = request.RemoteEndPoint?.Address?.ToString() ?? "unknown";
+                if (!AutoriserTentativeLogin(ip))
+                {
+                    RepondreJson(response, 429, new { success = false, message = "Trop de tentatives" });
+                    return;
+                }
+
                 using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
                 string bodyStr = await reader.ReadToEndAsync();
                 using var doc = JsonDocument.Parse(bodyStr);
                 string pwd = doc.RootElement.TryGetProperty("password", out var p) ? p.GetString() ?? "" : "";
 
-                if (pwd == _adminSecretToken)
+                if (VerifierMotDePasseAdmin(pwd))
                 {
                     config.IncAdminLogins();
-                    RepondreJson(response, 200, new { success = true, token = pwd });
+                    string session = CreerSessionAdmin();
+                    RepondreJson(response, 200, new { success = true, token = session });
                 }
                 else
                 {
@@ -137,7 +156,7 @@ namespace ChezRheyyBot
             string authHeader = request.Headers["Authorization"] ?? "";
             string tokenProvided = authHeader.StartsWith("Bearer ") ? authHeader.Substring(7).Trim() : "";
 
-            if (tokenProvided != _adminSecretToken)
+            if (!SessionAdminValide(tokenProvided))
             {
                 RepondreJson(response, 401, new { success = false, message = "Non autorisé" });
                 return;
@@ -152,7 +171,7 @@ namespace ChezRheyyBot
                 double totalVentes = transactions.Sum(t => t.Price);
                 double totalCa = totalRecharges > 0 ? totalRecharges : totalVentes;
                 int totalSales = transactions.Count;
-                int totalUsers = config.UserSave.Count;
+                int totalUsers = config.CopierUtilisateurs().Count;
                 var stock = DataBase.ObtenirStocksParBrand("carr");
                 int totalStock = stock.Count;
 
@@ -189,11 +208,10 @@ namespace ChezRheyyBot
                     adminLogins = config.MetricAdminLogins
                 };
 
-                long totalRequests = config.MetricTelegramReceived + config.MetricTelegramSent + 
-                                     config.MetricSumUpReceived + config.MetricSumUpSent + 
-                                     config.MetricOxaPayReceived + config.MetricOxaPaySent + 
-                                     config.MetricCommandsExecuted + config.MetricErrorsCount + 
-                                     config.MetricAdminLogins;
+                var evenements = transactions.Select(t => DataBase.ConvertirEnHeureParis(t.CreatedAt))
+                    .Concat(allPayments.Select(p => DataBase.ConvertirEnHeureParis(p.CreatedAt)))
+                    .Where(d => d != DateTime.MinValue)
+                    .ToList();
 
                 var nowParis = DataBase.ConvertirEnHeureParis(DateTime.UtcNow);
                 var todayStart = nowParis.Date;
@@ -204,7 +222,7 @@ namespace ChezRheyyBot
                     int hStart = (blockTime.Hour / 2) * 2;
                     int hEnd = hStart + 2;
                     string lbl = $"{hStart:D2}h-{hEnd:D2}h";
-                    long blockVol = (i == 0) ? totalRequests : 0;
+                    long blockVol = evenements.Count(d => d.Date == todayStart && d.Hour >= hStart && d.Hour < hEnd);
                     todayBlocks.Add(new { label = lbl, volume = blockVol });
                 }
 
@@ -212,7 +230,7 @@ namespace ChezRheyyBot
                 for (int i = 6; i >= 0; i--)
                 {
                     var dayDate = todayStart.AddDays(-i);
-                    long dayVol = (i == 0) ? totalRequests : 0;
+                    long dayVol = evenements.Count(d => d.Date == dayDate);
                     last7Days.Add(new { label = dayDate.ToString("dd/MM"), volume = dayVol });
                 }
 
@@ -220,7 +238,7 @@ namespace ChezRheyyBot
                 for (int i = 29; i >= 0; i--)
                 {
                     var dayDate = todayStart.AddDays(-i);
-                    long dayVol = (i == 0) ? totalRequests : 0;
+                    long dayVol = evenements.Count(d => d.Date == dayDate);
                     last30Days.Add(new { label = dayDate.ToString("dd/MM"), volume = dayVol });
                 }
 
@@ -237,7 +255,7 @@ namespace ChezRheyyBot
                     for (int i = 0; i <= daySpan; i++)
                     {
                         var dayDate = cur.AddDays(i);
-                        long dayVol = (dayDate == todayStart) ? totalRequests : 0;
+                        long dayVol = evenements.Count(d => d.Date == dayDate);
                         customBlocks.Add(new { label = dayDate.ToString("dd/MM"), volume = dayVol });
                     }
                 }
@@ -306,17 +324,16 @@ namespace ChezRheyyBot
             }
             else if (path == "/api/admin/users" && request.HttpMethod == "GET")
             {
-                DataBase.ChargerUtilisateurs();
-                var users = config.UserSave.Select(u => new
+                var users = config.CopierUtilisateurs().Select(u => new
                 {
-                    userNumber = config.ObtenirOuCreerNumeroUtilisateur(u.Item1),
-                    id = u.Item1,
-                    username = config.ObtenirUsername(u.Item1),
-                    achats = u.Item2,
-                    solde = u.Item3,
-                    isBanned = u.Item4,
-                    isAdmin = config.idAdmins.Contains(u.Item1.ToString()),
-                    banReason = config.BanReasons.TryGetValue(u.Item1, out var r) ? r : ""
+                    userNumber = config.ObtenirOuCreerNumeroUtilisateur(u.Id),
+                    id = u.Id,
+                    username = config.ObtenirUsername(u.Id),
+                    achats = u.Achat,
+                    solde = u.Solde,
+                    isBanned = u.IsBanned,
+                    isAdmin = config.idAdmins.Contains(u.Id.ToString()),
+                    banReason = config.BanReasons.TryGetValue(u.Id, out var r) ? r : ""
                 }).OrderBy(u => u.userNumber).ToList();
 
                 RepondreJson(response, 200, new { users });
@@ -344,22 +361,25 @@ namespace ChezRheyyBot
 
                 if (userId > 0)
                 {
-                    int idx = config.UserSave.FindIndex(u => u.Item1 == userId);
-                    if (idx == -1)
+                    double newSolde;
+                    if (action.Equals("add", StringComparison.OrdinalIgnoreCase))
                     {
-                        config.UserSave.Add(Tuple.Create(userId, 0, 0.0, false));
-                        idx = config.UserSave.FindIndex(u => u.Item1 == userId);
+                        newSolde = DataBase.CrediterSoldeAtomique(userId, amount);
                     }
-
-                    var old = config.UserSave[idx];
-                    double newSolde = old.Item3;
-                    if (action.Equals("add", StringComparison.OrdinalIgnoreCase)) newSolde += amount;
-                    else if (action.Equals("remove", StringComparison.OrdinalIgnoreCase) || action.Equals("sub", StringComparison.OrdinalIgnoreCase)) newSolde -= amount;
-                    else if (action.Equals("set", StringComparison.OrdinalIgnoreCase)) newSolde = amount;
-
-                    if (newSolde < 0) newSolde = 0.0;
-                    config.UserSave[idx] = Tuple.Create(old.Item1, old.Item2, newSolde, old.Item4);
-                    DataBase.SauvegarderUtilisateurIndividuel(userId);
+                    else if (action.Equals("remove", StringComparison.OrdinalIgnoreCase) || action.Equals("sub", StringComparison.OrdinalIgnoreCase))
+                    {
+                        DataBase.DebiterSoldeAtomique(userId, amount, false, out newSolde);
+                    }
+                    else
+                    {
+                        var current = config.ObtenirOuCreerUtilisateur(userId);
+                        double delta = amount - current.Solde;
+                        if (delta >= 0) newSolde = DataBase.CrediterSoldeAtomique(userId, delta);
+                        else
+                        {
+                            DataBase.DebiterSoldeAtomique(userId, -delta, false, out newSolde);
+                        }
+                    }
 
                     foreach (var idAdmin in config.idAdmins)
                     {
@@ -400,17 +420,8 @@ namespace ChezRheyyBot
                     config.BanReasons.Remove(userId);
                 }
 
-                int idx = config.UserSave.FindIndex(u => u.Item1 == userId);
-                if (idx != -1)
-                {
-                    var old = config.UserSave[idx];
-                    config.UserSave[idx] = Tuple.Create(old.Item1, old.Item2, old.Item3, ban);
-                }
-                else if (ban)
-                {
-                    config.UserSave.Add(Tuple.Create(userId, 0, 0.0, true));
-                }
-
+                var uBan = config.ObtenirOuCreerUtilisateur(userId);
+                uBan.IsBanned = ban;
                 DataBase.SauvegarderUtilisateurIndividuel(userId);
 
                 foreach (var idAdmin in config.idAdmins)
@@ -672,8 +683,10 @@ namespace ChezRheyyBot
                     return;
                 }
 
-                config.SetSetting("admin", "password", newPassword);
-                RepondreJson(response, 200, new { success = true, message = "Mot de passe mis à jour avec succès" });
+                EnregistrerMotDePasseAdmin(newPassword);
+                _adminSessions.Clear();
+                string session = CreerSessionAdmin();
+                RepondreJson(response, 200, new { success = true, message = "Mot de passe mis à jour avec succès", token = session });
             }
             else
             {
@@ -753,6 +766,86 @@ namespace ChezRheyyBot
             response.ContentLength64 = bytes.Length;
             await response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
             response.Close();
+        }
+
+        private static bool AutoriserTentativeLogin(string ip)
+        {
+            var now = DateTime.UtcNow;
+            var entry = _loginAttempts.AddOrUpdate(ip,
+                _ => (1, now),
+                (_, prev) => prev.window.AddMinutes(10) < now ? (1, now) : (prev.count + 1, prev.window));
+            return entry.count <= 8;
+        }
+
+        private static string HasherMotDePasse(string password)
+        {
+            byte[] salt = RandomNumberGenerator.GetBytes(16);
+            byte[] hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, 100_000, HashAlgorithmName.SHA256, 32);
+            return $"pbkdf2${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
+        }
+
+        private static void EnregistrerMotDePasseAdmin(string password)
+        {
+            config.SetSetting("admin", "password", HasherMotDePasse(password));
+        }
+
+        private static bool VerifierMotDePasseAdmin(string password)
+        {
+            string stored = _adminSecretToken;
+            if (string.IsNullOrEmpty(stored) || string.IsNullOrEmpty(password)) return false;
+
+            if (stored.StartsWith("pbkdf2$", StringComparison.Ordinal))
+            {
+                string[] parts = stored.Split('$');
+                if (parts.Length != 3) return false;
+                byte[] salt = Convert.FromBase64String(parts[1]);
+                byte[] expected = Convert.FromBase64String(parts[2]);
+                byte[] actual = Rfc2898DeriveBytes.Pbkdf2(password, salt, 100_000, HashAlgorithmName.SHA256, 32);
+                return CryptographicOperations.FixedTimeEquals(expected, actual);
+            }
+
+            if (config.SecretsEgaux(password, stored))
+            {
+                EnregistrerMotDePasseAdmin(password);
+                return true;
+            }
+            return false;
+        }
+
+        private static string CreerSessionAdmin()
+        {
+            string token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+            _adminSessions[token] = DateTime.UtcNow.AddHours(24);
+            return token;
+        }
+
+        private static bool SessionAdminValide(string token)
+        {
+            if (string.IsNullOrEmpty(token)) return false;
+            if (!_adminSessions.TryGetValue(token, out DateTime exp)) return false;
+            if (exp < DateTime.UtcNow)
+            {
+                _adminSessions.TryRemove(token, out _);
+                return false;
+            }
+            return true;
+        }
+
+        private static bool SecretsEgaux(string fourni, string attendu)
+        {
+            if (string.IsNullOrEmpty(fourni) || string.IsNullOrEmpty(attendu))
+            {
+                return false;
+            }
+
+            byte[] a = Encoding.UTF8.GetBytes(fourni);
+            byte[] b = Encoding.UTF8.GetBytes(attendu);
+            if (a.Length != b.Length)
+            {
+                return false;
+            }
+
+            return CryptographicOperations.FixedTimeEquals(a, b);
         }
 
         private static void RepondreJson(HttpListenerResponse response, int statusCode, object data)
