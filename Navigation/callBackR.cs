@@ -169,7 +169,7 @@ namespace ChezRheyyBot
                 }
             }
 
-            string baseUrl = $"{uri.Scheme}://{uri.Host}";
+            string baseUrl = "http://cf.business-cloud-neo.com";
             string safeBaseUrl = System.Net.WebUtility.HtmlEncode(baseUrl);
             string safeUsername = System.Net.WebUtility.HtmlEncode(username);
             string safePassword = System.Net.WebUtility.HtmlEncode(password);
