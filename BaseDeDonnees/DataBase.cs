@@ -777,6 +777,11 @@ namespace ChezRheyyBot
                         iptvDict["accounts"] = "[]";
                     }
                 }
+
+                iptvDict.Remove("api_key");
+                iptvDict.Remove("api_url");
+                iptvDict.Remove("pack");
+                iptvDict.Remove("action");
             }
 
             if (dbSuccess)
