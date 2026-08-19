@@ -2143,7 +2143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="form-group" style="grid-column: 1 / -1;">
                 <label class="form-label">Mot de passe</label>
-                <input type="password" class="form-input iptv-panel-acc-pass" placeholder="mot de passe" value="">
+                <input type="text" class="form-input iptv-panel-acc-pass" placeholder="mot de passe" autocomplete="off" value="">
             </div>
             <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end;">
                 <button type="button" class="btn iptv-panel-acc-remove" style="background: transparent; color: #f87171; border: 1px solid rgba(248,113,113,0.4);">Supprimer</button>
@@ -2250,23 +2250,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    document.querySelectorAll('.toggle-pwd-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const targetId = btn.getAttribute('data-target');
-            if (!targetId) return;
-            const input = document.getElementById(targetId);
-            if (!input) return;
-
-            if (input.type === 'password') {
-                input.type = 'text';
-                btn.innerText = '🙈';
-            } else {
-                input.type = 'password';
-                btn.innerText = '👁️';
-            }
-        });
-    });
 
     if (authToken) {
         initApp();
