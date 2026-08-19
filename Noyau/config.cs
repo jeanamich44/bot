@@ -89,15 +89,12 @@ namespace ChezRheyyBot
             }
         }
 
-        public static Dictionary<string, string> PayementLink = new Dictionary<string, string>();
-        public static List<string> IdPaiement = new List<string>();
         public static ConcurrentDictionary<string, byte> CustomPaiement = new ConcurrentDictionary<string, byte>();
 
         public static string botToken => Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN") ?? throw new InvalidOperationException("Variable d'environnement TELEGRAM_BOT_TOKEN manquante.");
 
         public static readonly object UsersLock = new object();
         public static List<Utilisateur> UserSave = new List<Utilisateur>();
-        public static string debugMode = "run";
 
         public static List<string> idAdmins = new List<string>();
 
@@ -227,12 +224,7 @@ namespace ChezRheyyBot
         }
 
         public static Dictionary<string, string> IdMessage = new Dictionary<string, string>();
-        public static double currentSolde = 0.0;
-        public static int achat = 0;
-
-        public static Dictionary<string, string> PayementAPI = new Dictionary<string, string>();
         public static ConcurrentDictionary<string, byte> AttentePaiement = new ConcurrentDictionary<string, byte>();
-        public static Dictionary<string, string> MontantPayement = new Dictionary<string, string>();
         public static ConcurrentDictionary<string, long> CooldownPaiementUnix = new ConcurrentDictionary<string, long>();
 
         public static bool EstEnCooldownPaiement(string chatId)
@@ -405,7 +397,6 @@ namespace ChezRheyyBot
         }
 
         public static bool blockstart = false;
-        public static bool promotion = false;
 
         // Métriques et Statistiques Système (RAM + stockage Settings)
         public static long MetricTelegramReceived = 0;
@@ -483,10 +474,8 @@ namespace ChezRheyyBot
             }
         }
 
-        public static List<string> categorie = new List<string>();
         public static Dictionary<string, Dictionary<string, string>> CategorySettings = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         public static Dictionary<string, string> Settings = new Dictionary<string, string>();
-        public static Dictionary<string, string> ProfileSettings => Settings;
 
         public static string GetSetting(string category, string key, string defaultValue = "")
         {
@@ -514,12 +503,6 @@ namespace ChezRheyyBot
         }
 
 
-
-        public static void InitialiseCategorie()
-        {
-            categorie.Clear();
-            categorie.Add("Carrefour");
-        }
 
         public static void GetProfileSettings()
         {

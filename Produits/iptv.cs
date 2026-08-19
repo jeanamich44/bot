@@ -160,13 +160,32 @@ namespace ChezRheyyBot
             }
         }
 
+        public static bool EstComplet(IptvAccount a) =>
+            a != null
+            && !string.IsNullOrWhiteSpace(a.ApiKey)
+            && !string.IsNullOrWhiteSpace(a.ApiUrl)
+            && !string.IsNullOrWhiteSpace(a.Pack);
+
+        public static List<IptvAccount> PurgerIncomplets(IEnumerable<IptvAccount>? list)
+        {
+            var kept = (list ?? Enumerable.Empty<IptvAccount>()).Where(EstComplet).ToList();
+            bool seen = false;
+            foreach (var a in kept)
+            {
+                if (a.Active && !seen) seen = true;
+                else a.Active = false;
+            }
+            if (!seen && kept.Count > 0) kept[0].Active = true;
+            return kept;
+        }
+
         public static List<IptvAccount> GetAccounts()
         {
             string raw = config.GetSetting("iptv", "accounts", "");
             if (string.IsNullOrWhiteSpace(raw)) return new List<IptvAccount>();
             try
             {
-                return JsonSerializer.Deserialize<List<IptvAccount>>(raw) ?? new List<IptvAccount>();
+                return PurgerIncomplets(JsonSerializer.Deserialize<List<IptvAccount>>(raw));
             }
             catch
             {

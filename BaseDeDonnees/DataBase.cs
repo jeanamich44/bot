@@ -54,17 +54,25 @@ namespace ChezRheyyBot
                     Value INTEGER,
                     Price DOUBLE PRECISION
                 );
+                CREATE INDEX IF NOT EXISTS idx_stock_brand ON stock (Brand);
+
                 CREATE TABLE IF NOT EXISTS users (
                     Id BIGINT PRIMARY KEY,
                     Achat INTEGER DEFAULT 0,
                     Solde DOUBLE PRECISION DEFAULT 0.0,
-                    IsBanned BOOLEAN DEFAULT FALSE
+                    IsBanned BOOLEAN DEFAULT FALSE,
+                    IsAdmin BOOLEAN DEFAULT FALSE,
+                    BanReason TEXT,
+                    UserNumber INTEGER,
+                    Username TEXT
                 );
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS IsBanned BOOLEAN DEFAULT FALSE;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS IsAdmin BOOLEAN DEFAULT FALSE;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS BanReason TEXT;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS UserNumber INTEGER;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS Username TEXT;
+                CREATE INDEX IF NOT EXISTS idx_users_usernumber ON users (UserNumber);
+
                 CREATE TABLE IF NOT EXISTS settings (
                     Key TEXT PRIMARY KEY,
                     Value JSONB
@@ -80,6 +88,9 @@ namespace ChezRheyyBot
                     Price DOUBLE PRECISION DEFAULT 0.0,
                     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
+                CREATE INDEX IF NOT EXISTS idx_transactions_userid ON transactions (UserId);
+                CREATE INDEX IF NOT EXISTS idx_transactions_createdat ON transactions (CreatedAt DESC);
+
                 CREATE TABLE IF NOT EXISTS payments (
                     Id SERIAL PRIMARY KEY,
                     ChatId TEXT NOT NULL,
@@ -89,7 +100,10 @@ namespace ChezRheyyBot
                     Status TEXT NOT NULL,
                     PaymentUrl TEXT,
                     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );";
+                );
+                CREATE INDEX IF NOT EXISTS idx_payments_chatid ON payments (ChatId);
+                CREATE INDEX IF NOT EXISTS idx_payments_status_createdat ON payments (Status, CreatedAt);
+                CREATE INDEX IF NOT EXISTS idx_payments_method_status ON payments (PaymentMethod, Status);";
 
                 using (var commande = new NpgsqlCommand(requete, connexion))
                 {
@@ -751,7 +765,16 @@ namespace ChezRheyyBot
                     bool hasAccounts = iptvDict.TryGetValue("accounts", out string? accountsRaw)
                         && !string.IsNullOrWhiteSpace(accountsRaw)
                         && accountsRaw.TrimStart().StartsWith("[");
-                    if (!hasAccounts)
+                    if (hasAccounts)
+                    {
+                        try
+                        {
+                            var parsed = JsonSerializer.Deserialize<List<iptv.IptvAccount>>(accountsRaw);
+                            iptvDict["accounts"] = JsonSerializer.Serialize(iptv.PurgerIncomplets(parsed));
+                        }
+                        catch { }
+                    }
+                    else
                     {
                         string legacyKey = iptvDict.TryGetValue("api_key", out string? k) ? k : "";
                         string legacyUrl = iptvDict.TryGetValue("api_url", out string? u) ? u : "";

@@ -802,13 +802,7 @@ namespace ChezRheyyBot
                             Active = item.TryGetProperty("active", out var actEl) && actEl.ValueKind == JsonValueKind.True
                         });
                     }
-                    bool seenActive = false;
-                    foreach (var a in accounts)
-                    {
-                        if (a.Active && !seenActive) seenActive = true;
-                        else a.Active = false;
-                    }
-                    if (!seenActive && accounts.Count > 0) accounts[0].Active = true;
+                    accounts = iptv.PurgerIncomplets(accounts);
                     config.SetSetting("iptv", "accounts", JsonSerializer.Serialize(accounts));
                 }
 

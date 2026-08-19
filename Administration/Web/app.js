@@ -2104,11 +2104,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function iptvAccountComplet(acc) {
+        return !!(acc && String(acc.api_key || '').trim() && String(acc.api_url || '').trim() && String(acc.pack || '').trim());
+    }
+
     function renderIptvAccounts(accounts) {
         const list = document.getElementById('iptv-accounts-list');
         if (!list) return;
         list.innerHTML = '';
-        const rows = Array.isArray(accounts) && accounts.length ? accounts : [{ name: '', api_key: '', api_url: '', pack: '', active: true }];
+        const complets = Array.isArray(accounts) ? accounts.filter(iptvAccountComplet) : [];
+        const rows = complets.length ? complets : [{ name: '', api_key: '', api_url: '', pack: '', active: true }];
         rows.forEach((acc) => list.appendChild(createIptvAccountRow(acc)));
         if (!list.querySelector('.iptv-acc-active:checked')) {
             const first = list.querySelector('.iptv-acc-active');
@@ -2167,7 +2172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             api_url: row.querySelector('.iptv-acc-url')?.value.trim() || '',
             pack: row.querySelector('.iptv-acc-pack')?.value.trim() || '',
             active: !!row.querySelector('.iptv-acc-active')?.checked
-        }));
+        })).filter(iptvAccountComplet);
     }
 
     const btnAddIptvAccount = document.getElementById('btn-add-iptv-account');

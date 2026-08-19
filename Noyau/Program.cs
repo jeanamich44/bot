@@ -38,7 +38,6 @@ class Program
 
         DataBase.CreerTableStockSiExistePas();
         await config.ReadJson();
-        config.InitialiseCategorie();
         config.GetProfileSettings();
 
         var me = await botClient.GetMeAsync();
