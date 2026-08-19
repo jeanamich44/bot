@@ -237,7 +237,6 @@ namespace ChezRheyyBot
             }
 
             Console.WriteLine($"[IPTV DEMO] User: {chatId} | Prix: {prix}€ | Solde actuel: {user.Solde}€");
-            await botClient.SendTextMessageAsync(chatId, "⏳ Génération de ta démo IPTV…");
 
             Dictionary<string, string> creds;
             try
@@ -327,7 +326,7 @@ namespace ChezRheyyBot
 
             var message = $"*ChezRheyy IPTV* \n\n1 mois ➔ {p1}€\n3 mois ➔ {p3}€\n6 mois ➔ {p6}€\n12 mois ➔ {p12}€";
             if (demoOn)
-                message += $"\nDémo ➔ {pDemo}€";
+                message += $"\nDémo 24h ➔ {pDemo}€";
 
             var keyboardButtons = new List<List<InlineKeyboardButton>>
             {
@@ -346,7 +345,7 @@ namespace ChezRheyyBot
             {
                 keyboardButtons.Add(new List<InlineKeyboardButton>
                 {
-                    InlineKeyboardButton.WithCallbackData($"Démo {pDemo}€", "iiptvdemo")
+                    InlineKeyboardButton.WithCallbackData("Démo 24h 1€", "iiptvdemo")
                 });
             }
             keyboardButtons.Add(new List<InlineKeyboardButton>
