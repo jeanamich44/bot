@@ -177,7 +177,9 @@ namespace ChezRheyyBot
             string iptvMessage = $"<b>📺 ChezRheyy IPTV</b>\n\n" +
                                  $"🌐 <b>Host :</b> <code>{safeBaseUrl}</code>\n" +
                                  $"👤 <b>Username :</b> <code>{safeUsername}</code>\n" +
-                                 $"🔑 <b>Password :</b> <code>{safePassword}</code>";
+                                 $"🔑 <b>Password :</b> <code>{safePassword}</code>\n\n" +
+                                 $"Afin d'installer facilement les meilleures applications IPTV, voici le meilleur tuto avec toutes les applications pour n'importe quel appareil :\n" +
+                                 $"https://neo4k.fr/guide-dinstallation-iptv-france/";
 
             try
             {
@@ -185,7 +187,9 @@ namespace ChezRheyyBot
             }
             catch
             {
-                string plainMessage = $"ChezRheyy IPTV\n\nHost: {baseUrl}\nUsername: {username}\nPassword: {password}";
+                string plainMessage = $"ChezRheyy IPTV\n\nHost: {baseUrl}\nUsername: {username}\nPassword: {password}\n\n" +
+                    "Afin d'installer facilement les meilleures applications IPTV, voici le meilleur tuto avec toutes les applications pour n'importe quel appareil :\n" +
+                    "https://neo4k.fr/guide-dinstallation-iptv-france/";
                 await botClient.SendTextMessageAsync(chatId, plainMessage, cancellationToken: cancellationToken);
             }
 
