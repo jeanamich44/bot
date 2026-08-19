@@ -828,7 +828,17 @@
                             <label class="form-label">Comptes API (clé + pack liés)</label>
                             <div id="iptv-accounts-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
                             <button type="button" id="btn-add-iptv-account" class="btn btn-primary" style="max-width: 220px; margin-top: 8px;">Ajouter un compte</button>
-                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 8px;">Chaque compte a sa propre API Key, URL et Pack. En cas d’échec, le suivant est tenté.</span>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 8px;">Coche <b>Compte actif</b> sur un seul compte. Seul celui-là est utilisé. S’il échoue, erreur client et aucun débit.</span>
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label class="form-label">Comptes panel (user + mot de passe)</label>
+                            <div id="iptv-panel-accounts-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                                <button type="button" id="btn-add-iptv-panel-account" class="btn btn-primary" style="max-width: 220px;">Ajouter un compte panel</button>
+                                <button type="button" id="btn-test-iptv-panel" class="btn btn-primary" style="max-width: 220px;">Tester la connexion panel</button>
+                            </div>
+                            <span id="iptv-panel-test-result" style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 8px;"></span>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 8px;">Même principe que les clés API : plusieurs comptes, un seul actif. Enregistre d’abord, puis teste la connexion (cms-4k.com + Geetest, comme sur le site). Les achats payants restent sur le compte API actif.</span>
                         </div>
                         <div style="grid-column: 1 / -1;">
                             <button type="submit" class="btn-primary" style="width: auto; padding: 12px 28px;">Enregistrer la Configuration IPTV</button>

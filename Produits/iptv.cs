@@ -44,6 +44,9 @@ namespace ChezRheyyBot
 
             [JsonPropertyName("pack")]
             public string Pack { get; set; } = "";
+
+            [JsonPropertyName("active")]
+            public bool Active { get; set; }
         }
 
         public static string apiType => config.GetSetting("iptv", "type", "");
@@ -64,16 +67,22 @@ namespace ChezRheyyBot
             }
         }
 
-        public static async Task<string> GenerateIPTV(string date, string userId = "")
+        public static IptvAccount? GetActiveAccount()
         {
-            var accounts = GetAccounts().Where(a =>
+            var accounts = GetAccounts();
+            return accounts.FirstOrDefault(a =>
+                a.Active &&
                 !string.IsNullOrWhiteSpace(a.ApiKey) &&
                 !string.IsNullOrWhiteSpace(a.ApiUrl) &&
-                !string.IsNullOrWhiteSpace(a.Pack)).ToList();
+                !string.IsNullOrWhiteSpace(a.Pack));
+        }
 
-            if (accounts.Count == 0)
+        public static async Task<string> GenerateIPTV(string date, string userId = "")
+        {
+            var acc = GetActiveAccount();
+            if (acc == null)
             {
-                Console.WriteLine("[IPTV ERROR] Aucun compte API configuré (api_key + api_url + pack).");
+                Console.WriteLine("[IPTV ERROR] Aucun compte API actif (coche un compte dans le panel).");
                 return string.Empty;
             }
 
@@ -86,41 +95,40 @@ namespace ChezRheyyBot
 
             string noteText = !string.IsNullOrWhiteSpace(userId) ? $"Achat Bot Telegram: {userId}" : $"order_{Guid.NewGuid():N}"[..14];
             string encodedNote = Uri.EscapeDataString(noteText);
-            Console.WriteLine($"[IPTV INFO] Début génération IPTV pour {date} mois ({accounts.Count} compte(s)).");
+            string baseApi = acc.ApiUrl.Trim();
+            string sep = baseApi.Contains("?") ? "&" : "?";
+            string url = $"{baseApi}{sep}action=new&type={type}&sub={date}&pack={acc.Pack.Trim()}&country=FR&notes={encodedNote}&api_key={acc.ApiKey.Trim()}";
+            string label = string.IsNullOrWhiteSpace(acc.Name) ? acc.Pack : acc.Name;
+            Console.WriteLine($"[IPTV INFO] Génération {date} mois via le compte actif: {label} | Pack: {acc.Pack} | Type: {type}");
 
-            using HttpClient client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(30);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
-            client.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
-            client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language", "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7");
-            client.DefaultRequestHeaders.TryAddWithoutValidation("Cache-Control", "no-cache");
-
-            foreach (var acc in accounts)
+            try
             {
-                string baseApi = acc.ApiUrl.Trim();
-                string sep = baseApi.Contains("?") ? "&" : "?";
-                string url = $"{baseApi}{sep}action=new&type={type}&sub={date}&pack={acc.Pack.Trim()}&country=FR&notes={encodedNote}&api_key={acc.ApiKey.Trim()}";
-                string label = string.IsNullOrWhiteSpace(acc.Name) ? acc.Pack : acc.Name;
-                Console.WriteLine($"[IPTV CONFIG] Compte: {label} | API URL: {baseApi} | Pack: {acc.Pack} | Type: {type}");
+                using HttpClient client = new HttpClient();
+                client.Timeout = TimeSpan.FromSeconds(30);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+                client.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+                client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language", "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7");
+                client.DefaultRequestHeaders.TryAddWithoutValidation("Cache-Control", "no-cache");
 
-                try
+                HttpResponseMessage response = await client.GetAsync(url);
+                Console.WriteLine($"[IPTV HTTP STATUS] {(int)response.StatusCode} {response.ReasonPhrase}");
+                if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 {
-                    HttpResponseMessage response = await client.GetAsync(url);
-                    Console.WriteLine($"[IPTV HTTP STATUS] {(int)response.StatusCode} {response.ReasonPhrase}");
-                    if (response.StatusCode != System.Net.HttpStatusCode.OK) continue;
+                    Console.WriteLine("[IPTV ERROR] Le compte actif a échoué. Aucun autre compte n'est tenté.");
+                    return string.Empty;
+                }
 
-                    string content = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[IPTV RESPONSE RAW] {content}");
-                    string extracted = ExtraireUrlReponse(content);
-                    if (!string.IsNullOrWhiteSpace(extracted)) return extracted;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[IPTV EXCEPTION] {ex.GetType().Name}: {ex.Message}");
-                }
+                string content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[IPTV RESPONSE RAW] {content}");
+                string extracted = ExtraireUrlReponse(content);
+                if (!string.IsNullOrWhiteSpace(extracted)) return extracted;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[IPTV EXCEPTION] {ex.GetType().Name}: {ex.Message}");
             }
 
-            Console.WriteLine("[IPTV ERROR] Aucune URL n'a pu être extraite de la réponse du serveur.");
+            Console.WriteLine("[IPTV ERROR] Le compte actif n'a pas renvoyé d'identifiants. Aucun débit.");
             return string.Empty;
         }
 

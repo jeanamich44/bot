@@ -1774,6 +1774,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('setting-iptv-6m').value = iptv.price_6m || '';
         document.getElementById('setting-iptv-12m').value = iptv.price_12m || '';
         renderIptvAccounts(iptv.accounts || []);
+        renderIptvPanelAccounts(iptv.panel_accounts || []);
 
         if (data.telegramMode) {
             document.getElementById('setting-telegram-mode').value = data.telegramMode;
@@ -2039,8 +2040,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('iptv-accounts-list');
         if (!list) return;
         list.innerHTML = '';
-        const rows = Array.isArray(accounts) && accounts.length ? accounts : [{ name: '', api_key: '', api_url: '', pack: '' }];
+        const rows = Array.isArray(accounts) && accounts.length ? accounts : [{ name: '', api_key: '', api_url: '', pack: '', active: true }];
         rows.forEach((acc) => list.appendChild(createIptvAccountRow(acc)));
+        if (!list.querySelector('.iptv-acc-active:checked')) {
+            const first = list.querySelector('.iptv-acc-active');
+            if (first) first.checked = true;
+        }
     }
 
     function createIptvAccountRow(acc) {
@@ -2048,6 +2053,12 @@ document.addEventListener('DOMContentLoaded', () => {
         wrap.className = 'iptv-account-row';
         wrap.style.cssText = 'border: 1px solid var(--border, #2a2a3a); border-radius: 10px; padding: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;';
         wrap.innerHTML = `
+            <div class="form-group" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 10px;">
+                <label class="form-label" style="margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="radio" name="iptv-acc-active" class="iptv-acc-active">
+                    Compte actif (utilisé pour les achats)
+                </label>
+            </div>
             <div class="form-group">
                 <label class="form-label">Nom</label>
                 <input type="text" class="form-input iptv-acc-name" placeholder="Compte 1" value="">
@@ -2072,6 +2083,7 @@ document.addEventListener('DOMContentLoaded', () => {
         wrap.querySelector('.iptv-acc-pack').value = acc.pack || '';
         wrap.querySelector('.iptv-acc-key').value = acc.api_key || '';
         wrap.querySelector('.iptv-acc-url').value = acc.api_url || '';
+        wrap.querySelector('.iptv-acc-active').checked = !!acc.active;
         wrap.querySelector('.iptv-acc-remove').addEventListener('click', () => {
             const list = document.getElementById('iptv-accounts-list');
             if (list && list.children.length > 1) wrap.remove();
@@ -2085,7 +2097,8 @@ document.addEventListener('DOMContentLoaded', () => {
             name: row.querySelector('.iptv-acc-name')?.value.trim() || '',
             api_key: row.querySelector('.iptv-acc-key')?.value.trim() || '',
             api_url: row.querySelector('.iptv-acc-url')?.value.trim() || '',
-            pack: row.querySelector('.iptv-acc-pack')?.value.trim() || ''
+            pack: row.querySelector('.iptv-acc-pack')?.value.trim() || '',
+            active: !!row.querySelector('.iptv-acc-active')?.checked
         }));
     }
 
@@ -2094,6 +2107,91 @@ document.addEventListener('DOMContentLoaded', () => {
         btnAddIptvAccount.addEventListener('click', () => {
             const list = document.getElementById('iptv-accounts-list');
             if (list) list.appendChild(createIptvAccountRow({ name: '', api_key: '', api_url: '', pack: '' }));
+        });
+    }
+
+    function renderIptvPanelAccounts(accounts) {
+        const list = document.getElementById('iptv-panel-accounts-list');
+        if (!list) return;
+        list.innerHTML = '';
+        const rows = Array.isArray(accounts) && accounts.length ? accounts : [{ name: '', username: '', password: '', active: true }];
+        rows.forEach((acc) => list.appendChild(createIptvPanelAccountRow(acc)));
+        if (!list.querySelector('.iptv-panel-acc-active:checked')) {
+            const first = list.querySelector('.iptv-panel-acc-active');
+            if (first) first.checked = true;
+        }
+    }
+
+    function createIptvPanelAccountRow(acc) {
+        const wrap = document.createElement('div');
+        wrap.className = 'iptv-panel-account-row';
+        wrap.style.cssText = 'border: 1px solid var(--border, #2a2a3a); border-radius: 10px; padding: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;';
+        wrap.innerHTML = `
+            <div class="form-group" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 10px;">
+                <label class="form-label" style="margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="radio" name="iptv-panel-acc-active" class="iptv-panel-acc-active">
+                    Compte actif (connexion panel)
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nom</label>
+                <input type="text" class="form-input iptv-panel-acc-name" placeholder="ChezRheyy" value="">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Utilisateur</label>
+                <input type="text" class="form-input iptv-panel-acc-user" placeholder="username" value="">
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" class="form-input iptv-panel-acc-pass" placeholder="mot de passe" value="">
+            </div>
+            <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end;">
+                <button type="button" class="btn iptv-panel-acc-remove" style="background: transparent; color: #f87171; border: 1px solid rgba(248,113,113,0.4);">Supprimer</button>
+            </div>
+        `;
+        wrap.querySelector('.iptv-panel-acc-name').value = acc.name || '';
+        wrap.querySelector('.iptv-panel-acc-user').value = acc.username || '';
+        wrap.querySelector('.iptv-panel-acc-pass').value = acc.password || '';
+        wrap.querySelector('.iptv-panel-acc-active').checked = !!acc.active;
+        wrap.querySelector('.iptv-panel-acc-remove').addEventListener('click', () => {
+            const list = document.getElementById('iptv-panel-accounts-list');
+            if (list && list.children.length > 1) wrap.remove();
+            else showToast('Garde au moins un compte panel, ou vide les champs.', 'warning');
+        });
+        return wrap;
+    }
+
+    function collectIptvPanelAccounts() {
+        return Array.from(document.querySelectorAll('.iptv-panel-account-row')).map((row) => ({
+            name: row.querySelector('.iptv-panel-acc-name')?.value.trim() || '',
+            username: row.querySelector('.iptv-panel-acc-user')?.value.trim() || '',
+            password: row.querySelector('.iptv-panel-acc-pass')?.value.trim() || '',
+            active: !!row.querySelector('.iptv-panel-acc-active')?.checked
+        }));
+    }
+
+    const btnAddIptvPanelAccount = document.getElementById('btn-add-iptv-panel-account');
+    if (btnAddIptvPanelAccount) {
+        btnAddIptvPanelAccount.addEventListener('click', () => {
+            const list = document.getElementById('iptv-panel-accounts-list');
+            if (list) list.appendChild(createIptvPanelAccountRow({ name: '', username: '', password: '' }));
+        });
+    }
+
+    const btnTestIptvPanel = document.getElementById('btn-test-iptv-panel');
+    if (btnTestIptvPanel) {
+        btnTestIptvPanel.addEventListener('click', async () => {
+            const resultEl = document.getElementById('iptv-panel-test-result');
+            if (resultEl) resultEl.textContent = 'Connexion en cours…';
+            const res = await apiRequest('/iptv/panel-test', 'POST', {});
+            if (res && res.success) {
+                const credits = res.stats?.credits ?? '?';
+                const demos = res.stats?.remaining_demos ?? '?';
+                if (resultEl) resultEl.textContent = `Connecté. Crédits : ${credits} — Démos restantes : ${demos}`;
+                showToast('Connexion panel OK', 'success');
+            } else if (resultEl) {
+                resultEl.textContent = res?.message || 'Échec de la connexion panel';
+            }
         });
     }
 
@@ -2107,6 +2205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const p6 = document.getElementById('setting-iptv-6m').value.trim();
         const p12 = document.getElementById('setting-iptv-12m').value.trim();
         const accounts = collectIptvAccounts();
+        const panel_accounts = collectIptvPanelAccounts();
 
         const res = await apiRequest('/settings/iptv', 'POST', {
             host,
@@ -2116,7 +2215,8 @@ document.addEventListener('DOMContentLoaded', () => {
             price_3m: p3,
             price_6m: p6,
             price_12m: p12,
-            accounts
+            accounts,
+            panel_accounts
         });
         if (res && res.success) {
             showToast('Configuration et tarifs IPTV enregistrés !', 'success');

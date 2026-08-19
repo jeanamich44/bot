@@ -631,7 +631,8 @@ namespace ChezRheyyBot
                     price_3m = iptvDict.TryGetValue("price_3m", out var p3v) ? p3v : "",
                     price_6m = iptvDict.TryGetValue("price_6m", out var p6v) ? p6v : "",
                     price_12m = iptvDict.TryGetValue("price_12m", out var p12v) ? p12v : "",
-                    accounts = ChezRheyyBot.iptv.GetAccounts()
+                    accounts = ChezRheyyBot.iptv.GetAccounts(),
+                    panel_accounts = IptvPanel.GetPanelAccounts()
                 };
                 string telegramMode = config.ModeTelegram;
                 string sumupMode = config.ModeSumUp;
@@ -688,13 +689,52 @@ namespace ChezRheyyBot
                             Name = item.TryGetProperty("name", out var nEl) ? nEl.GetString() ?? "" : "",
                             ApiKey = item.TryGetProperty("api_key", out var kEl) ? kEl.GetString() ?? "" : "",
                             ApiUrl = item.TryGetProperty("api_url", out var uEl) ? uEl.GetString() ?? "" : "",
-                            Pack = item.TryGetProperty("pack", out var pkEl) ? pkEl.GetString() ?? "" : ""
+                            Pack = item.TryGetProperty("pack", out var pkEl) ? pkEl.GetString() ?? "" : "",
+                            Active = item.TryGetProperty("active", out var actEl) && actEl.ValueKind == JsonValueKind.True
                         });
                     }
+                    bool seenActive = false;
+                    foreach (var a in accounts)
+                    {
+                        if (a.Active && !seenActive) seenActive = true;
+                        else a.Active = false;
+                    }
+                    if (!seenActive && accounts.Count > 0) accounts[0].Active = true;
                     config.SetSetting("iptv", "accounts", JsonSerializer.Serialize(accounts));
                 }
 
+                if (root.TryGetProperty("panel_accounts", out var panelElem) && panelElem.ValueKind == JsonValueKind.Array)
+                {
+                    var panelAccounts = new List<IptvPanel.IptvPanelAccount>();
+                    foreach (var item in panelElem.EnumerateArray())
+                    {
+                        panelAccounts.Add(new IptvPanel.IptvPanelAccount
+                        {
+                            Name = item.TryGetProperty("name", out var nEl) ? nEl.GetString() ?? "" : "",
+                            Username = item.TryGetProperty("username", out var uEl) ? uEl.GetString() ?? "" : "",
+                            Password = item.TryGetProperty("password", out var pEl) ? pEl.GetString() ?? "" : "",
+                            Active = item.TryGetProperty("active", out var actEl) && actEl.ValueKind == JsonValueKind.True
+                        });
+                    }
+                    config.SetSetting("iptv", "panel_accounts", JsonSerializer.Serialize(IptvPanel.NormalizeActive(panelAccounts)));
+                    IptvPanel.ResetAuthCache();
+                }
+
                 RepondreJson(response, 200, new { success = true });
+            }
+            else if (path == "/api/admin/iptv/panel-test" && request.HttpMethod == "POST")
+            {
+                try
+                {
+                    IptvPanel.ResetAuthCache();
+                    await IptvPanel.AuthenticateSession();
+                    var stats = await IptvPanel.GetResellerPanelStats();
+                    RepondreJson(response, 200, new { success = true, stats });
+                }
+                catch (Exception ex)
+                {
+                    RepondreJson(response, 400, new { success = false, message = ex.Message });
+                }
             }
             else if (path == "/api/admin/settings/password" && request.HttpMethod == "POST")
             {

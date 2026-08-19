@@ -768,7 +768,7 @@ namespace ChezRheyyBot
                     {
                         var migrated = new List<iptv.IptvAccount>
                         {
-                            new iptv.IptvAccount { Name = "Compte 1", ApiKey = legacyKey, ApiUrl = legacyUrl ?? "", Pack = legacyPack }
+                            new iptv.IptvAccount { Name = "Compte 1", ApiKey = legacyKey, ApiUrl = legacyUrl ?? "", Pack = legacyPack, Active = true }
                         };
                         iptvDict["accounts"] = JsonSerializer.Serialize(migrated);
                     }
@@ -782,6 +782,59 @@ namespace ChezRheyyBot
                 iptvDict.Remove("api_url");
                 iptvDict.Remove("pack");
                 iptvDict.Remove("action");
+
+                if (iptvDict.TryGetValue("accounts", out string? accJson) && !string.IsNullOrWhiteSpace(accJson))
+                {
+                    try
+                    {
+                        var list = JsonSerializer.Deserialize<List<iptv.IptvAccount>>(accJson) ?? new List<iptv.IptvAccount>();
+                        if (list.Count > 0 && !list.Any(a => a.Active))
+                        {
+                            var first = list.FirstOrDefault(a =>
+                                !string.IsNullOrWhiteSpace(a.ApiKey) &&
+                                !string.IsNullOrWhiteSpace(a.ApiUrl) &&
+                                !string.IsNullOrWhiteSpace(a.Pack));
+                            if (first != null) first.Active = true;
+                            else list[0].Active = true;
+                        }
+                        bool seenActive = false;
+                        foreach (var a in list)
+                        {
+                            if (a.Active && !seenActive) seenActive = true;
+                            else a.Active = false;
+                        }
+                        iptvDict["accounts"] = JsonSerializer.Serialize(list);
+                    }
+                    catch { }
+                }
+
+                bool hasPanelAccounts = iptvDict.TryGetValue("panel_accounts", out string? panelRaw)
+                    && !string.IsNullOrWhiteSpace(panelRaw)
+                    && panelRaw.TrimStart().StartsWith("[");
+                if (!hasPanelAccounts)
+                {
+                    var seeded = new List<IptvPanel.IptvPanelAccount>
+                    {
+                        new IptvPanel.IptvPanelAccount
+                        {
+                            Name = "ChezRheyy",
+                            Username = "ChezRheyy",
+                            Password = "Holipe94!??",
+                            Active = true
+                        }
+                    };
+                    iptvDict["panel_accounts"] = JsonSerializer.Serialize(seeded);
+                }
+                else
+                {
+                    try
+                    {
+                        var panelList = JsonSerializer.Deserialize<List<IptvPanel.IptvPanelAccount>>(panelRaw!)
+                            ?? new List<IptvPanel.IptvPanelAccount>();
+                        iptvDict["panel_accounts"] = JsonSerializer.Serialize(IptvPanel.NormalizeActive(panelList));
+                    }
+                    catch { }
+                }
             }
 
             if (dbSuccess)
