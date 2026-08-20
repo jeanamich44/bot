@@ -800,6 +800,8 @@ namespace ChezRheyyBot
             config.ValiderConfigOxaPayOuCrash();
             config.ValiderConfigSumUpOuCrash();
             config.ValiderConfigModesOuCrash();
+            config.ValiderConfigWebhookTelegramOuCrash();
+            config.ValiderConfigAdminPasswordOuCrash();
 
             config.ChargerMetricsFromSettings();
             SauvegarderSettings();

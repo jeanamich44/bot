@@ -151,21 +151,9 @@ namespace ChezRheyyBot
             lock (UsersLock)
             {
                 if (UserNumbers.TryGetValue(userId, out int num))
-                {
                     return num;
-                }
 
-                if (userId == 6298536933) num = 1;
-                else if (userId == 8740419947) num = 2;
-                else if (userId == 8676919760) num = 3;
-                else if (userId == 5883885733) num = 4;
-                else
-                {
-                    int max = UserNumbers.Values.DefaultIfEmpty(0).Max();
-                    if (max < 4) max = 4;
-                    num = max + 1;
-                }
-
+                num = UserNumbers.Values.DefaultIfEmpty(0).Max() + 1;
                 UserNumbers[userId] = num;
                 return num;
             }
@@ -384,15 +372,36 @@ namespace ChezRheyyBot
         {
             get
             {
-                string env = Environment.GetEnvironmentVariable("TELEGRAM_WEBHOOK_SECRET") ?? "";
-                if (!string.IsNullOrWhiteSpace(env)) return env.Trim();
-
                 string stored = GetSetting("telegram", "webhook_secret", "");
-                if (!string.IsNullOrWhiteSpace(stored)) return stored.Trim();
+                if (string.IsNullOrWhiteSpace(stored))
+                    throw new InvalidOperationException("telegram.webhook_secret manquant en DB.");
+                return stored.Trim();
+            }
+        }
 
-                string generated = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
-                SetSetting("telegram", "webhook_secret", generated);
-                return generated;
+        public static void ValiderConfigWebhookTelegramOuCrash()
+        {
+            lock (SettingsLock)
+            {
+                bool ok = CategorySettings.TryGetValue("telegram", out var dict)
+                    && dict != null
+                    && dict.TryGetValue("webhook_secret", out var key)
+                    && !string.IsNullOrWhiteSpace(key);
+                if (!ok)
+                    throw new InvalidOperationException("telegram.webhook_secret manquant en DB — crash au démarrage.");
+            }
+        }
+
+        public static void ValiderConfigAdminPasswordOuCrash()
+        {
+            lock (SettingsLock)
+            {
+                bool ok = CategorySettings.TryGetValue("admin", out var dict)
+                    && dict != null
+                    && dict.TryGetValue("password", out var pwd)
+                    && !string.IsNullOrWhiteSpace(pwd);
+                if (!ok)
+                    throw new InvalidOperationException("admin.password manquant en DB — crash au démarrage.");
             }
         }
 

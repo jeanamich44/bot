@@ -10,7 +10,16 @@ namespace ChezRheyyBot
 {
     internal class ServeurWeb
     {
-        private static string _adminSecretToken => config.GetSetting("admin", "password", "");
+        private static string _adminSecretToken
+        {
+            get
+            {
+                string v = config.GetSetting("admin", "password", "");
+                if (string.IsNullOrWhiteSpace(v))
+                    throw new InvalidOperationException("admin.password manquant en DB.");
+                return v;
+            }
+        }
         private static readonly ConcurrentDictionary<string, DateTime> _adminSessions = new();
         private static readonly ConcurrentDictionary<string, (int count, DateTime window)> _loginAttempts = new();
 
