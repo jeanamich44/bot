@@ -250,7 +250,7 @@ namespace ChezRheyyBot
                     return;
                 }
 
-                creds = await IptvPanel.GenerateDemoIptvLine();
+                creds = await IptvPanel.GenerateDemoIptvLine(chatId);
             }
             catch (Exception ex)
             {

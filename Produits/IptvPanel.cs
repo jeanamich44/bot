@@ -417,7 +417,7 @@ namespace ChezRheyyBot
             return match.Success && int.TryParse(match.Value, out count);
         }
 
-        public static async Task<Dictionary<string, string>> GenerateDemoIptvLine()
+        public static async Task<Dictionary<string, string>> GenerateDemoIptvLine(string telegramId)
         {
             string username = (char)('a' + Random.Shared.Next(26)) + string.Concat(Enumerable.Range(0, 6).Select(_ =>
             {
@@ -429,7 +429,7 @@ namespace ChezRheyyBot
             {
                 ["mac"] = username,
                 ["sub_id"] = "8",
-                ["comment"] = "",
+                ["comment"] = $"Achat Démo Bot Telegram: {telegramId}",
                 ["bouq_list"] = BouqList,
                 ["type"] = "lines",
                 ["bouq_custom"] = "",
