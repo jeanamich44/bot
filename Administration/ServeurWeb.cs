@@ -848,6 +848,18 @@ namespace ChezRheyyBot
                     RepondreJson(response, 400, new { success = false, message = ex.Message });
                 }
             }
+            else if (path == "/api/admin/iptv/api-test" && request.HttpMethod == "POST")
+            {
+                try
+                {
+                    var stats = await iptv.TesterCompteApiActif();
+                    RepondreJson(response, 200, new { success = true, stats });
+                }
+                catch (Exception ex)
+                {
+                    RepondreJson(response, 400, new { success = false, message = ex.Message });
+                }
+            }
             else if (path == "/api/admin/settings/password" && request.HttpMethod == "POST")
             {
                 using var reader = new StreamReader(request.InputStream, request.ContentEncoding);

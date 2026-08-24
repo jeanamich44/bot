@@ -2183,6 +2183,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const btnTestIptvApi = document.getElementById('btn-test-iptv-api');
+    if (btnTestIptvApi) {
+        btnTestIptvApi.addEventListener('click', async () => {
+            const resultEl = document.getElementById('iptv-api-test-result');
+            if (resultEl) resultEl.textContent = 'Connexion en cours…';
+            const res = await apiRequest('/iptv/api-test', 'POST', {});
+            if (res && res.success) {
+                const name = res.stats?.name || '?';
+                const pack = res.stats?.pack || '?';
+                const type = res.stats?.type || '?';
+                const credits = res.stats?.credits;
+                let msg = `Connecté. Compte : ${name} — Pack : ${pack} — Type : ${type}`;
+                if (credits) msg += ` — Crédits : ${credits}`;
+                if (resultEl) resultEl.textContent = msg;
+                showToast('Connexion API OK', 'success');
+            } else if (resultEl) {
+                resultEl.textContent = res?.message || 'Échec de la connexion API';
+            }
+        });
+    }
+
     function renderIptvPanelAccounts(accounts) {
         const list = document.getElementById('iptv-panel-accounts-list');
         if (!list) return;

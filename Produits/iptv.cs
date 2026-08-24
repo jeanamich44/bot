@@ -234,6 +234,91 @@ namespace ChezRheyyBot
             return true;
         }
 
+        private static HttpClient CreerClientApi()
+        {
+            var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language", "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7");
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Cache-Control", "no-cache");
+            return client;
+        }
+
+        public static async Task<Dictionary<string, string>> TesterCompteApiActif()
+        {
+            var acc = GetActiveAccount() ?? throw new Exception("Aucun compte API actif (clé + URL + pack).");
+            string type = apiType;
+            if (string.IsNullOrWhiteSpace(type))
+                throw new Exception("iptv.type manquant en base.");
+
+            string baseApi = acc.ApiUrl.Trim();
+            string sep = baseApi.Contains("?") ? "&" : "?";
+            string key = Uri.EscapeDataString(acc.ApiKey.Trim());
+            string creditsUrl = $"{baseApi}{sep}action=credits&api_key={key}";
+            string infoUrl = $"{baseApi}{sep}action=device_info&username=__panel_test__&api_key={key}";
+
+            using HttpClient client = CreerClientApi();
+            string content = await AppelerApi(client, creditsUrl);
+            if (EstReponseIncomplete(content))
+                content = await AppelerApi(client, infoUrl);
+
+            if (content.Contains("Invalid API Key", StringComparison.OrdinalIgnoreCase))
+                throw new Exception("Clé API refusée par le serveur.");
+
+            string label = string.IsNullOrWhiteSpace(acc.Name) ? acc.Pack : acc.Name;
+            var stats = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["name"] = label,
+                ["pack"] = acc.Pack.Trim(),
+                ["type"] = type.Trim()
+            };
+            string credits = ExtraireChampJson(content, "credits", "credit", "balance", "result");
+            if (!string.IsNullOrWhiteSpace(credits)
+                && !credits.Contains("Invalid", StringComparison.OrdinalIgnoreCase)
+                && !credits.Equals("error", StringComparison.OrdinalIgnoreCase))
+                stats["credits"] = credits;
+            return stats;
+        }
+
+        private static async Task<string> AppelerApi(HttpClient client, string url)
+        {
+            HttpResponseMessage response = await client.GetAsync(url);
+            string content = await response.Content.ReadAsStringAsync();
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new Exception($"HTTP {(int)response.StatusCode}: {(content.Length > 180 ? content[..180] : content)}");
+            return content ?? "";
+        }
+
+        private static bool EstReponseIncomplete(string content)
+        {
+            string t = (content ?? "").Trim();
+            return string.IsNullOrWhiteSpace(t)
+                || t.Contains("Something is missing", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string ExtraireChampJson(string content, params string[] keys)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse((content ?? "").Trim());
+                var root = doc.RootElement;
+                if (root.ValueKind != JsonValueKind.Object) return "";
+                foreach (var key in keys)
+                {
+                    if (!root.TryGetProperty(key, out var p)) continue;
+                    if (p.ValueKind == JsonValueKind.String)
+                    {
+                        string s = (p.GetString() ?? "").Trim();
+                        if (!string.IsNullOrWhiteSpace(s)) return s;
+                    }
+                    else if (p.ValueKind == JsonValueKind.Number)
+                        return p.GetRawText();
+                }
+            }
+            catch { }
+            return "";
+        }
+
         public static async Task<string> GenerateIPTV(string date, string userId = "")
         {
             var acc = GetActiveAccount();
@@ -260,12 +345,7 @@ namespace ChezRheyyBot
 
             try
             {
-                using HttpClient client = new HttpClient();
-                client.Timeout = TimeSpan.FromSeconds(30);
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
-                client.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
-                client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language", "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7");
-                client.DefaultRequestHeaders.TryAddWithoutValidation("Cache-Control", "no-cache");
+                using HttpClient client = CreerClientApi();
 
                 HttpResponseMessage response = await client.GetAsync(url);
                 Console.WriteLine($"[IPTV HTTP STATUS] {(int)response.StatusCode} {response.ReasonPhrase}");
