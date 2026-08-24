@@ -48,6 +48,7 @@ namespace ChezRheyyBot
         };
 
         private static readonly object CacheLock = new object();
+        private static readonly SemaphoreSlim AuthGate = new(1, 1);
         private static Dictionary<string, string>? AuthHeaders;
         private static DateTime AuthUntil = DateTime.MinValue;
         private static Dictionary<string, string>? StatsCache;
@@ -80,9 +81,14 @@ namespace ChezRheyyBot
                 StatsUntil = DateTime.MinValue;
                 ConnectionsCache = null;
                 ConnectionsUntil = DateTime.MinValue;
-                foreach (Cookie c in Cookies.GetAllCookies())
-                    c.Expired = true;
+                ExpireAllCookies();
             }
+        }
+
+        private static void ExpireAllCookies()
+        {
+            foreach (Cookie c in Cookies.GetAllCookies())
+                c.Expired = true;
         }
 
         public static List<IptvPanelAccount> GetPanelAccounts()
@@ -206,6 +212,42 @@ namespace ChezRheyyBot
             return doc.RootElement.Clone();
         }
 
+        private static bool HtmlSessionActive(string html)
+        {
+            if (string.IsNullOrEmpty(html)) return false;
+            return html.Contains("Dashboard | 4K", StringComparison.OrdinalIgnoreCase)
+                || html.Contains("Remaining Demo", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string? GetStormerSessId()
+        {
+            return Cookies.GetCookies(new Uri("https://cms-4k.com/"))["STORMERSESSID"]?.Value;
+        }
+
+        private static async Task<Dictionary<string, string>?> TryReuseExistingSession()
+        {
+            string? sid = GetStormerSessId();
+            if (string.IsNullOrWhiteSpace(sid)) return null;
+            try
+            {
+                var headers = BaseHeaders();
+                headers["cookie"] = "STORMERSESSID=" + sid;
+                var resp = await SendAsync(HttpMethod.Get, "https://cms-4k.com/addnew?t=lines", headers);
+                string html = await resp.Content.ReadAsStringAsync();
+                if ((int)resp.StatusCode != 200 || !HtmlSessionActive(html)) return null;
+                lock (CacheLock)
+                {
+                    AuthHeaders = headers;
+                    AuthUntil = DateTime.UtcNow.AddSeconds(1200);
+                }
+                return new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public static async Task<Dictionary<string, string>> AuthenticateSession()
         {
             lock (CacheLock)
@@ -213,6 +255,30 @@ namespace ChezRheyyBot
                 if (AuthHeaders != null && DateTime.UtcNow < AuthUntil)
                     return new Dictionary<string, string>(AuthHeaders, StringComparer.OrdinalIgnoreCase);
             }
+
+            await AuthGate.WaitAsync();
+            try
+            {
+                lock (CacheLock)
+                {
+                    if (AuthHeaders != null && DateTime.UtcNow < AuthUntil)
+                        return new Dictionary<string, string>(AuthHeaders, StringComparer.OrdinalIgnoreCase);
+                }
+
+                var reused = await TryReuseExistingSession();
+                if (reused != null) return reused;
+
+                return await LoginPanelFresh();
+            }
+            finally
+            {
+                AuthGate.Release();
+            }
+        }
+
+        private static async Task<Dictionary<string, string>> LoginPanelFresh()
+        {
+            ExpireAllCookies();
 
             var acc = GetActivePanelAccount() ?? throw new Exception("Aucun compte panel actif (user / mot de passe).");
             var headers = BaseHeaders();
@@ -222,8 +288,14 @@ namespace ChezRheyyBot
             if ((int)respLogin.StatusCode != 200)
                 throw new Exception("Echec du chargement de la page de login: " + (int)respLogin.StatusCode);
 
-            var captchaMatch = Regex.Match(loginHtml, @"var captchaId\s*=\s*[""']([^""']+)[""']");
-            if (!captchaMatch.Success) throw new Exception("Impossible de récupérer le captchaId depuis la page");
+            var captchaMatch = Regex.Match(loginHtml, @"(?:var\s+)?captchaId\s*=\s*[""']([^""']+)[""']");
+            if (!captchaMatch.Success)
+            {
+                var title = Regex.Match(loginHtml ?? "", @"<title>([^<]+)</title>", RegexOptions.IgnoreCase);
+                throw new Exception("Impossible de récupérer le captchaId depuis la page (status="
+                    + (int)respLogin.StatusCode + ", len=" + (loginHtml?.Length ?? 0)
+                    + ", title=" + (title.Success ? title.Groups[1].Value.Trim() : "?") + ")");
+            }
             string captchaId = captchaMatch.Groups[1].Value;
 
             string? stormersessid = ExtraireCookie(respLogin, "STORMERSESSID");
