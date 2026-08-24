@@ -254,14 +254,22 @@ namespace ChezRheyyBot
             string baseApi = acc.ApiUrl.Trim();
             string sep = baseApi.Contains("?") ? "&" : "?";
             string key = Uri.EscapeDataString(acc.ApiKey.Trim());
-            string creditsUrl = $"{baseApi}{sep}action=credits&api_key={key}";
-            string infoUrl = $"{baseApi}{sep}action=device_info&username=__panel_test__&api_key={key}";
 
             using HttpClient client = CreerClientApi();
-            string content = await AppelerApi(client, creditsUrl);
-            if (EstReponseIncomplete(content))
-                content = await AppelerApi(client, infoUrl);
+            string? content = null;
+            string credits = "";
+            foreach (string action in new[] { "info", "account", "balance", "credit" })
+            {
+                string url = $"{baseApi}{sep}action={action}&api_key={key}";
+                content = await AppelerApi(client, url);
+                if (content.Contains("Invalid API Key", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Clé API refusée par le serveur.");
+                credits = ExtraireNombreCredits(content);
+                if (!string.IsNullOrWhiteSpace(credits)) break;
+            }
 
+            if (string.IsNullOrWhiteSpace(content))
+                throw new Exception("Réponse API vide.");
             if (content.Contains("Invalid API Key", StringComparison.OrdinalIgnoreCase))
                 throw new Exception("Clé API refusée par le serveur.");
 
@@ -272,10 +280,7 @@ namespace ChezRheyyBot
                 ["pack"] = acc.Pack.Trim(),
                 ["type"] = type.Trim()
             };
-            string credits = ExtraireChampJson(content, "credits", "credit", "balance", "result");
-            if (!string.IsNullOrWhiteSpace(credits)
-                && !credits.Contains("Invalid", StringComparison.OrdinalIgnoreCase)
-                && !credits.Equals("error", StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(credits))
                 stats["credits"] = credits;
             return stats;
         }
@@ -289,33 +294,65 @@ namespace ChezRheyyBot
             return content ?? "";
         }
 
-        private static bool EstReponseIncomplete(string content)
+        private static readonly string[] CreditJsonKeys =
         {
-            string t = (content ?? "").Trim();
-            return string.IsNullOrWhiteSpace(t)
-                || t.Contains("Something is missing", StringComparison.OrdinalIgnoreCase);
-        }
+            "credits", "credit", "balance", "remaining_credits", "remaining", "credit_balance", "points"
+        };
 
-        private static string ExtraireChampJson(string content, params string[] keys)
+        private static string ExtraireNombreCredits(string content)
         {
+            string trimmed = (content ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(trimmed)) return "";
             try
             {
-                using var doc = JsonDocument.Parse((content ?? "").Trim());
-                var root = doc.RootElement;
-                if (root.ValueKind != JsonValueKind.Object) return "";
-                foreach (var key in keys)
-                {
-                    if (!root.TryGetProperty(key, out var p)) continue;
-                    if (p.ValueKind == JsonValueKind.String)
-                    {
-                        string s = (p.GetString() ?? "").Trim();
-                        if (!string.IsNullOrWhiteSpace(s)) return s;
-                    }
-                    else if (p.ValueKind == JsonValueKind.Number)
-                        return p.GetRawText();
-                }
+                using var doc = JsonDocument.Parse(trimmed);
+                string fromJson = ChercherNombreCredits(doc.RootElement);
+                if (!string.IsNullOrWhiteSpace(fromJson)) return fromJson;
             }
             catch { }
+
+            var match = System.Text.RegularExpressions.Regex.Match(
+                trimmed,
+                @"(?:credits?|balance|remaining(?:_credits)?)\D{0,12}(\d+(?:[.,]\d+)?)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            return match.Success ? match.Groups[1].Value.Replace(',', '.') : "";
+        }
+
+        private static string ChercherNombreCredits(JsonElement el)
+        {
+            if (el.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in el.EnumerateObject())
+                {
+                    if (!CreditJsonKeys.Contains(prop.Name, StringComparer.OrdinalIgnoreCase)) continue;
+                    string n = ValeurNumerique(prop.Value);
+                    if (!string.IsNullOrWhiteSpace(n)) return n;
+                }
+                foreach (var prop in el.EnumerateObject())
+                {
+                    string child = ChercherNombreCredits(prop.Value);
+                    if (!string.IsNullOrWhiteSpace(child)) return child;
+                }
+            }
+            else if (el.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in el.EnumerateArray())
+                {
+                    string child = ChercherNombreCredits(item);
+                    if (!string.IsNullOrWhiteSpace(child)) return child;
+                }
+            }
+            return "";
+        }
+
+        private static string ValeurNumerique(JsonElement el)
+        {
+            if (el.ValueKind == JsonValueKind.Number)
+                return el.GetRawText();
+            if (el.ValueKind != JsonValueKind.String) return "";
+            string s = (el.GetString() ?? "").Trim();
+            if (System.Text.RegularExpressions.Regex.IsMatch(s, @"^-?\d+([.,]\d+)?$"))
+                return s.Replace(',', '.');
             return "";
         }
 
