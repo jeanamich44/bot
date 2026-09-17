@@ -66,7 +66,7 @@ namespace ChezRheyyBot
                 AutomaticDecompression = DecompressionMethods.All,
                 CookieContainer = Cookies,
                 UseCookies = true,
-                AllowAutoRedirect = true
+                AllowAutoRedirect = false
             };
             Http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(45) };
         }
@@ -357,16 +357,48 @@ namespace ChezRheyyBot
                 ["content-type"] = "application/x-www-form-urlencoded"
             };
             var respPost = await SendAsync(HttpMethod.Post, "https://cms-4k.com/login.php", postHeaders, form);
-            string postHtml = await respPost.Content.ReadAsStringAsync();
-            if ((int)respPost.StatusCode != 200 || !postHtml.Contains("Dashboard | 4K"))
+
+            string? authCookie = ExtraireCookie(respPost, "STORMERSESSID");
+            if (string.IsNullOrWhiteSpace(authCookie))
+                authCookie = Cookies.GetCookies(new Uri("https://cms-4k.com/"))["STORMERSESSID"]?.Value;
+            if (string.IsNullOrWhiteSpace(authCookie))
+                authCookie = stormersessid;
+
+            Cookies.SetCookies(new Uri("https://cms-4k.com/"), $"STORMERSESSID={authCookie}; path=/; domain=cms-4k.com");
+
+            var authHeaders = new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase)
+            {
+                ["cookie"] = "STORMERSESSID=" + authCookie
+            };
+
+            if (respPost.StatusCode == HttpStatusCode.Found || respPost.StatusCode == HttpStatusCode.Redirect || respPost.StatusCode == HttpStatusCode.SeeOther || respPost.Headers.Location != null)
+            {
+                string targetUrl = respPost.Headers.Location != null
+                    ? new Uri(new Uri("https://cms-4k.com/login.php"), respPost.Headers.Location).ToString()
+                    : "https://cms-4k.com/index";
+
+                var respDash = await SendAsync(HttpMethod.Get, targetUrl, authHeaders);
+                string dashHtml = await respDash.Content.ReadAsStringAsync();
+                if ((int)respDash.StatusCode != 200 || !HtmlSessionActive(dashHtml))
+                    throw new Exception("Echec de la connexion au Dashboard");
+            }
+            else if ((int)respPost.StatusCode == 200)
+            {
+                string postHtml = await respPost.Content.ReadAsStringAsync();
+                if (!HtmlSessionActive(postHtml))
+                    throw new Exception("Echec de la connexion au Dashboard");
+            }
+            else
+            {
                 throw new Exception("Echec de la connexion au Dashboard");
+            }
 
             lock (CacheLock)
             {
-                AuthHeaders = sessionHeaders;
+                AuthHeaders = authHeaders;
                 AuthUntil = DateTime.UtcNow.AddSeconds(1200);
             }
-            return new Dictionary<string, string>(sessionHeaders, StringComparer.OrdinalIgnoreCase);
+            return new Dictionary<string, string>(authHeaders, StringComparer.OrdinalIgnoreCase);
         }
 
         private static string GetJsonString(JsonElement el, string key)
